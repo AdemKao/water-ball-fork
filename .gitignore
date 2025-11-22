@@ -1,0 +1,43 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Env
+.env
+.env.local
+.env.*.local
+
+# Dependencies
+node_modules/
+target/
+
+# Build outputs
+dist/
+build/
+out/
+*.jar
+*.war
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# Test
+coverage/
+.pytest_cache/
+
+# Docker
+docker-compose.override.yml
+
+# Database
+*.sql
+*.db
+postgres-data/
