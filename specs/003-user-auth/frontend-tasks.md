@@ -800,46 +800,46 @@ export * from './navigation';
 
 ### Phase 1: Setup
 
-- [ ] Task 1.1: 安裝 @react-oauth/google
+- [x] Task 1.1: 安裝 @react-oauth/google
 
 ### Phase 2: Types
 
-- [ ] Task 2.1: User Type
-- [ ] Task 2.2: Auth Types
+- [x] Task 2.1: User Type
+- [x] Task 2.2: Auth Types
 
 ### Phase 3: Services
 
-- [ ] Task 3.1: Auth Service
-- [ ] Task 3.2: API Client 更新
+- [x] Task 3.1: Auth Service
+- [x] Task 3.2: API Client 更新
 
 ### Phase 4: Context & Hooks
 
-- [ ] Task 4.1: AuthContext
-- [ ] Task 4.2: useAuth Hook
-- [ ] Task 4.3: useUser Hook
+- [x] Task 4.1: AuthContext
+- [x] Task 4.2: useAuth Hook
+- [x] Task 4.3: useUser Hook
 
 ### Phase 5: Providers
 
-- [ ] Task 5.1: Providers
-- [ ] Task 5.2: Root Layout 更新
+- [x] Task 5.1: Providers
+- [x] Task 5.2: Root Layout 更新
 
 ### Phase 6: Components
 
 - [ ] Task 6.1: GoogleLoginButton (原版)
-- [ ] Task 6.2: GoogleLoginButton (credential 版)
-- [ ] Task 6.3: UserMenu
-- [ ] Task 6.4: ProtectedRoute
-- [ ] Task 6.5: Auth components index
+- [x] Task 6.2: GoogleLoginButton (credential 版)
+- [x] Task 6.3: UserMenu
+- [x] Task 6.4: ProtectedRoute
+- [x] Task 6.5: Auth components index
 
 ### Phase 7: UI Components
 
-- [ ] Task 7.1: DropdownMenu
+- [x] Task 7.1: DropdownMenu
 
 ### Phase 8: Page Updates
 
-- [ ] Task 8.1: Login Page
-- [ ] Task 8.2: Navbar
+- [x] Task 8.1: Login Page
+- [x] Task 8.2: Navbar
 
 ### Phase 9: Types Export
 
-- [ ] Task 9.1: Types index
+- [x] Task 9.1: Types index

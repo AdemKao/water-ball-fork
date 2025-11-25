@@ -1,15 +1,44 @@
+'use client';
+
+import { useAuth } from '@/hooks/useAuth';
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
+import { GoogleLoginButton } from '@/components/auth';
+
 export default function LoginPage() {
+  const { isAuthenticated, isLoading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!isLoading && isAuthenticated) {
+      router.push('/');
+    }
+  }, [isAuthenticated, isLoading, router]);
+
+  if (isLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <p>Loading...</p>
+      </div>
+    );
+  }
+
+  if (isAuthenticated) {
+    return null;
+  }
+
   return (
-    <div className="flex items-center justify-center min-h-screen">
-      <div className="w-full max-w-md">
-        <h1 className="text-3xl font-bold mb-4 text-center">Login</h1>
-        <p className="text-muted-foreground text-center mb-8">
-          Sign in to your account
-        </p>
-        <div className="border rounded-lg p-6 bg-card">
-          <p className="text-center text-sm text-muted-foreground">
-            Login form will be implemented here
+    <div className="flex min-h-screen flex-col items-center justify-center">
+      <div className="w-full max-w-md space-y-8 px-4">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold">Welcome</h1>
+          <p className="mt-2 text-muted-foreground">
+            Sign in to continue to your account
           </p>
+        </div>
+
+        <div className="mt-8 flex justify-center">
+          <GoogleLoginButton />
         </div>
       </div>
     </div>

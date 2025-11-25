@@ -4,9 +4,13 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { useAuth } from "@/hooks/useAuth";
+import { UserMenu } from "@/components/auth";
+import { Button } from "@/components/ui/button";
 
 export function Navbar() {
   const pathname = usePathname();
+  const { isAuthenticated, isLoading } = useAuth();
 
   const navItems = [
     { label: "首頁", href: "/" },
@@ -41,12 +45,15 @@ export function Navbar() {
 
         <div className="flex items-center gap-4">
           <ThemeToggle />
-          <Link
-            href="/login"
-            className="text-sm font-medium text-primary hover:underline"
-          >
-            登入
-          </Link>
+          {isLoading ? (
+            <div className="h-8 w-8 animate-pulse rounded-full bg-muted" />
+          ) : isAuthenticated ? (
+            <UserMenu />
+          ) : (
+            <Button asChild variant="outline" size="sm">
+              <Link href="/login">Sign In</Link>
+            </Button>
+          )}
         </div>
       </div>
     </header>
