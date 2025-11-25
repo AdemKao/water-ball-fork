@@ -1013,50 +1013,50 @@ public static class ErrorResponse {
 
 ### Phase 1: Database & Entity
 
-- [ ] Task 1.1: Flyway Migration
-- [ ] Task 1.2: User Entity
-- [ ] Task 1.3: UserRole Enum
-- [ ] Task 1.4: AuthProvider Enum
-- [ ] Task 1.5: UserAuthProvider Entity
-- [ ] Task 1.6: RefreshToken Entity
-- [ ] Task 1.7: UserRepository
-- [ ] Task 1.8: UserAuthProviderRepository
-- [ ] Task 1.9: RefreshTokenRepository
+- [x] Task 1.1: Flyway Migration
+- [x] Task 1.2: User Entity
+- [x] Task 1.3: UserRole Enum
+- [x] Task 1.4: AuthProvider Enum
+- [x] Task 1.5: UserAuthProvider Entity
+- [x] Task 1.6: RefreshToken Entity
+- [x] Task 1.7: UserRepository
+- [x] Task 1.8: UserAuthProviderRepository
+- [x] Task 1.9: RefreshTokenRepository
 
 ### Phase 2: DTO Classes
 
-- [ ] Task 2.1: GoogleLoginRequest
-- [ ] Task 2.2: UserResponse
-- [ ] Task 2.3: AuthResponse
-- [ ] Task 2.4: MessageResponse
+- [x] Task 2.1: GoogleLoginRequest
+- [x] Task 2.2: UserResponse
+- [x] Task 2.3: AuthResponse
+- [x] Task 2.4: MessageResponse
 
 ### Phase 3: Service Layer
 
-- [ ] Task 3.1: pom.xml 依賴
-- [ ] Task 3.2: JwtService
-- [ ] Task 3.3: GoogleAuthService
-- [ ] Task 3.4: InvalidCredentialException
-- [ ] Task 3.5: AuthService
-- [ ] Task 3.6: UserService
+- [x] Task 3.1: pom.xml 依賴
+- [x] Task 3.2: JwtService
+- [x] Task 3.3: GoogleAuthService
+- [x] Task 3.4: InvalidCredentialException
+- [x] Task 3.5: AuthService
+- [x] Task 3.6: UserService
 
 ### Phase 4: Security Configuration
 
-- [ ] Task 4.1: JwtAuthenticationFilter
-- [ ] Task 4.2: UserPrincipal
-- [ ] Task 4.3: SecurityConfig 更新
-- [ ] Task 4.4: CookieService
+- [x] Task 4.1: JwtAuthenticationFilter
+- [x] Task 4.2: UserPrincipal
+- [x] Task 4.3: SecurityConfig 更新
+- [x] Task 4.4: CookieService
 
 ### Phase 5: Controller Layer
 
-- [ ] Task 5.1: AuthController
+- [x] Task 5.1: AuthController
 
 ### Phase 6: Configuration
 
-- [ ] Task 6.1: application.yml 更新
-- [ ] Task 6.2: GlobalExceptionHandler 更新
+- [x] Task 6.1: application.yml 更新
+- [x] Task 6.2: GlobalExceptionHandler 更新
 
 ### Phase 7: Testing
 
 - [ ] Task 7.1: JwtServiceTest
 - [ ] Task 7.2: AuthServiceTest
-- [ ] Task 7.3: AuthControllerTest
+- [x] Task 7.3: AuthControllerTest (10/10 tests passing)
