@@ -1,4 +1,4 @@
-import { apiClient } from '@/lib/api-client';
+import { legacyApiClient } from '@/lib/api-client';
 
 interface HealthCheckResponse {
   status: string;
@@ -8,6 +8,6 @@ interface HealthCheckResponse {
 
 export const healthService = {
   checkHealth: async (): Promise<HealthCheckResponse> => {
-    return apiClient.get<HealthCheckResponse>('/api/health');
+    return legacyApiClient.get<HealthCheckResponse>('/api/health');
   },
 };
