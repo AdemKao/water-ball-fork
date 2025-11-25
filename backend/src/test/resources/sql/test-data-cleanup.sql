@@ -1,0 +1,9 @@
+DELETE FROM lesson_progress;
+DELETE FROM user_purchases;
+DELETE FROM lessons;
+DELETE FROM chapters;
+DELETE FROM journeys;
+DELETE FROM videos;
+DELETE FROM refresh_tokens;
+DELETE FROM user_auth_providers;
+DELETE FROM users;
