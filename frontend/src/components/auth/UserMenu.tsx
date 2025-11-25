@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import {
@@ -28,12 +29,15 @@ export function UserMenu() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+        <Button variant="ghost" className="relative h-8 w-8 rounded-full p-0 overflow-hidden">
           {user.pictureUrl ? (
-            <img
+            <Image
               src={user.pictureUrl}
               alt={user.name}
-              className="h-8 w-8 rounded-full object-cover"
+              width={32}
+              height={32}
+              className="rounded-full object-cover"
+              referrerPolicy="no-referrer"
             />
           ) : (
             <User className="h-4 w-4" />
