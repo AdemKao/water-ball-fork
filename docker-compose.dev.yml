@@ -19,10 +19,10 @@ services:
       - waterball-network
 
   backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
+    image: maven:3.9-eclipse-temurin-17
     container_name: waterball-course-backend
+    working_dir: /app
+    command: sh -c "mvn spring-boot:run -Dspring-boot.run.jvmArguments='-Dspring.devtools.restart.enabled=true'"
     env_file:
       - ./backend/.env
     environment:
@@ -32,6 +32,9 @@ services:
       SPRING_DATASOURCE_PASSWORD: waterball123
     ports:
       - "8888:8888"
+    volumes:
+      - ./backend:/app
+      - maven-repo:/root/.m2
     depends_on:
       postgres:
         condition: service_healthy
@@ -64,3 +67,4 @@ networks:
 
 volumes:
   postgres-data:
+  maven-repo:
