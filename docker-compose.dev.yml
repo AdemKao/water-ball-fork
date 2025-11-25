@@ -1,0 +1,63 @@
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: waterball-course-db
+    environment:
+      POSTGRES_DB: course_platform
+      POSTGRES_USER: waterball
+      POSTGRES_PASSWORD: waterball123
+    ports:
+      - "54325:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U waterball -d course_platform"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - waterball-network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: waterball-course-backend
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/course_platform
+      SPRING_DATASOURCE_USERNAME: waterball
+      SPRING_DATASOURCE_PASSWORD: waterball123
+    ports:
+      - "8888:8888"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - waterball-network
+
+  frontend:
+    image: node:20-alpine
+    container_name: waterball-course-frontend
+    working_dir: /app
+    command: sh -c "npm install && npm run dev"
+    ports:
+      - "3388:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8888
+      - WATCHPACK_POLLING=true
+    depends_on:
+      - backend
+    networks:
+      - waterball-network
+
+networks:
+  waterball-network:
+    driver: bridge
+
+volumes:
+  postgres-data:
