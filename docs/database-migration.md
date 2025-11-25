@@ -22,6 +22,8 @@ This project uses [Flyway](https://flywaydb.org/) for database schema versioning
 |---------|-------------|------|
 | V1 | Initial schema | `V1__init_schema.sql` |
 | V2 | Users and auth tables | `V2__create_users_and_auth_tables.sql` |
+| V3 | Course tables | `V3__create_course_tables.sql` |
+| V4 | Mock seed data | `V4__seed_mock_data.sql` |
 
 ## 2. Running Migrations
 
@@ -437,3 +439,85 @@ To use Flyway commands directly via Maven, add the plugin to `pom.xml`:
     </plugins>
 </build>
 ```
+
+## 9. Mock Seed Data
+
+The project includes mock seed data (`V4__seed_mock_data.sql`) for development and testing purposes.
+
+### Seed Data Contents
+
+| Data | Description |
+|------|-------------|
+| **Users** | 1 instructor (`instructor@waterball.tw`), 2 students (`student1@example.com`, `student2@example.com`) |
+| **Journeys** | 3 courses: 軟體設計之路, 敏捷開發實戰, 測試驅動開發 TDD (unpublished) |
+| **Chapters** | 5 chapters across journeys (mix of FREE and PURCHASED access) |
+| **Lessons** | 17 lessons with VIDEO, ARTICLE, and FORM types |
+| **Purchases** | student1 has purchased 軟體設計之路 |
+| **Progress** | student1 has progress on several lessons |
+
+### Video Content
+
+All video lessons use the same YouTube URL for demonstration:
+```
+https://www.youtube.com/watch?v=wtubL3MIOq8
+```
+
+### Test Users
+
+| Email | Role | Password | Notes |
+|-------|------|----------|-------|
+| `instructor@waterball.tw` | INSTRUCTOR | (Google OAuth) | Course instructor |
+| `student1@example.com` | USER | (Google OAuth) | Has purchased Journey 1, has progress |
+| `student2@example.com` | USER | (Google OAuth) | No purchases, no progress |
+
+### Access Levels
+
+- **FREE chapters/lessons**: Available to all authenticated users
+- **PURCHASED chapters/lessons**: Require `user_purchases` record for the journey
+
+### Running Seed Data
+
+The seed data is automatically applied when running Flyway migrations:
+
+```bash
+# Local development
+cd backend
+docker-compose up -d postgres
+mvn spring-boot:run
+
+# Or manually run migrations
+mvn flyway:migrate \
+  -Dflyway.url=jdbc:postgresql://localhost:54325/course_platform \
+  -Dflyway.user=waterball \
+  -Dflyway.password=waterball123
+```
+
+### Resetting Database with Seed Data
+
+To reset the database and re-apply all migrations including seed data:
+
+```bash
+# Clean and migrate (DEVELOPMENT ONLY!)
+cd backend
+mvn flyway:clean flyway:migrate \
+  -Dflyway.url=jdbc:postgresql://localhost:54325/course_platform \
+  -Dflyway.user=waterball \
+  -Dflyway.password=waterball123 \
+  -Dflyway.cleanDisabled=false
+```
+
+### UUID Reference
+
+Key UUIDs for API testing:
+
+| Entity | UUID | Description |
+|--------|------|-------------|
+| Journey 1 | `d3eebc99-9c0b-4ef8-bb6d-6bb9bd380a44` | 軟體設計之路 |
+| Journey 2 | `e4eebc99-9c0b-4ef8-bb6d-6bb9bd380a55` | 敏捷開發實戰 |
+| Chapter 1 | `11111111-1111-1111-1111-111111111111` | 物件導向基礎 (FREE) |
+| Lesson 1-1 | `aaaa1111-1111-1111-1111-111111111111` | 什麼是物件導向？ (VIDEO) |
+| Lesson 1-3 | `aaaa3333-3333-3333-3333-333333333333` | 封裝與存取修飾詞 (ARTICLE) |
+| Lesson 1-4 | `aaaa4444-4444-4444-4444-444444444444` | 第一章測驗 (FORM) |
+| Student 1 | `b1eebc99-9c0b-4ef8-bb6d-6bb9bd380a22` | student1@example.com |
+| Student 2 | `c2eebc99-9c0b-4ef8-bb6d-6bb9bd380a33` | student2@example.com |
+| Instructor | `a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11` | instructor@waterball.tw |
