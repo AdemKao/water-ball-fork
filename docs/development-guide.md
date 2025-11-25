@@ -23,6 +23,29 @@ cp frontend/.env.example frontend/.env
 
 ### Local Development
 
+#### Docker Development (推薦)
+
+使用 `docker-compose.dev.yml` 可以啟動完整開發環境，前端支援 hot reload：
+
+```bash
+docker compose -f docker-compose.dev.yml up
+```
+
+這會啟動：
+- PostgreSQL (port 54325)
+- Backend (port 8888)
+- Frontend with hot reload (port 3388)
+
+修改前端程式碼後會自動刷新頁面。
+
+#### Production-like Docker
+
+使用 `docker-compose.yml` 啟動 production build：
+
+```bash
+docker compose up --build
+```
+
 #### Backend Development
 
 ```bash

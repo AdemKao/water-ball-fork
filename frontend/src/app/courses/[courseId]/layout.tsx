@@ -1,3 +1,4 @@
+import { use } from "react";
 import { CourseSider } from "@/components/layout/course-sider";
 import { MainContent } from "@/components/layout/main-content";
 
@@ -6,11 +7,12 @@ export default function CourseLayout({
   params,
 }: {
   children: React.ReactNode;
-  params: { courseId: string };
+  params: Promise<{ courseId: string }>;
 }) {
+  const { courseId } = use(params);
   return (
     <div className="flex min-h-screen">
-      <CourseSider courseId={params.courseId} />
+      <CourseSider courseId={courseId} />
       <MainContent>{children}</MainContent>
     </div>
   );

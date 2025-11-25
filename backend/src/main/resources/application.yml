@@ -21,14 +21,21 @@ spring:
     enabled: true
     baseline-on-migrate: true
     locations: classpath:db/migration
-  
-  security:
-    jwt:
-      secret: waterball-course-platform-secret-key-change-this-in-production
-      expiration: 86400000
 
 server:
   port: 8888
+
+google:
+  client-id: ${GOOGLE_CLIENT_ID:}
+
+jwt:
+  secret: ${JWT_SECRET:d2F0ZXJiYWxsLWNvdXJzZS1wbGF0Zm9ybS1zZWNyZXQta2V5LWZvci1qd3Qtc2lnbmluZy0yMDI0}
+  access-expiration: ${JWT_ACCESS_EXPIRATION:1800000}
+  refresh-expiration: ${JWT_REFRESH_EXPIRATION:2592000000}
+
+cookie:
+  domain: ${COOKIE_DOMAIN:localhost}
+  secure: ${COOKIE_SECURE:false}
 
 springdoc:
   api-docs:
