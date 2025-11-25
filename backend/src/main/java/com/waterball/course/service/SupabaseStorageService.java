@@ -29,4 +29,9 @@ public class SupabaseStorageService implements StorageService {
     public String getFileUrl(String path) {
         throw new UnsupportedOperationException("Supabase storage not implemented yet");
     }
+    
+    @Override
+    public String generateSignedUrl(String path, int expirationSeconds) {
+        throw new UnsupportedOperationException("Supabase storage not implemented yet");
+    }
 }

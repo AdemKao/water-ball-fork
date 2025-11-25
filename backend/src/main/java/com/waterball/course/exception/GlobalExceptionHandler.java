@@ -1,5 +1,7 @@
 package com.waterball.course.exception;
 
+import jakarta.persistence.EntityNotFoundException;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import org.springframework.http.HttpStatus;
@@ -19,6 +21,30 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleInvalidCredential(InvalidCredentialException ex) {
         ErrorResponse error = new ErrorResponse("Unauthorized", ex.getMessage());
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<DetailedErrorResponse> handleAccessDenied(AccessDeniedException ex, HttpServletRequest request) {
+        DetailedErrorResponse error = new DetailedErrorResponse(
+                LocalDateTime.now(),
+                HttpStatus.FORBIDDEN.value(),
+                "Forbidden",
+                ex.getMessage(),
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+    }
+
+    @ExceptionHandler(EntityNotFoundException.class)
+    public ResponseEntity<DetailedErrorResponse> handleEntityNotFound(EntityNotFoundException ex, HttpServletRequest request) {
+        DetailedErrorResponse error = new DetailedErrorResponse(
+                LocalDateTime.now(),
+                HttpStatus.NOT_FOUND.value(),
+                "Not Found",
+                ex.getMessage(),
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -48,5 +74,15 @@ public class GlobalExceptionHandler {
     public static class ErrorResponse {
         private String error;
         private String message;
+    }
+
+    @Getter
+    @AllArgsConstructor
+    public static class DetailedErrorResponse {
+        private LocalDateTime timestamp;
+        private int status;
+        private String error;
+        private String message;
+        private String path;
     }
 }
