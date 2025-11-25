@@ -1,10 +1,10 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { healthService } from '@/services/health.service';
+import { useEffect, useState } from "react";
+import { healthService } from "@/services/health.service";
 
 export default function Home() {
-  const [healthStatus, setHealthStatus] = useState<string>('Loading...');
+  const [healthStatus, setHealthStatus] = useState<string>("Loading...");
 
   useEffect(() => {
     const checkHealth = async () => {
@@ -12,8 +12,8 @@ export default function Home() {
         const response = await healthService.checkHealth();
         setHealthStatus(`Backend is ${response.status}`);
       } catch (error) {
-        setHealthStatus('Backend is not reachable');
-        console.error('Health check failed:', error);
+        setHealthStatus("Backend is not reachable");
+        console.error("Health check failed:", error);
       }
     };
 
@@ -23,20 +23,14 @@ export default function Home() {
   return (
     <div className="flex flex-col items-center justify-center min-h-[calc(100vh-96px)]">
       <div className="max-w-2xl text-center">
-        <h1 className="mb-4 text-5xl font-bold">
-          Waterball Course Platform
-        </h1>
+        <h1 className="mb-4 text-5xl font-bold">Waterball Course Platform</h1>
         <p className="mb-8 text-xl text-muted-foreground">
           收費課程網站 - MVP 版本
         </p>
-        
+
         <div className="rounded-lg border bg-card p-6 shadow-lg">
-          <h2 className="mb-4 text-2xl font-semibold">
-            System Status
-          </h2>
-          <p className="text-lg">
-            {healthStatus}
-          </p>
+          <h2 className="mb-4 text-2xl font-semibold">System Status</h2>
+          <p className="text-lg">{healthStatus}</p>
         </div>
 
         <div className="mt-8 grid gap-4 sm:grid-cols-2">

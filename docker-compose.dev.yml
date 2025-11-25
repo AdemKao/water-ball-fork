@@ -23,6 +23,8 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     container_name: waterball-course-backend
+    env_file:
+      - ./backend/.env
     environment:
       SPRING_PROFILES_ACTIVE: docker
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/course_platform
@@ -47,8 +49,9 @@ services:
       - ./frontend:/app
       - /app/node_modules
       - /app/.next
+    env_file:
+      - ./frontend/.env
     environment:
-      - NEXT_PUBLIC_API_URL=http://localhost:8888
       - WATCHPACK_POLLING=true
     depends_on:
       - backend
