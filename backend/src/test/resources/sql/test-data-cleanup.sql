@@ -1,4 +1,5 @@
 DELETE FROM lesson_progress;
+DELETE FROM purchase_orders;
 DELETE FROM user_purchases;
 DELETE FROM lessons;
 DELETE FROM chapters;

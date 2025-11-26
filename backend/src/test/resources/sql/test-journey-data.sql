@@ -8,10 +8,10 @@ VALUES
     ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'lesson1.mp4', 'videos/lesson1.mp4', 'SUPABASE', 104857600, 'video/mp4', 600, 'READY', NOW(), NOW()),
     ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'lesson2.mp4', 'videos/lesson2.mp4', 'SUPABASE', 52428800, 'video/mp4', 300, 'READY', NOW(), NOW());
 
-INSERT INTO journeys (id, title, description, thumbnail_url, is_published, created_at, updated_at)
+INSERT INTO journeys (id, title, description, thumbnail_url, is_published, price, created_at, updated_at)
 VALUES 
-    ('cccccccc-cccc-cccc-cccc-cccccccccccc', 'Published Journey', 'A published journey for testing', 'https://example.com/thumb.jpg', true, NOW(), NOW()),
-    ('dddddddd-dddd-dddd-dddd-dddddddddddd', 'Unpublished Journey', 'An unpublished journey', 'https://example.com/thumb2.jpg', false, NOW(), NOW());
+    ('cccccccc-cccc-cccc-cccc-cccccccccccc', 'Published Journey', 'A published journey for testing', 'https://example.com/thumb.jpg', true, 1999.00, NOW(), NOW()),
+    ('dddddddd-dddd-dddd-dddd-dddddddddddd', 'Unpublished Journey', 'An unpublished journey', 'https://example.com/thumb2.jpg', false, 999.00, NOW(), NOW());
 
 INSERT INTO chapters (id, journey_id, title, description, sort_order, access_type, created_at, updated_at)
 VALUES 

@@ -5,24 +5,26 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.util.Base64;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@Testcontainers
 @ActiveProfiles("test")
 public abstract class BaseIntegrationTest {
 
     protected static final String TEST_JWT_SECRET = Base64.getEncoder()
             .encodeToString("test-secret-key-for-jwt-must-be-at-least-256-bits-long-for-hs256".getBytes());
     
-    @Container
-    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:15-alpine")
-        .withDatabaseName("testdb")
-        .withUsername("test")
-        .withPassword("test");
+    static PostgreSQLContainer<?> postgres;
+    
+    static {
+        postgres = new PostgreSQLContainer<>("postgres:15-alpine")
+            .withDatabaseName("testdb")
+            .withUsername("test")
+            .withPassword("test")
+            .withReuse(true);
+        postgres.start();
+    }
     
     @DynamicPropertySource
     static void configureProperties(DynamicPropertyRegistry registry) {
