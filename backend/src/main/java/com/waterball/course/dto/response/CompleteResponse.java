@@ -1,5 +1,6 @@
 package com.waterball.course.dto.response;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -15,6 +16,7 @@ import java.util.UUID;
 @Builder
 public class CompleteResponse {
     private UUID lessonId;
+    @JsonProperty("isCompleted")
     private boolean isCompleted;
     private LocalDateTime completedAt;
 }

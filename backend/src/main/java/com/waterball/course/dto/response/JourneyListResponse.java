@@ -20,4 +20,8 @@ public class JourneyListResponse {
     private int chapterCount;
     private int lessonCount;
     private int totalDurationSeconds;
+    private Integer price;
+    private String currency;
+    private Integer originalPrice;
+    private Integer discountPercentage;
 }
