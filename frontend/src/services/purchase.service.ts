@@ -6,17 +6,25 @@ import {
   PendingPurchase,
   CreditCardPaymentDetails,
   BankTransferPaymentDetails,
+  PaymentResultResponse,
 } from '@/types';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export const purchaseService = {
   async getJourneyPricing(journeyId: string): Promise<JourneyPricing> {
-    const response = await fetch(`${API_URL}/api/journeys/${journeyId}/pricing`, {
+    const response = await fetch(`${API_URL}/api/journeys/${journeyId}`, {
       credentials: 'include',
     });
     if (!response.ok) throw new Error('Failed to fetch pricing');
-    return response.json();
+    const journey = await response.json();
+    return {
+      journeyId: journey.id,
+      price: journey.price,
+      currency: journey.currency || 'TWD',
+      originalPrice: journey.originalPrice,
+      discountPercentage: journey.discountPercentage,
+    };
   },
 
   async createPurchase(data: CreatePurchaseRequest): Promise<CreatePurchaseResponse> {
@@ -30,23 +38,23 @@ export const purchaseService = {
     return response.json();
   },
 
-  async confirmPurchase(
+  async processPayment(
     purchaseId: string,
     paymentDetails: CreditCardPaymentDetails | BankTransferPaymentDetails
-  ): Promise<Purchase> {
-    const response = await fetch(`${API_URL}/api/purchases/${purchaseId}/confirm`, {
+  ): Promise<PaymentResultResponse> {
+    const response = await fetch(`${API_URL}/api/purchases/${purchaseId}/pay`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
       body: JSON.stringify(paymentDetails),
     });
-    if (!response.ok) throw new Error('Failed to confirm purchase');
+    if (!response.ok) throw new Error('Failed to process payment');
     return response.json();
   },
 
   async cancelPurchase(purchaseId: string): Promise<void> {
-    const response = await fetch(`${API_URL}/api/purchases/${purchaseId}/cancel`, {
-      method: 'POST',
+    const response = await fetch(`${API_URL}/api/purchases/${purchaseId}`, {
+      method: 'DELETE',
       credentials: 'include',
     });
     if (!response.ok) throw new Error('Failed to cancel purchase');
@@ -82,6 +90,7 @@ export const purchaseService = {
       credentials: 'include',
     });
     if (!response.ok) throw new Error('Failed to fetch purchases');
-    return response.json();
+    const data = await response.json();
+    return data.content || data;
   },
 };

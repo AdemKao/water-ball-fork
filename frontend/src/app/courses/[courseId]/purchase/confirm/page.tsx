@@ -27,7 +27,7 @@ export default function ConfirmPage({
   const [error, setError] = useState<string | null>(null);
 
   const { journey, isLoading: isLoadingJourney } = useJourney(courseId);
-  const { pricing, isLoadingPricing, confirmPurchase, isConfirming } = usePurchase(courseId);
+  const { pricing, isLoadingPricing, processPayment, isProcessingPayment } = usePurchase(courseId);
 
   useEffect(() => {
     if (!purchaseId) {
@@ -101,7 +101,8 @@ export default function ConfirmPage({
           ? {
               type: 'CREDIT_CARD' as const,
               cardNumber: '4111111111111111',
-              expiryDate: '12/25',
+              expiryMonth: '12',
+              expiryYear: '2025',
               cvv: '123',
               cardholderName: 'Test User',
             }
@@ -112,8 +113,14 @@ export default function ConfirmPage({
               accountName: 'Test User',
             };
 
-      await confirmPurchase(purchaseId, paymentDetails);
-      router.push(`/courses/${courseId}/purchase/success?purchaseId=${purchaseId}`);
+      const result = await processPayment(purchaseId, paymentDetails);
+      if (result.status === 'COMPLETED') {
+        router.push(`/courses/${courseId}/purchase/success?purchaseId=${purchaseId}`);
+      } else if (result.status === 'PENDING') {
+        router.push(`/courses/${courseId}/purchase/pending?purchaseId=${purchaseId}`);
+      } else {
+        setError(result.failureReason || '付款處理失敗');
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : '確認付款失敗');
     }
@@ -177,16 +184,16 @@ export default function ConfirmPage({
                   variant="outline"
                   onClick={() => router.back()}
                   className="flex-1"
-                  disabled={isConfirming}
+                  disabled={isProcessingPayment}
                 >
                   返回修改
                 </Button>
                 <Button
                   onClick={handleConfirm}
-                  disabled={!agreed || isConfirming}
+                  disabled={!agreed || isProcessingPayment}
                   className="flex-1"
                 >
-                  {isConfirming ? (
+                  {isProcessingPayment ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       處理中...

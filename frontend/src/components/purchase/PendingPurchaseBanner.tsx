@@ -41,7 +41,7 @@ export function PendingPurchaseBanner({
 
   const formattedAmount = new Intl.NumberFormat('zh-TW', {
     style: 'currency',
-    currency: purchase.currency,
+    currency: purchase.currency || 'TWD',
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(purchase.amount);

@@ -26,7 +26,7 @@ export default function PurchasePage({
   const [error, setError] = useState<string | null>(null);
 
   const { journey, isLoading: isLoadingJourney, error: journeyError } = useJourney(courseId);
-  const { pricing, isLoadingPricing, createPurchase, confirmPurchase, isCreating, isConfirming } =
+  const { pricing, isLoadingPricing, createPurchase, processPayment, isCreating, isProcessingPayment } =
     usePurchase(courseId);
   const { pendingPurchases } = usePendingPurchases(courseId);
 
@@ -83,14 +83,18 @@ export default function PurchasePage({
   };
 
   const handlePaymentSubmit = async (
-    details: Parameters<typeof confirmPurchase>[1]
+    details: Parameters<typeof processPayment>[1]
   ) => {
     if (!purchaseId) return;
 
     try {
       setError(null);
-      await confirmPurchase(purchaseId, details);
-      router.push(`/courses/${courseId}/purchase/success?purchaseId=${purchaseId}`);
+      const result = await processPayment(purchaseId, details);
+      if (result.status === 'COMPLETED') {
+        router.push(`/courses/${courseId}/purchase/success?purchaseId=${purchaseId}`);
+      } else {
+        setError(result.failureReason || '付款失敗');
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : '付款失敗');
     }
@@ -148,7 +152,7 @@ export default function PurchasePage({
                   <PaymentForm
                     paymentMethod={selectedMethod}
                     onSubmit={handlePaymentSubmit}
-                    isSubmitting={isConfirming}
+                    isSubmitting={isProcessingPayment}
                     error={error}
                   />
                 </div>

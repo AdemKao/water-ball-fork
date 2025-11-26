@@ -84,10 +84,12 @@ export function PaymentForm({
 
     if (paymentMethod === 'CREDIT_CARD') {
       if (!validateCreditCardForm()) return;
+      const [month, year] = expiryDate.split('/');
       onSubmit({
         type: 'CREDIT_CARD',
         cardNumber: cardNumber.replace(/\s/g, ''),
-        expiryDate,
+        expiryMonth: month,
+        expiryYear: `20${year}`,
         cvv,
         cardholderName,
       });

@@ -40,7 +40,8 @@ export interface CreatePurchaseResponse {
 export interface CreditCardPaymentDetails {
   type: 'CREDIT_CARD';
   cardNumber: string;
-  expiryDate: string;
+  expiryMonth: string;
+  expiryYear: string;
   cvv: string;
   cardholderName: string;
 }
@@ -65,4 +66,12 @@ export interface PaymentMethodOption {
   label: string;
   description: string;
   icon: string;
+}
+
+export interface PaymentResultResponse {
+  purchaseId: string;
+  status: PurchaseStatus;
+  message: string;
+  completedAt: string | null;
+  failureReason: string | null;
 }

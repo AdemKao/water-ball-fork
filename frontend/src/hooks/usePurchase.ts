@@ -5,7 +5,7 @@ import {
   JourneyPricing,
   PaymentMethod,
   CreatePurchaseResponse,
-  Purchase,
+  PaymentResultResponse,
   CreditCardPaymentDetails,
   BankTransferPaymentDetails,
 } from '@/types';
@@ -15,7 +15,7 @@ export function usePurchase(journeyId: string) {
   const [pricing, setPricing] = useState<JourneyPricing | null>(null);
   const [isLoadingPricing, setIsLoadingPricing] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
-  const [isConfirming, setIsConfirming] = useState(false);
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
@@ -41,17 +41,17 @@ export function usePurchase(journeyId: string) {
     [journeyId]
   );
 
-  const confirmPurchase = useCallback(
+  const processPayment = useCallback(
     async (
       purchaseId: string,
       paymentDetails: CreditCardPaymentDetails | BankTransferPaymentDetails
-    ): Promise<Purchase> => {
-      setIsConfirming(true);
+    ): Promise<PaymentResultResponse> => {
+      setIsProcessingPayment(true);
       setError(null);
       try {
-        return await purchaseService.confirmPurchase(purchaseId, paymentDetails);
+        return await purchaseService.processPayment(purchaseId, paymentDetails);
       } finally {
-        setIsConfirming(false);
+        setIsProcessingPayment(false);
       }
     },
     []
@@ -65,10 +65,10 @@ export function usePurchase(journeyId: string) {
     pricing,
     isLoadingPricing,
     createPurchase,
-    confirmPurchase,
+    processPayment,
     cancelPurchase,
     isCreating,
-    isConfirming,
+    isProcessingPayment,
     error,
   };
 }
