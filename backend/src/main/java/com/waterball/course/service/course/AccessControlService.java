@@ -5,11 +5,13 @@ import com.waterball.course.entity.Lesson;
 import com.waterball.course.repository.UserPurchaseRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class AccessControlService {
     private final UserPurchaseRepository userPurchaseRepository;
 
