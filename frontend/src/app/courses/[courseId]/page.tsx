@@ -3,7 +3,11 @@
 import { use } from 'react';
 import { useRouter } from 'next/navigation';
 import { useJourney } from '@/hooks/useJourney';
+import { usePurchase } from '@/hooks/usePurchase';
+import { usePendingPurchases } from '@/hooks/usePendingPurchases';
 import { ChapterAccordion, CourseProgress } from '@/components/course';
+import { PurchaseButton, PendingPurchaseBanner } from '@/components/purchase';
+import { Button } from '@/components/ui/button';
 
 interface PageProps {
   params: Promise<{ courseId: string }>;
@@ -13,9 +17,30 @@ export default function CourseJourneyPage({ params }: PageProps) {
   const { courseId } = use(params);
   const router = useRouter();
   const { journey, isLoading, error } = useJourney(courseId);
+  const { pricing } = usePurchase(courseId);
+  const { pendingPurchases, refetch } = usePendingPurchases(courseId);
+
+  const pendingPurchase = pendingPurchases[0] || null;
 
   const handleLessonClick = (lessonId: string) => {
     router.push(`/courses/${courseId}/lessons/${lessonId}`);
+  };
+
+  const handleContinuePurchase = () => {
+    if (pendingPurchase) {
+      router.push(`/courses/${courseId}/purchase/confirm?purchaseId=${pendingPurchase.id}`);
+    }
+  };
+
+  const handleCancelPurchase = async () => {
+    if (pendingPurchase) {
+      try {
+        const { purchaseService } = await import('@/services/purchase.service');
+        await purchaseService.cancelPurchase(pendingPurchase.id);
+        refetch();
+      } catch {
+      }
+    }
   };
 
   if (isLoading) {
@@ -50,40 +75,94 @@ export default function CourseJourneyPage({ params }: PageProps) {
     ? Math.round((completedLessons / journey.lessonCount) * 100) 
     : 0;
 
+  const getFirstUncompletedLesson = () => {
+    for (const chapter of journey.chapters) {
+      for (const lesson of chapter.lessons) {
+        if (!lesson.isCompleted) {
+          return lesson.id;
+        }
+      }
+    }
+    return journey.chapters[0]?.lessons[0]?.id;
+  };
+
+  const handleStartLearning = () => {
+    const lessonId = getFirstUncompletedLesson();
+    if (lessonId) {
+      router.push(`/courses/${courseId}/lessons/${lessonId}`);
+    }
+  };
+
   return (
-    <div className="container mx-auto px-4 py-8 max-w-4xl">
-      <div className="space-y-6">
-        <div className="space-y-2">
-          <h1 className="text-3xl font-bold">{journey.title}</h1>
-          {journey.description && (
-            <p className="text-muted-foreground">{journey.description}</p>
+    <>
+      <div className="container mx-auto px-4 py-8 max-w-4xl">
+        <div className="space-y-6">
+          <div className="space-y-2">
+            <h1 className="text-3xl font-bold">{journey.title}</h1>
+            {journey.description && (
+              <p className="text-muted-foreground">{journey.description}</p>
+            )}
+          </div>
+
+          {!journey.isPurchased && pricing && (
+            <div className="flex items-center gap-4 rounded-lg border bg-card p-4">
+              <div className="flex-1">
+                <p className="font-medium">購買此課程以解鎖所有內容</p>
+                <p className="text-sm text-muted-foreground">
+                  {journey.chapterCount} 章節 · {journey.lessonCount} 堂課
+                </p>
+              </div>
+              <PurchaseButton
+                journeyId={courseId}
+                price={pricing.price}
+                currency={pricing.currency}
+              />
+            </div>
           )}
-        </div>
 
-        {journey.isPurchased && (
-          <CourseProgress
-            progress={{
-              journeyId: journey.id,
-              totalLessons: journey.lessonCount,
-              completedLessons,
-              progressPercentage,
-              chapters: [],
-            }}
-          />
-        )}
+          {journey.isPurchased && (
+            <div className="flex items-center gap-4">
+              <div className="flex-1">
+                <CourseProgress
+                  progress={{
+                    journeyId: journey.id,
+                    totalLessons: journey.lessonCount,
+                    completedLessons,
+                    progressPercentage,
+                    chapters: [],
+                  }}
+                />
+              </div>
+              <Button
+                onClick={handleStartLearning}
+                data-testid={completedLessons > 0 ? 'continue-learning-button' : 'start-learning-button'}
+              >
+                {completedLessons > 0 ? '繼續學習' : '開始學習'}
+              </Button>
+            </div>
+          )}
 
-        <div className="space-y-3">
-          {journey.chapters.map((chapter, index) => (
-            <ChapterAccordion
-              key={chapter.id}
-              chapter={chapter}
-              isPurchased={journey.isPurchased}
-              defaultOpen={index === 0}
-              onLessonClick={handleLessonClick}
-            />
-          ))}
+          <div className="space-y-3">
+            {journey.chapters.map((chapter, index) => (
+              <ChapterAccordion
+                key={chapter.id}
+                chapter={chapter}
+                isPurchased={journey.isPurchased}
+                defaultOpen={index === 0}
+                onLessonClick={handleLessonClick}
+              />
+            ))}
+          </div>
         </div>
       </div>
-    </div>
+
+      {pendingPurchase && (
+        <PendingPurchaseBanner
+          purchase={pendingPurchase}
+          onContinue={handleContinuePurchase}
+          onCancel={handleCancelPurchase}
+        />
+      )}
+    </>
   );
 }
