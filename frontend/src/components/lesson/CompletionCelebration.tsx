@@ -1,6 +1,5 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import { CheckCircle, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -21,14 +20,6 @@ export function CompletionCelebration({
   courseId,
   onClose,
 }: CompletionCelebrationProps) {
-  const [showAnimation, setShowAnimation] = useState(false);
-
-  useEffect(() => {
-    if (isVisible) {
-      setShowAnimation(true);
-    }
-  }, [isVisible]);
-
   if (!isVisible) return null;
 
   return (
@@ -36,7 +27,7 @@ export function CompletionCelebration({
       <div
         className={cn(
           'bg-card border rounded-lg p-8 max-w-md mx-4 text-center space-y-6 transform transition-all duration-500',
-          showAnimation ? 'scale-100 opacity-100' : 'scale-95 opacity-0'
+          'scale-100 opacity-100 animate-in fade-in zoom-in-95'
         )}
       >
         <button

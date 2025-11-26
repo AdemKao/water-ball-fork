@@ -459,8 +459,39 @@ export const progressService = {
 
 ```typescript
 // 使用 debounce 避免頻繁 API 呼叫
-// 使用 navigator.sendBeacon 確保離開頁面時能發送
+// 使用 fetch with keepalive 確保離開頁面時能發送
 // 本地 state 與 API 同步
+```
+
+### 完成狀態即時更新
+
+當學生完成課程後，系統需要：
+
+1. **即時刷新側邊欄完成狀態** - 調用 `useJourney` 的 `refetch` 方法更新 journey 數據
+2. **顯示完成慶祝 Modal** - 使用 `CompletionCelebration` 組件顯示慶祝動畫
+3. **提供導航選項** - Modal 內包含「返回課程」和「下一課」按鈕
+
+```typescript
+// useLessonProgress hook 應支援 onComplete callback
+function useLessonProgress(lessonId: string, options?: {
+  initialProgress?: LessonProgress;
+  onComplete?: () => void;
+}): {
+  progress: LessonProgress | null;
+  updateProgress: (position: number) => Promise<void>;
+  markComplete: () => Promise<void>;
+  isUpdating: boolean;
+};
+
+// LessonPage 使用範例
+const { refetch: refetchJourney } = useJourney(courseId);
+const { markComplete } = useLessonProgress(lessonId, {
+  initialProgress: lesson?.progress,
+  onComplete: () => {
+    refetchJourney(); // 刷新側邊欄完成狀態
+    setShowCelebration(true); // 顯示慶祝 Modal
+  },
+});
 ```
 
 ## UI States

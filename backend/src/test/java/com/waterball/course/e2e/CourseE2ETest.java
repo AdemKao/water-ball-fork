@@ -156,4 +156,22 @@ class CourseE2ETest extends BaseIntegrationTest {
                 .andExpect(jsonPath("$.completedLessons").value(1))
                 .andExpect(jsonPath("$.progressPercentage").value(25));
     }
+
+    @Test
+    @DisplayName("Scenario 6.1.9: Journey detail API reflects lesson completion status")
+    void journeyDetailApi_reflectsLessonCompletionStatus() throws Exception {
+        mockMvc.perform(get("/api/journeys/{journeyId}", PUBLISHED_JOURNEY_ID)
+                        .cookie(new Cookie("access_token", accessToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.chapters[0].lessons[0].isCompleted").value(false));
+
+        mockMvc.perform(post("/api/lessons/{lessonId}/complete", PUBLIC_LESSON_ID)
+                        .cookie(new Cookie("access_token", accessToken)))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/api/journeys/{journeyId}", PUBLISHED_JOURNEY_ID)
+                        .cookie(new Cookie("access_token", accessToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.chapters[0].lessons[0].isCompleted").value(true));
+    }
 }

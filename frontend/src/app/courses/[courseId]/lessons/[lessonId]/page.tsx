@@ -1,6 +1,6 @@
 'use client';
 
-import { use, useEffect } from 'react';
+import { use, useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useLesson } from '@/hooks/useLesson';
 import { useJourney } from '@/hooks/useJourney';
@@ -14,6 +14,7 @@ import {
   LessonNavigation,
   LessonSidebar,
   AccessDeniedModal,
+  CompletionCelebration,
 } from '@/components/lesson';
 
 interface PageProps {
@@ -25,10 +26,18 @@ export default function LessonPage({ params }: PageProps) {
   const router = useRouter();
   const { user } = useAuth();
   const { lesson, isLoading, error, isAccessDenied, isUnauthorized } = useLesson(lessonId);
-  const { journey } = useJourney(courseId);
+  const { journey, refetch: refetchJourney } = useJourney(courseId);
+  const [showCelebration, setShowCelebration] = useState(false);
+
+  const handleLessonComplete = useCallback(() => {
+    refetchJourney();
+    setShowCelebration(true);
+  }, [refetchJourney]);
+
   const { progress, markComplete } = useLessonProgress(
     lessonId,
-    lesson?.progress
+    lesson?.progress,
+    { onComplete: handleLessonComplete }
   );
   const { startTracking, updatePosition, stopTracking } = useVideoProgress(lessonId);
 
@@ -117,6 +126,16 @@ export default function LessonPage({ params }: PageProps) {
             courseId={courseId}
           />
         </div>
+      )}
+
+      {lesson && (
+        <CompletionCelebration
+          isVisible={showCelebration}
+          lessonTitle={lesson.title}
+          nextLessonId={lesson.nextLesson?.id}
+          courseId={courseId}
+          onClose={() => setShowCelebration(false)}
+        />
       )}
     </div>
   );

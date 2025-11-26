@@ -1,12 +1,25 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { LessonProgress } from '@/types';
 import { progressService } from '@/services/progress.service';
 
-export function useLessonProgress(lessonId: string, initialProgress?: LessonProgress) {
+interface UseLessonProgressOptions {
+  onComplete?: () => void;
+}
+
+export function useLessonProgress(
+  lessonId: string,
+  initialProgress?: LessonProgress,
+  options?: UseLessonProgressOptions
+) {
   const [progress, setProgress] = useState<LessonProgress | null>(initialProgress ?? null);
   const [isUpdating, setIsUpdating] = useState(false);
+  const onCompleteRef = useRef(options?.onComplete);
+
+  useEffect(() => {
+    onCompleteRef.current = options?.onComplete;
+  }, [options?.onComplete]);
 
   const updateProgress = useCallback(
     async (position: number) => {
@@ -38,6 +51,7 @@ export function useLessonProgress(lessonId: string, initialProgress?: LessonProg
         lastPositionSeconds: progress?.lastPositionSeconds ?? 0,
         completedAt: result.completedAt,
       });
+      onCompleteRef.current?.();
     } catch (err) {
       console.error('Failed to mark complete:', err);
     } finally {
