@@ -12,6 +12,8 @@ const mockJourneyDetail = {
   totalDurationSeconds: 3600,
   chapters: [],
   isPurchased: false,
+  price: 1990,
+  currency: 'TWD',
 };
 
 const mockCreatePurchaseResponse = {
@@ -32,7 +34,7 @@ async function setupMockAuth(page: Page): Promise<void> {
 }
 
 async function setupApiMocks(page: Page): Promise<void> {
-  await page.route('**/api/users/me', (route) => {
+  await page.route('**/api/auth/me', (route) => {
     route.fulfill({
       status: 200,
       contentType: 'application/json',
@@ -64,6 +66,14 @@ async function setupApiMocks(page: Page): Promise<void> {
       route.continue();
     }
   });
+
+  await page.route(`**/api/purchases/pending/journey/${TEST_COURSE_ID}`, (route) => {
+    route.fulfill({
+      status: 404,
+      contentType: 'application/json',
+      body: JSON.stringify({ message: 'No pending purchase' }),
+    });
+  });
 }
 
 async function navigateToPaymentForm(page: Page): Promise<void> {
@@ -88,7 +98,7 @@ test.describe('Payment Form Validation', () => {
     await page.getByTestId('cvv').fill('123');
     await page.getByTestId('cardholder-name').fill('Test User');
 
-    await page.getByTestId('card-number').blur();
+    await page.getByTestId('confirm-purchase-button').click();
 
     await expect(page.getByTestId('card-number-error')).toBeVisible();
   });
@@ -101,7 +111,7 @@ test.describe('Payment Form Validation', () => {
     await page.getByTestId('cvv').fill('123');
     await page.getByTestId('cardholder-name').fill('Test User');
 
-    await page.getByTestId('expiry-date').blur();
+    await page.getByTestId('confirm-purchase-button').click();
 
     await expect(page.getByTestId('expiry-date-error')).toBeVisible();
   });

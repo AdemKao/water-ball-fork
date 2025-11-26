@@ -1,17 +1,33 @@
 import { test, expect, Page } from '@playwright/test';
-import { JourneyDetail } from '@/types';
 
 const TEST_COURSE_ID = 'test-journey-001';
 
-const mockPurchasedJourneyDetail: JourneyDetail = {
+const mockPurchasedJourneyDetail = {
   id: TEST_COURSE_ID,
   title: 'Test Course',
   description: 'A test course for E2E testing',
   thumbnailUrl: null,
-  chapterCount: 3,
-  lessonCount: 10,
+  chapterCount: 1,
+  lessonCount: 1,
   totalDurationSeconds: 3600,
-  chapters: [],
+  chapters: [
+    {
+      id: 'chapter-1',
+      title: 'Chapter 1',
+      order: 1,
+      lessons: [
+        {
+          id: 'lesson-1',
+          title: 'Lesson 1',
+          lessonType: 'VIDEO',
+          order: 1,
+          durationSeconds: 600,
+          isCompleted: false,
+          isFree: false,
+        },
+      ],
+    },
+  ],
   isPurchased: true,
 };
 
@@ -27,7 +43,7 @@ async function setupMockAuth(page: Page): Promise<void> {
 }
 
 async function setupApiMocks(page: Page): Promise<void> {
-  await page.route('**/api/users/me', (route) => {
+  await page.route('**/api/auth/me', (route) => {
     route.fulfill({
       status: 200,
       contentType: 'application/json',
@@ -45,6 +61,14 @@ async function setupApiMocks(page: Page): Promise<void> {
       status: 200,
       contentType: 'application/json',
       body: JSON.stringify(mockPurchasedJourneyDetail),
+    });
+  });
+
+  await page.route(`**/api/purchases/pending/journey/${TEST_COURSE_ID}`, (route) => {
+    route.fulfill({
+      status: 404,
+      contentType: 'application/json',
+      body: JSON.stringify({ message: 'No pending purchase' }),
     });
   });
 }

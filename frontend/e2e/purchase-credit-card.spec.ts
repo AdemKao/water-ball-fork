@@ -12,6 +12,8 @@ const mockJourneyDetail = {
   totalDurationSeconds: 3600,
   chapters: [],
   isPurchased: false,
+  price: 1990,
+  currency: 'TWD',
 };
 
 const mockCreatePurchaseResponse = {
@@ -20,17 +22,26 @@ const mockCreatePurchaseResponse = {
   currency: 'TWD',
 };
 
-const mockCompletePurchaseResponse = {
+const mockPaymentResultResponse = {
+  purchaseId: 'purchase-001',
+  status: 'COMPLETED',
+  message: 'Payment successful',
+  completedAt: new Date().toISOString(),
+  failureReason: null,
+};
+
+const mockPurchaseResponse = {
   id: 'purchase-001',
   journeyId: TEST_COURSE_ID,
-  journeyTitle: 'Test Course',
-  journeyThumbnailUrl: null,
+  userId: 'user-001',
   amount: 1990,
   currency: 'TWD',
   paymentMethod: 'CREDIT_CARD',
   status: 'COMPLETED',
   createdAt: new Date().toISOString(),
   completedAt: new Date().toISOString(),
+  expiresAt: null,
+  failureReason: null,
 };
 
 async function setupMockAuth(page: Page): Promise<void> {
@@ -45,7 +56,7 @@ async function setupMockAuth(page: Page): Promise<void> {
 }
 
 async function setupApiMocks(page: Page): Promise<void> {
-  await page.route('**/api/users/me', (route) => {
+  await page.route('**/api/auth/me', (route) => {
     route.fulfill({
       status: 200,
       contentType: 'application/json',
@@ -78,12 +89,32 @@ async function setupApiMocks(page: Page): Promise<void> {
     }
   });
 
-  await page.route('**/api/purchases/*/complete', (route) => {
+  await page.route('**/api/purchases/*/pay', (route) => {
     route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify(mockCompletePurchaseResponse),
+      body: JSON.stringify(mockPaymentResultResponse),
     });
+  });
+
+  await page.route(`**/api/purchases/pending/journey/${TEST_COURSE_ID}`, (route) => {
+    route.fulfill({
+      status: 404,
+      contentType: 'application/json',
+      body: JSON.stringify({ message: 'No pending purchase' }),
+    });
+  });
+
+  await page.route('**/api/purchases/purchase-001', (route) => {
+    if (route.request().method() === 'GET') {
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(mockPurchaseResponse),
+      });
+    } else {
+      route.continue();
+    }
   });
 }
 
@@ -121,7 +152,7 @@ test.describe('Purchase Flow - Credit Card', () => {
 
     await page.getByTestId('confirm-purchase-button').click();
 
-    await expect(page.getByTestId('card-number')).toHaveAttribute('aria-invalid', 'true');
+    await expect(page.getByTestId('card-number-error')).toBeVisible();
   });
 
   test('should allow going back to payment method selection', async ({ page }) => {
@@ -134,7 +165,7 @@ test.describe('Purchase Flow - Credit Card', () => {
 
     await expect(page.getByTestId('card-number')).toBeVisible();
 
-    await page.goBack();
+    await page.getByRole('button', { name: /返回/ }).click();
 
     await expect(page.getByTestId('payment-method-CREDIT_CARD')).toBeVisible();
   });

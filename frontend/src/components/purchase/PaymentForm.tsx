@@ -193,7 +193,7 @@ export function PaymentForm({
               data-testid="bank-code"
             />
             {errors.bankCode && (
-              <p className="mt-1 text-xs text-destructive">{errors.bankCode}</p>
+              <p className="mt-1 text-xs text-destructive" data-testid="bank-code-error">{errors.bankCode}</p>
             )}
           </div>
 

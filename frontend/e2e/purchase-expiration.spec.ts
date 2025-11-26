@@ -12,24 +12,8 @@ const mockJourneyDetail = {
   totalDurationSeconds: 3600,
   chapters: [],
   isPurchased: false,
-};
-
-function getExpiredDate(): string {
-  const date = new Date();
-  date.setMinutes(date.getMinutes() - 30);
-  return date.toISOString();
-}
-
-const mockExpiredPendingPurchase = {
-  id: 'purchase-expired-001',
-  journeyId: TEST_COURSE_ID,
-  journeyTitle: 'Test Course',
-  journeyThumbnailUrl: null,
-  amount: 1990,
+  price: 1990,
   currency: 'TWD',
-  paymentMethod: 'CREDIT_CARD' as const,
-  createdAt: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
-  expiresAt: getExpiredDate(),
 };
 
 async function setupMockAuth(page: Page): Promise<void> {
@@ -44,7 +28,7 @@ async function setupMockAuth(page: Page): Promise<void> {
 }
 
 async function setupApiMocks(page: Page): Promise<void> {
-  await page.route('**/api/users/me', (route) => {
+  await page.route('**/api/auth/me', (route) => {
     route.fulfill({
       status: 200,
       contentType: 'application/json',
@@ -65,11 +49,11 @@ async function setupApiMocks(page: Page): Promise<void> {
     });
   });
 
-  await page.route(`**/api/purchases/pending?journeyId=${TEST_COURSE_ID}`, (route) => {
+  await page.route(`**/api/purchases/pending/journey/${TEST_COURSE_ID}`, (route) => {
     route.fulfill({
-      status: 200,
+      status: 404,
       contentType: 'application/json',
-      body: JSON.stringify(mockExpiredPendingPurchase),
+      body: JSON.stringify({ message: 'No pending purchase or expired' }),
     });
   });
 }

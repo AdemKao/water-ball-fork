@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, use } from 'react';
+import { useState, use, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { PaymentMethod } from '@/types';
 import { useJourney } from '@/hooks/useJourney';
@@ -30,13 +30,18 @@ export default function PurchasePage({
     usePurchase(courseId);
   const { pendingPurchases } = usePendingPurchases(courseId);
 
-  if (pendingPurchases.length > 0 && !purchaseId) {
-    const pending = pendingPurchases[0];
-    router.replace(`/courses/${courseId}/purchase/confirm?purchaseId=${pending.id}`);
-    return null;
-  }
+  const shouldRedirect = pendingPurchases.length > 0 && !purchaseId;
+  const redirectUrl = shouldRedirect
+    ? `/courses/${courseId}/purchase/confirm?purchaseId=${pendingPurchases[0].id}`
+    : null;
 
-  if (isLoadingJourney || isLoadingPricing) {
+  useEffect(() => {
+    if (redirectUrl) {
+      router.replace(redirectUrl);
+    }
+  }, [redirectUrl, router]);
+
+  if (shouldRedirect || isLoadingJourney || isLoadingPricing) {
     return (
       <ProtectedRoute>
         <div className="flex min-h-screen items-center justify-center">

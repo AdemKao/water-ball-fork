@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { Journey, JourneyProgress, JourneyPricing } from '@/types';
 import { ProgressBar } from './ProgressBar';
 import { PurchaseButton } from '@/components/purchase';
@@ -28,10 +29,11 @@ export function JourneyCard({ journey, progress, isPurchased = false, pricing }:
       <Link href={`/courses/${journey.id}`}>
         <div className="relative w-full h-40 bg-muted cursor-pointer">
           {journey.thumbnailUrl ? (
-            <img
+            <Image
               src={journey.thumbnailUrl}
               alt={journey.title}
-              className="h-full w-full object-cover"
+              fill
+              className="object-cover"
             />
           ) : (
             <div className="h-full w-full flex items-center justify-center text-muted-foreground">

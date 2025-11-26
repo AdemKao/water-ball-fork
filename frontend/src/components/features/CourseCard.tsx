@@ -1,4 +1,5 @@
 import React from "react";
+import Image from "next/image";
 
 export interface CourseCardProps {
   title: string;
@@ -27,7 +28,7 @@ export const CourseCard: React.FC<CourseCardProps> = ({
 }) => (
   <div className="rounded-lg border bg-card text-card-foreground shadow-sm flex flex-col h-full w-full max-w-xs mx-auto cursor-pointer select-none transition-transform hover:scale-105 border-primary relative overflow-hidden">
     <div className="relative w-full h-40 bg-muted shrink-0">
-      <img src={imageUrl} alt={title} className="h-full w-full object-cover" />
+      <Image src={imageUrl} alt={title} fill className="object-cover" />
     </div>
     <div className="space-y-2 p-4 grow">
       <h3 className="text-base font-semibold leading-tight">{title}</h3>

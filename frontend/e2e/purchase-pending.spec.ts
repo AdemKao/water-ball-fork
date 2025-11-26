@@ -13,7 +13,7 @@ interface PendingPurchaseResponse {
 }
 
 async function mockAuthenticatedUser(page: Page) {
-  await page.route('**/api/users/me', (route) => {
+  await page.route('**/api/auth/me', (route) => {
     route.fulfill({
       status: 200,
       contentType: 'application/json',
@@ -38,6 +38,8 @@ async function mockJourneyDetail(page: Page, journeyId: string) {
         description: 'A test journey description',
         thumbnailUrl: null,
         isPurchased: false,
+        price: 1990,
+        currency: 'TWD',
         chapterCount: 2,
         lessonCount: 5,
         chapters: [
@@ -49,7 +51,7 @@ async function mockJourneyDetail(page: Page, journeyId: string) {
               {
                 id: 'lesson-1',
                 title: 'Lesson 1',
-                type: 'VIDEO',
+                lessonType: 'VIDEO',
                 order: 1,
                 isFree: true,
                 isCompleted: false,
@@ -57,20 +59,6 @@ async function mockJourneyDetail(page: Page, journeyId: string) {
             ],
           },
         ],
-      }),
-    });
-  });
-}
-
-async function mockJourneyPricing(page: Page, journeyId: string) {
-  await page.route(`**/api/journeys/${journeyId}/pricing`, (route) => {
-    route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({
-        journeyId,
-        price: 1990,
-        currency: 'TWD',
       }),
     });
   });
@@ -101,14 +89,13 @@ test.describe('Pending Purchase Banner', () => {
   }) => {
     await mockAuthenticatedUser(page);
     await mockJourneyDetail(page, journeyId);
-    await mockJourneyPricing(page, journeyId);
 
     const pendingPurchase = createPendingPurchase(journeyId);
     await page.route(`**/api/purchases/pending/journey/${journeyId}`, (route) => {
       route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify([pendingPurchase]),
+        body: JSON.stringify(pendingPurchase),
       });
     });
 
@@ -119,7 +106,7 @@ test.describe('Pending Purchase Banner', () => {
 
     await expect(banner).toContainText('您有一筆未完成的購買');
     await expect(banner).toContainText('Test Journey');
-    await expect(banner).toContainText('NT$1,990');
+    await expect(banner).toContainText('$1,990');
 
     const continueButton = page.getByTestId('continue-purchase-button');
     await expect(continueButton).toBeVisible();

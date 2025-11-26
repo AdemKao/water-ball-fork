@@ -14,12 +14,28 @@ const MOCK_JOURNEY = {
   thumbnailUrl: '/test-thumbnail.jpg',
   price: 1990,
   currency: 'TWD',
+  isPurchased: false,
+  chapters: [],
 }
 
 const MOCK_PURCHASE_RESPONSE = {
   purchaseId: 'purchase-123',
   amount: 1990,
   currency: 'TWD',
+}
+
+const MOCK_PURCHASE_FULL = {
+  id: 'purchase-123',
+  journeyId: 'journey-1',
+  userId: 'user-123',
+  amount: 1990,
+  currency: 'TWD',
+  paymentMethod: 'BANK_TRANSFER',
+  status: 'COMPLETED',
+  createdAt: new Date().toISOString(),
+  completedAt: new Date().toISOString(),
+  expiresAt: null,
+  failureReason: null,
 }
 
 async function setupAuthenticatedUser(page: Page): Promise<void> {
@@ -50,18 +66,6 @@ async function setupApiMocks(page: Page): Promise<void> {
     })
   })
 
-  await page.route('**/api/journeys/journey-1/pricing', async (route) => {
-    await route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({
-        journeyId: MOCK_JOURNEY.id,
-        price: MOCK_JOURNEY.price,
-        currency: MOCK_JOURNEY.currency,
-      }),
-    })
-  })
-
   await page.route('**/api/purchases', async (route) => {
     if (route.request().method() === 'POST') {
       await route.fulfill({
@@ -79,11 +83,33 @@ async function setupApiMocks(page: Page): Promise<void> {
       status: 200,
       contentType: 'application/json',
       body: JSON.stringify({
-        success: true,
         purchaseId: 'purchase-123',
         status: 'COMPLETED',
+        message: 'Bank transfer completed',
+        completedAt: new Date().toISOString(),
+        failureReason: null,
       }),
     })
+  })
+
+  await page.route('**/api/purchases/pending/journey/journey-1', async (route) => {
+    await route.fulfill({
+      status: 404,
+      contentType: 'application/json',
+      body: JSON.stringify({ message: 'No pending purchase' }),
+    })
+  })
+
+  await page.route('**/api/purchases/purchase-123', async (route) => {
+    if (route.request().method() === 'GET') {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(MOCK_PURCHASE_FULL),
+      })
+    } else {
+      await route.continue()
+    }
   })
 }
 
@@ -120,7 +146,7 @@ test.describe('Purchase Flow - Bank Transfer', () => {
 
     await page.getByTestId('confirm-purchase-button').click()
 
-    await expect(page.getByTestId('bank-code')).toHaveAttribute('aria-invalid', 'true')
+    await expect(page.getByTestId('bank-code-error')).toBeVisible()
   })
 
   test('should allow user to go back and change payment method', async ({ page }) => {
@@ -130,7 +156,7 @@ test.describe('Purchase Flow - Bank Transfer', () => {
     await page.getByTestId('payment-method-BANK_TRANSFER').click()
     await page.getByTestId('next-step-button').click()
 
-    await page.goBack()
+    await page.getByRole('button', { name: /返回/ }).click()
 
     await expect(page.getByTestId('payment-method-BANK_TRANSFER')).toBeVisible()
   })

@@ -20,7 +20,7 @@ test.describe('Cancel Pending Purchase', () => {
   test('should cancel pending purchase and show purchase button again', async ({ page }) => {
     let isCancelled = false
 
-    await page.route('**/api/users/me', async (route) => {
+    await page.route('**/api/auth/me', async (route) => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -49,13 +49,15 @@ test.describe('Cancel Pending Purchase', () => {
       }
     })
 
-    await page.route(`**/api/purchases/${TEST_PURCHASE_ID}/cancel`, async (route) => {
-      isCancelled = true
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({ success: true }),
-      })
+    await page.route(`**/api/purchases/${TEST_PURCHASE_ID}`, async (route) => {
+      if (route.request().method() === 'DELETE') {
+        isCancelled = true
+        await route.fulfill({
+          status: 204,
+        })
+      } else {
+        await route.continue()
+      }
     })
 
     await page.route(`**/api/journeys/${TEST_JOURNEY_ID}`, async (route) => {
@@ -69,6 +71,7 @@ test.describe('Cancel Pending Purchase', () => {
           thumbnailUrl: null,
           price: 1000,
           currency: 'TWD',
+          isPurchased: false,
           chapters: [],
         }),
       })
