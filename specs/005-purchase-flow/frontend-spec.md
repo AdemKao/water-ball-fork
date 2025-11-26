@@ -394,13 +394,28 @@ function usePayment(): {
 
 ```typescript
 export const purchaseService = {
+  // GET /api/journeys/{journeyId} - pricing is included in journey detail response
   async getJourneyPricing(journeyId: string): Promise<JourneyPricing>;
+  
+  // POST /api/purchases
   async createPurchase(data: CreatePurchaseRequest): Promise<CreatePurchaseResponse>;
-  async confirmPurchase(purchaseId: string, paymentDetails: CreditCardPaymentDetails | BankTransferPaymentDetails): Promise<Purchase>;
+  
+  // POST /api/purchases/{purchaseId}/pay
+  async processPayment(purchaseId: string, paymentDetails: CreditCardPaymentDetails | BankTransferPaymentDetails): Promise<PaymentResultResponse>;
+  
+  // DELETE /api/purchases/{purchaseId}
   async cancelPurchase(purchaseId: string): Promise<void>;
+  
+  // GET /api/purchases/{purchaseId}
   async getPurchase(purchaseId: string): Promise<Purchase>;
+  
+  // GET /api/purchases/pending
   async getPendingPurchases(): Promise<PendingPurchase[]>;
+  
+  // GET /api/purchases/pending/journey/{journeyId}
   async getPendingPurchaseByJourney(journeyId: string): Promise<PendingPurchase | null>;
+  
+  // GET /api/purchases
   async getUserPurchases(): Promise<Purchase[]>;
 };
 ```
