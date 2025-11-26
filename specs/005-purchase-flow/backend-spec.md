@@ -645,6 +645,53 @@ Authorization: Bearer <access_token>
 
 ---
 
+#### GET /api/purchases/pending/journey/{journeyId}
+
+取得用戶對特定課程的待付款訂單
+
+**Authentication:** 必要
+
+**Path Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| journeyId | UUID | 課程 ID |
+
+**Response (200 OK):**
+
+| Field | Type | Nullable | Description |
+|-------|------|----------|-------------|
+| id | UUID | No | 訂單 ID |
+| journeyId | UUID | No | 課程 ID |
+| journeyTitle | string | No | 課程標題 |
+| journeyThumbnailUrl | string | Yes | 課程縮圖 |
+| amount | decimal | No | 金額 |
+| paymentMethod | PaymentMethod | No | 付款方式 |
+| status | PurchaseStatus | No | 訂單狀態 |
+| createdAt | timestamp | No | 建立時間 |
+
+```json
+{
+  "id": "660e8400-e29b-41d4-a716-446655440000",
+  "journeyId": "550e8400-e29b-41d4-a716-446655440000",
+  "journeyTitle": "軟體設計之旅",
+  "journeyThumbnailUrl": "https://example.com/thumbnail.jpg",
+  "amount": 1999.00,
+  "paymentMethod": "CREDIT_CARD",
+  "status": "PENDING",
+  "createdAt": "2024-01-01T00:00:00Z"
+}
+```
+
+**Error Responses:**
+
+| Status | Condition |
+|--------|-----------|
+| 401 | 未登入 |
+| 404 | 該課程無待付款訂單 |
+
+---
+
 ## Mock Payment Service
 
 ### MockPaymentService
