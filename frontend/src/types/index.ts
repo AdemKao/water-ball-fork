@@ -3,3 +3,6 @@ export * from './auth';
 export * from './course';
 export * from './lesson';
 export * from './navigation';
+export * from './journey';
+export * from './chapter';
+export * from './progress';

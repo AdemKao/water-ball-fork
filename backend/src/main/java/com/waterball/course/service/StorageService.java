@@ -12,4 +12,6 @@ public interface StorageService {
     void deleteFile(String path);
     
     String getFileUrl(String path);
+    
+    String generateSignedUrl(String path, int expirationSeconds);
 }

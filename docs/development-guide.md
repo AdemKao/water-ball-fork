@@ -25,7 +25,7 @@ cp frontend/.env.example frontend/.env
 
 #### Docker Development (推薦)
 
-使用 `docker-compose.dev.yml` 可以啟動完整開發環境，前端支援 hot reload：
+使用 `docker-compose.dev.yml` 可以啟動完整開發環境，前後端都支援 hot reload：
 
 ```bash
 docker compose -f docker-compose.dev.yml up
@@ -33,10 +33,27 @@ docker compose -f docker-compose.dev.yml up
 
 這會啟動：
 - PostgreSQL (port 54325)
-- Backend (port 8888)
+- Backend with hot reload (port 8888)
 - Frontend with hot reload (port 3388)
 
+##### Frontend Hot Reload
+
 修改前端程式碼後會自動刷新頁面。
+
+##### Backend Hot Reload
+
+後端使用 Spring Boot DevTools，修改 Java 檔案後：
+
+1. **IntelliJ IDEA**: 按 `Cmd+F9` (Mac) 或 `Ctrl+F9` (Windows/Linux) 重新 build
+2. **VS Code**: 儲存檔案後執行 `mvn compile`
+3. **命令列**: 在 backend 目錄執行 `mvn compile`
+
+DevTools 會偵測 class 檔案變更並自動重啟應用程式（通常 1-2 秒）。
+
+**注意事項：**
+- 首次啟動較慢（需下載 Maven 依賴），之後會快很多（maven-repo volume 會 cache）
+- 如果改動了 `pom.xml`，需要重啟 container
+- 結構性改動（如新增 Spring Bean）可能需要完整重啟
 
 #### Production-like Docker
 
