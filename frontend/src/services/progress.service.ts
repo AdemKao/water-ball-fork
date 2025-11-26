@@ -31,6 +31,12 @@ export const progressService = {
   sendBeaconProgress(lessonId: string, lastPositionSeconds: number): void {
     const url = `${API_URL}/api/lessons/${lessonId}/progress`;
     const data = JSON.stringify({ lastPositionSeconds });
-    navigator.sendBeacon(url, new Blob([data], { type: 'application/json' }));
+    fetch(url, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: data,
+      keepalive: true,
+    }).catch(() => {});
   },
 };

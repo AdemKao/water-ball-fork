@@ -3,7 +3,7 @@
 import { useRef, useCallback, useEffect } from 'react';
 import { progressService } from '@/services/progress.service';
 
-const REPORT_INTERVAL = 30000;
+const REPORT_INTERVAL = 10000;
 
 export function useVideoProgress(lessonId: string) {
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
