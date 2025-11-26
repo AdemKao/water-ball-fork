@@ -26,6 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -143,6 +144,11 @@ public class PurchaseService {
         return purchaseOrderRepository.findPendingByUserId(userId).stream()
                 .map(this::toResponse)
                 .toList();
+    }
+
+    public Optional<PurchaseOrderResponse> getPendingPurchaseByJourney(UUID userId, UUID journeyId) {
+        return purchaseOrderRepository.findByUserIdAndJourneyIdAndStatus(userId, journeyId, PurchaseStatus.PENDING)
+                .map(this::toResponse);
     }
 
     private PurchaseOrderResponse toResponse(PurchaseOrder order) {

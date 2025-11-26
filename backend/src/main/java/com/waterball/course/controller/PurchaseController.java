@@ -66,6 +66,15 @@ public class PurchaseController {
         return ResponseEntity.ok(purchases);
     }
 
+    @GetMapping("/pending/journey/{journeyId}")
+    public ResponseEntity<PurchaseOrderResponse> getPendingPurchaseByJourney(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @PathVariable UUID journeyId) {
+        return purchaseService.getPendingPurchaseByJourney(principal.getUser().getId(), journeyId)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
     @GetMapping("/{purchaseId}")
     public ResponseEntity<PurchaseOrderDetailResponse> getPurchaseOrder(
             @AuthenticationPrincipal UserPrincipal principal,
