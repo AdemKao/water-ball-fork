@@ -1,5 +1,6 @@
 package com.waterball.course.dto.response;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.waterball.course.entity.AccessType;
 import com.waterball.course.entity.LessonType;
 import lombok.AllArgsConstructor;
@@ -20,7 +21,9 @@ public class LessonSummaryResponse {
     private LessonType lessonType;
     private Integer durationSeconds;
     private AccessType accessType;
+    @JsonProperty("isAccessible")
     private boolean isAccessible;
+    @JsonProperty("isCompleted")
     private boolean isCompleted;
     private InstructorResponse instructor;
 }
