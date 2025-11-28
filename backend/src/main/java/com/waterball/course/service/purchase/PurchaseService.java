@@ -97,8 +97,8 @@ public class PurchaseService {
                 .paymentMethod(request.getPaymentMethod())
                 .amount(journey.getPrice())
                 .currency("TWD")
-                .successUrl(frontendBaseUrl + "/courses/" + journey.getId() + "/purchase/callback?status=success&purchaseId=" + order.getId())
-                .cancelUrl(frontendBaseUrl + "/courses/" + journey.getId() + "/purchase/callback?status=cancel&purchaseId=" + order.getId())
+                .successUrl(frontendBaseUrl + "/journeys/" + journey.getId() + "/purchase/callback?status=success&purchaseId=" + order.getId())
+                .cancelUrl(frontendBaseUrl + "/journeys/" + journey.getId() + "/purchase/callback?status=cancel&purchaseId=" + order.getId())
                 .productName(journey.getTitle())
                 .build();
 
