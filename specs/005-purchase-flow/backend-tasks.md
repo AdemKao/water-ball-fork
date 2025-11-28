@@ -644,8 +644,8 @@ public class PurchaseService {
                 .paymentMethod(request.getPaymentMethod())
                 .amount(journey.getPrice())
                 .currency("TWD")
-                .successUrl(frontendBaseUrl + "/purchase/callback?status=success&orderId=" + order.getId())
-                .cancelUrl(frontendBaseUrl + "/purchase/callback?status=cancelled&orderId=" + order.getId())
+                .successUrl(frontendBaseUrl + "/courses/" + journey.getId() + "/purchase/callback?status=success&purchaseId=" + order.getId())
+                .cancelUrl(frontendBaseUrl + "/courses/" + journey.getId() + "/purchase/callback?status=cancel&purchaseId=" + order.getId())
                 .build();
         
         CheckoutSession session = mockPaymentGatewayService.createCheckoutSession(checkoutRequest);
@@ -1607,4 +1607,400 @@ UPDATE journeys SET price = 0.00 WHERE price IS NULL;
 - [ ] Task 9.2: Update JourneyDetailResponse
 - [ ] Task 9.3: Update JourneyService
 
-**Total: 36 tasks**
+---
+
+## Phase 10: Logging Infrastructure
+
+### Task 10.1: 新增 logstash-logback-encoder 依賴
+
+**檔案:** `pom.xml`
+
+```xml
+<dependency>
+    <groupId>net.logstash.logback</groupId>
+    <artifactId>logstash-logback-encoder</artifactId>
+    <version>7.4</version>
+</dependency>
+```
+
+**驗收條件:**
+
+- [ ] 依賴新增成功
+- [ ] Maven build 正常
+
+---
+
+### Task 10.2: 建立 Logback 配置檔
+
+**檔案:** `src/main/resources/logback-spring.xml`
+
+```xml
+<configuration>
+    <springProfile name="!test">
+        <appender name="JSON" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+                <includeMdcKeyName>requestId</includeMdcKeyName>
+                <includeMdcKeyName>userId</includeMdcKeyName>
+                <includeMdcKeyName>orderId</includeMdcKeyName>
+            </encoder>
+        </appender>
+
+        <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+            <file>logs/purchase.log</file>
+            <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+                <fileNamePattern>logs/purchase.%d{yyyy-MM-dd}.log</fileNamePattern>
+                <maxHistory>30</maxHistory>
+            </rollingPolicy>
+            <encoder class="net.logstash.logback.encoder.LogstashEncoder"/>
+        </appender>
+
+        <logger name="com.waterball.course.service.purchase" level="INFO"/>
+        <logger name="com.waterball.course.service.payment" level="INFO"/>
+        <logger name="com.waterball.course.controller" level="INFO"/>
+
+        <root level="INFO">
+            <appender-ref ref="JSON"/>
+            <appender-ref ref="FILE"/>
+        </root>
+    </springProfile>
+
+    <springProfile name="test">
+        <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder>
+                <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+            </encoder>
+        </appender>
+        <root level="WARN">
+            <appender-ref ref="CONSOLE"/>
+        </root>
+    </springProfile>
+</configuration>
+```
+
+**驗收條件:**
+
+- [ ] 非 test profile 使用 JSON 格式輸出
+- [ ] 非 test profile 同時寫入檔案
+- [ ] test profile 使用簡單 console 輸出
+- [ ] MDC 欄位 (requestId, userId, orderId) 正確包含
+
+---
+
+### Task 10.3: 建立 LoggingFilter 元件
+
+**檔案:** `src/main/java/com/waterball/course/config/LoggingFilter.java`
+
+```java
+package com.waterball.course.config;
+
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import org.slf4j.MDC;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Component;
+import org.springframework.web.filter.OncePerRequestFilter;
+
+import java.io.IOException;
+import java.util.UUID;
+
+@Component
+public class LoggingFilter extends OncePerRequestFilter {
+
+    @Override
+    protected void doFilterInternal(HttpServletRequest request,
+                                    HttpServletResponse response,
+                                    FilterChain chain) throws ServletException, IOException {
+        try {
+            MDC.put("requestId", UUID.randomUUID().toString());
+            
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            if (auth != null && auth.isAuthenticated() && !"anonymousUser".equals(auth.getPrincipal())) {
+                // Extract userId from principal if available
+                Object principal = auth.getPrincipal();
+                if (principal instanceof UserPrincipal userPrincipal) {
+                    MDC.put("userId", userPrincipal.getUser().getId().toString());
+                }
+            }
+            
+            chain.doFilter(request, response);
+        } finally {
+            MDC.clear();
+        }
+    }
+}
+```
+
+**驗收條件:**
+
+- [ ] Filter 為每個請求生成 requestId
+- [ ] 認證用戶的 userId 自動加入 MDC
+- [ ] 請求結束後清除 MDC
+
+---
+
+### Task 10.4: 更新 SecurityConfig 註冊 LoggingFilter
+
+**檔案:** `src/main/java/com/waterball/course/config/SecurityConfig.java`
+
+在 Security Filter Chain 中加入 LoggingFilter，確保在認證後執行：
+
+```java
+.addFilterAfter(loggingFilter, UsernamePasswordAuthenticationFilter.class)
+```
+
+**驗收條件:**
+
+- [ ] LoggingFilter 正確註冊到 filter chain
+- [ ] LoggingFilter 在認證後執行（可取得 userId）
+
+---
+
+### Task 10.5: 建立 LoggingConstants 工具類
+
+**檔案:** `src/main/java/com/waterball/course/util/LoggingConstants.java`
+
+```java
+package com.waterball.course.util;
+
+public final class LoggingConstants {
+    private LoggingConstants() {}
+    
+    // Purchase Order Events
+    public static final String PURCHASE_ORDER_CREATED = "PURCHASE_ORDER_CREATED";
+    public static final String PURCHASE_ORDER_STATUS_CHANGED = "PURCHASE_ORDER_STATUS_CHANGED";
+    public static final String PURCHASE_ORDER_CANCELLED = "PURCHASE_ORDER_CANCELLED";
+    
+    // Checkout Session Events
+    public static final String CHECKOUT_SESSION_CREATED = "CHECKOUT_SESSION_CREATED";
+    public static final String CHECKOUT_SESSION_EXPIRED = "CHECKOUT_SESSION_EXPIRED";
+    
+    // Payment Events
+    public static final String PAYMENT_PROCESSING_STARTED = "PAYMENT_PROCESSING_STARTED";
+    public static final String PAYMENT_SUCCESS = "PAYMENT_SUCCESS";
+    public static final String PAYMENT_FAILED = "PAYMENT_FAILED";
+    
+    // Webhook Events
+    public static final String WEBHOOK_RECEIVED = "WEBHOOK_RECEIVED";
+    public static final String WEBHOOK_VALIDATION_FAILED = "WEBHOOK_VALIDATION_FAILED";
+    public static final String WEBHOOK_PROCESSED = "WEBHOOK_PROCESSED";
+    public static final String WEBHOOK_PROCESSING_FAILED = "WEBHOOK_PROCESSING_FAILED";
+    
+    // Error Events
+    public static final String EXTERNAL_SERVICE_ERROR = "EXTERNAL_SERVICE_ERROR";
+    public static final String OPERATION_TIMEOUT = "OPERATION_TIMEOUT";
+    public static final String DATA_INCONSISTENCY = "DATA_INCONSISTENCY";
+}
+```
+
+**驗收條件:**
+
+- [ ] 所有 event 常數定義完成
+- [ ] 分類清楚
+
+---
+
+### Task 10.6: 在 PurchaseService 加入 Logging
+
+**檔案:** `src/main/java/com/waterball/course/service/purchase/PurchaseService.java`
+
+加入以下 logging 點：
+
+1. `createPurchaseOrder()` - 訂單建立成功後
+2. `cancelPurchase()` - 訂單取消後
+3. 訂單狀態變更時（PENDING -> EXPIRED 等）
+
+使用 StructuredArguments.kv() 格式：
+
+```java
+import static net.logstash.logback.argument.StructuredArguments.kv;
+
+log.info("Purchase order created",
+    kv("event", LoggingConstants.PURCHASE_ORDER_CREATED),
+    kv("orderId", order.getId()),
+    kv("userId", userId),
+    kv("journeyId", journeyId),
+    kv("amount", amount),
+    kv("paymentMethod", paymentMethod));
+```
+
+**驗收條件:**
+
+- [ ] 訂單建立有 INFO log
+- [ ] 訂單取消有 INFO log
+- [ ] 訂單過期有 WARN log
+- [ ] 使用 structured logging 格式
+
+---
+
+### Task 10.7: 在 MockPaymentGatewayService 加入 Logging
+
+**檔案:** `src/main/java/com/waterball/course/service/payment/MockPaymentGatewayService.java`
+
+加入以下 logging 點：
+
+1. `createCheckoutSession()` - Session 建立後
+2. `processPayment()` - 付款開始時
+3. `processPayment()` - 付款成功時
+4. `processPayment()` - 付款失敗時
+5. Session 過期時
+
+**驗收條件:**
+
+- [ ] Session 建立有 INFO log
+- [ ] 付款處理有 INFO log
+- [ ] 付款成功有 INFO log
+- [ ] 付款失敗有 WARN log
+- [ ] Session 過期有 WARN log
+
+---
+
+### Task 10.8: 在 PaymentWebhookService 加入 Logging
+
+**檔案:** `src/main/java/com/waterball/course/service/payment/PaymentWebhookService.java`
+
+加入以下 logging 點：
+
+1. `handlePaymentResult()` - Webhook 處理成功
+2. `handlePaymentResult()` - 處理失敗（找不到訂單等）
+3. `validateWebhookSecret()` - 驗證失敗時
+
+**驗收條件:**
+
+- [ ] Webhook 處理成功有 INFO log
+- [ ] Webhook 處理失敗有 ERROR log
+- [ ] 驗證失敗有 ERROR log
+
+---
+
+### Task 10.9: 在 PaymentWebhookController 加入 Logging
+
+**檔案:** `src/main/java/com/waterball/course/controller/PaymentWebhookController.java`
+
+加入以下 logging 點：
+
+1. Webhook 接收時 - WEBHOOK_RECEIVED
+2. Secret 驗證失敗時 - WEBHOOK_VALIDATION_FAILED（含 remoteAddr）
+
+**驗收條件:**
+
+- [ ] Webhook 接收有 INFO log
+- [ ] 驗證失敗有 ERROR log 並記錄 remote address
+
+---
+
+### Task 10.10: 建立 Logging 整合測試
+
+**檔案:** `src/test/java/com/waterball/course/logging/PurchaseLoggingTest.java`
+
+使用 Logback 的 ListAppender 驗證 log 輸出：
+
+```java
+@Test
+void createPurchaseOrder_shouldLogPurchaseCreatedEvent() {
+    // Given
+    ListAppender<ILoggingEvent> listAppender = new ListAppender<>();
+    listAppender.start();
+    Logger logger = (Logger) LoggerFactory.getLogger(PurchaseService.class);
+    logger.addAppender(listAppender);
+    
+    // When
+    purchaseService.createPurchaseOrder(userId, request);
+    
+    // Then
+    assertThat(listAppender.list)
+        .filteredOn(event -> event.getMessage().contains("Purchase order created"))
+        .hasSize(1);
+}
+```
+
+**驗收條件:**
+
+- [ ] 驗證訂單建立會產生正確的 log
+- [ ] 驗證付款成功會產生正確的 log
+- [ ] 驗證付款失敗會產生正確的 log
+- [ ] 驗證 Webhook 處理會產生正確的 log
+
+---
+
+## Summary Checklist
+
+### Phase 1: Database & Entity (11 tasks)
+
+- [x] Task 1.1: Flyway Migration - purchase_orders
+- [x] Task 1.2: Flyway Migration - checkout_sessions
+- [x] Task 1.3: Flyway Migration - add price to journeys
+- [x] Task 1.4: PurchaseStatus Enum (含 EXPIRED)
+- [x] Task 1.5: PaymentMethod Enum
+- [x] Task 1.6: CheckoutSessionStatus Enum
+- [ ] Task 1.7: PurchaseOrder Entity (含 checkoutSessionId, expiresAt)
+- [ ] Task 1.8: CheckoutSession Entity
+- [ ] Task 1.9: Update Journey Entity
+- [ ] Task 1.10: PurchaseOrderRepository
+- [ ] Task 1.11: CheckoutSessionRepository
+
+### Phase 2: Service Layer (5 tasks)
+
+- [ ] Task 2.1: PaymentDetails classes
+- [ ] Task 2.2: PaymentResult class
+- [ ] Task 2.3: MockPaymentGatewayService
+- [ ] Task 2.4: PaymentWebhookService
+- [ ] Task 2.5: PurchaseService
+
+### Phase 3: DTOs (2 tasks)
+
+- [ ] Task 3.1: Request DTOs (含 CreateCheckoutRequest, PaymentWebhookRequest)
+- [ ] Task 3.2: Response DTOs (含 checkoutUrl, expiresAt, WebhookResponse)
+
+### Phase 4: Controllers (7 tasks)
+
+- [ ] Task 4.1: PurchaseController
+- [ ] Task 4.2: PaymentWebhookController
+- [ ] Task 4.3: MockPaymentController
+- [ ] Task 4.4: Mock Payment HTML Templates
+- [ ] Task 4.5: SecurityConfig update
+- [ ] Task 4.6: Business Exceptions
+- [ ] Task 4.7: GlobalExceptionHandler update
+
+### Phase 5: Configuration (1 task)
+
+- [ ] Task 5.1: application.yml update
+
+### Phase 6: Integration Tests (4 tasks)
+
+- [ ] Task 6.1: PurchaseControllerTest
+- [ ] Task 6.2: PaymentWebhookControllerTest
+- [ ] Task 6.3: MockPaymentGatewayServiceTest
+- [ ] Task 6.4: PurchaseServiceTest
+
+### Phase 7: E2E Tests (1 task)
+
+- [ ] Task 7.1: PurchaseE2ETest (9 scenarios)
+
+### Phase 8: Test Data (2 tasks)
+
+- [ ] Task 8.1: Seed Data update
+- [ ] Task 8.2: Test data files
+
+### Phase 9: Journey API Enhancement (3 tasks)
+
+- [ ] Task 9.1: Update JourneyListResponse
+- [ ] Task 9.2: Update JourneyDetailResponse
+- [ ] Task 9.3: Update JourneyService
+
+### Phase 10: Logging Infrastructure (10 tasks)
+
+- [ ] Task 10.1: Add logstash-logback-encoder dependency
+- [ ] Task 10.2: Create logback-spring.xml configuration
+- [ ] Task 10.3: Create LoggingFilter component
+- [ ] Task 10.4: Update SecurityConfig to register LoggingFilter
+- [ ] Task 10.5: Create LoggingConstants utility class
+- [ ] Task 10.6: Add logging to PurchaseService
+- [ ] Task 10.7: Add logging to MockPaymentGatewayService
+- [ ] Task 10.8: Add logging to PaymentWebhookService
+- [ ] Task 10.9: Add logging to PaymentWebhookController
+- [ ] Task 10.10: Create logging integration tests
+
+**Total: 46 tasks**

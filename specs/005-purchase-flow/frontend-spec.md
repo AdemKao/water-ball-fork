@@ -12,6 +12,104 @@
 - Tailwind CSS
 - shadcn/ui
 
+## Page-API Sequence Diagram
+
+### Complete Purchase Flow
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant User
+    participant JourneyListPage as /courses (JourneyList)
+    participant CoursePage as /courses/[id] (課程詳情頁)
+    participant PurchasePage as /courses/[id]/purchase (購買頁)
+    participant MockGateway as Mock Payment Gateway
+    participant CallbackPage as /courses/[id]/purchase/callback
+    participant SuccessPage as /courses/[id]/purchase/success
+    participant Backend
+
+    Note over JourneyListPage: 課程列表頁面
+    User->>JourneyListPage: 進入課程列表
+    JourneyListPage->>Backend: GET /api/journeys
+    Backend-->>JourneyListPage: journeys[] (含 price 欄位)
+    JourneyListPage->>User: 顯示課程卡片 + PurchaseButton (價格)
+
+    Note over CoursePage: 課程詳情頁面
+    User->>CoursePage: 點擊課程卡片
+    CoursePage->>Backend: GET /api/journeys/{id}
+    Backend-->>CoursePage: journey (含 price, isPurchased)
+    CoursePage->>Backend: GET /api/purchases/pending/journey/{id}
+    Backend-->>CoursePage: pendingPurchase | null
+    
+    alt 有待完成購買
+        CoursePage->>User: 顯示 PendingPurchaseBanner
+        User->>MockGateway: 點擊「繼續付款」→ redirect to checkoutUrl
+    else 未購買
+        CoursePage->>User: 顯示 PurchaseButton
+    end
+
+    Note over PurchasePage: 購買頁面（選擇付款方式）
+    User->>PurchasePage: 點擊「購買」按鈕
+    PurchasePage->>Backend: GET /api/journeys/{id}
+    Backend-->>PurchasePage: journey (課程資訊)
+    PurchasePage->>User: 顯示課程摘要 + 付款方式選擇
+
+    User->>PurchasePage: 選擇付款方式，點擊「前往付款」
+    PurchasePage->>Backend: POST /api/purchases {journeyId, paymentMethod}
+    Backend-->>PurchasePage: {id, checkoutUrl, ...}
+    PurchasePage->>MockGateway: window.location.href = checkoutUrl
+
+    Note over MockGateway: Mock Payment Gateway 結帳頁
+    MockGateway->>User: 顯示付款表單
+    User->>MockGateway: 填寫付款資訊，點擊確認
+    MockGateway->>Backend: POST /api/webhooks/payment (Webhook)
+    MockGateway->>CallbackPage: redirect to successUrl/cancelUrl
+
+    Note over CallbackPage: 回調頁面（輪詢狀態）
+    CallbackPage->>Backend: GET /api/purchases/{purchaseId}
+    Backend-->>CallbackPage: {status: 'PENDING'}
+    
+    loop 輪詢直到終態
+        CallbackPage->>Backend: GET /api/purchases/{purchaseId}
+        Backend-->>CallbackPage: {status}
+    end
+
+    alt status = COMPLETED
+        CallbackPage->>SuccessPage: router.push(successPage)
+    else status = FAILED/CANCELLED
+        CallbackPage->>User: 顯示錯誤訊息 + 重試按鈕
+    end
+
+    Note over SuccessPage: 購買成功頁面
+    SuccessPage->>Backend: GET /api/purchases/{purchaseId}
+    Backend-->>SuccessPage: purchase details
+    SuccessPage->>User: 顯示成功畫面 +「開始學習」按鈕
+```
+
+### Page-API Summary Table
+
+| 頁面 | 時機 | API | 說明 |
+|------|------|-----|------|
+| `/courses` (JourneyList) | 頁面載入 | `GET /api/journeys` | 取得課程列表（含 price） |
+| `/courses/[id]` (課程詳情) | 頁面載入 | `GET /api/journeys/{id}` | 取得課程詳情（含 price, isPurchased） |
+| `/courses/[id]` (課程詳情) | 頁面載入 | `GET /api/purchases/pending/journey/{id}` | 檢查是否有待完成購買 |
+| `/courses/[id]` (課程詳情) | 點擊取消 | `DELETE /api/purchases/{id}` | 取消待完成購買 |
+| `/courses/[id]/purchase` | 頁面載入 | `GET /api/journeys/{id}` | 取得課程資訊顯示摘要 |
+| `/courses/[id]/purchase` | 點擊付款 | `POST /api/purchases` | 建立訂單，取得 checkoutUrl |
+| `/courses/[id]/purchase/callback` | 頁面載入 | `GET /api/purchases/{id}` | 輪詢訂單狀態 |
+| `/courses/[id]/purchase/success` | 頁面載入 | `GET /api/purchases/{id}` | 取得購買詳情顯示成功畫面 |
+
+### API 權限說明
+
+| API | 需登入 | 說明 |
+|-----|--------|------|
+| `GET /api/journeys` | ❌ | 公開課程列表 |
+| `GET /api/journeys/{id}` | ❌ | 公開課程詳情 |
+| `GET /api/purchases/pending/journey/{id}` | ✅ | 查詢自己的待完成購買 |
+| `POST /api/purchases` | ✅ | 建立購買訂單 |
+| `GET /api/purchases/{id}` | ✅ | 查詢自己的訂單 |
+| `DELETE /api/purchases/{id}` | ✅ | 取消自己的訂單 |
+
 ## Architecture
 
 ```

@@ -1149,6 +1149,251 @@ Then:
 
 ---
 
+## Logging Specification
+
+### Overview
+
+支付流程需要完整的 logging 機制，供客服查詢問題、系統人員排查異常。使用 **Structured Logging** (JSON 格式) 搭配 SLF4J + Logback。
+
+### Log Levels
+
+| Level | 使用場景 |
+|-------|----------|
+| ERROR | 系統錯誤、第三方服務失敗、Webhook 處理失敗 |
+| WARN | 業務異常（如重複購買嘗試）、Session 過期、可恢復錯誤 |
+| INFO | 重要業務事件（訂單建立、付款成功/失敗、狀態變更） |
+| DEBUG | 詳細流程資訊（開發環境使用） |
+
+### Log Events
+
+#### 1. Purchase Order Events
+
+```java
+// 訂單建立
+log.info("Purchase order created", 
+    kv("event", "PURCHASE_ORDER_CREATED"),
+    kv("orderId", order.getId()),
+    kv("userId", userId),
+    kv("journeyId", journeyId),
+    kv("amount", amount),
+    kv("paymentMethod", paymentMethod));
+
+// 訂單狀態變更
+log.info("Purchase order status changed",
+    kv("event", "PURCHASE_ORDER_STATUS_CHANGED"),
+    kv("orderId", orderId),
+    kv("previousStatus", previousStatus),
+    kv("newStatus", newStatus),
+    kv("reason", reason));
+
+// 訂單取消
+log.info("Purchase order cancelled",
+    kv("event", "PURCHASE_ORDER_CANCELLED"),
+    kv("orderId", orderId),
+    kv("userId", userId));
+```
+
+#### 2. Checkout Session Events
+
+```java
+// Session 建立
+log.info("Checkout session created",
+    kv("event", "CHECKOUT_SESSION_CREATED"),
+    kv("sessionId", sessionId),
+    kv("orderId", orderId),
+    kv("expiresAt", expiresAt));
+
+// Session 過期
+log.warn("Checkout session expired",
+    kv("event", "CHECKOUT_SESSION_EXPIRED"),
+    kv("sessionId", sessionId),
+    kv("orderId", orderId));
+```
+
+#### 3. Payment Events
+
+```java
+// 付款處理開始
+log.info("Payment processing started",
+    kv("event", "PAYMENT_PROCESSING_STARTED"),
+    kv("sessionId", sessionId),
+    kv("paymentMethod", paymentMethod));
+
+// 付款成功
+log.info("Payment successful",
+    kv("event", "PAYMENT_SUCCESS"),
+    kv("sessionId", sessionId),
+    kv("orderId", orderId),
+    kv("amount", amount));
+
+// 付款失敗
+log.warn("Payment failed",
+    kv("event", "PAYMENT_FAILED"),
+    kv("sessionId", sessionId),
+    kv("orderId", orderId),
+    kv("failureReason", reason));
+```
+
+#### 4. Webhook Events
+
+```java
+// Webhook 接收
+log.info("Webhook received",
+    kv("event", "WEBHOOK_RECEIVED"),
+    kv("sessionId", sessionId),
+    kv("status", status));
+
+// Webhook 驗證失敗
+log.error("Webhook validation failed",
+    kv("event", "WEBHOOK_VALIDATION_FAILED"),
+    kv("reason", "Invalid webhook secret"),
+    kv("remoteAddr", remoteAddr));
+
+// Webhook 處理成功
+log.info("Webhook processed successfully",
+    kv("event", "WEBHOOK_PROCESSED"),
+    kv("sessionId", sessionId),
+    kv("orderId", orderId),
+    kv("resultStatus", status));
+
+// Webhook 處理失敗
+log.error("Webhook processing failed",
+    kv("event", "WEBHOOK_PROCESSING_FAILED"),
+    kv("sessionId", sessionId),
+    kv("error", errorMessage));
+```
+
+#### 5. Error Events
+
+```java
+// 第三方服務錯誤
+log.error("External service error",
+    kv("event", "EXTERNAL_SERVICE_ERROR"),
+    kv("service", "PaymentGateway"),
+    kv("operation", "createCheckoutSession"),
+    kv("error", errorMessage),
+    kv("orderId", orderId));
+
+// Timeout
+log.error("Operation timeout",
+    kv("event", "OPERATION_TIMEOUT"),
+    kv("operation", "webhookCallback"),
+    kv("sessionId", sessionId),
+    kv("timeoutMs", timeoutMs));
+
+// 資料不一致
+log.error("Data inconsistency detected",
+    kv("event", "DATA_INCONSISTENCY"),
+    kv("orderId", orderId),
+    kv("sessionId", sessionId),
+    kv("description", description));
+```
+
+### Logback Configuration
+
+```xml
+<!-- logback-spring.xml -->
+<configuration>
+    <springProfile name="!test">
+        <appender name="JSON" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+                <includeMdcKeyName>requestId</includeMdcKeyName>
+                <includeMdcKeyName>userId</includeMdcKeyName>
+                <includeMdcKeyName>orderId</includeMdcKeyName>
+            </encoder>
+        </appender>
+
+        <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+            <file>logs/purchase.log</file>
+            <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+                <fileNamePattern>logs/purchase.%d{yyyy-MM-dd}.log</fileNamePattern>
+                <maxHistory>30</maxHistory>
+            </rollingPolicy>
+            <encoder class="net.logstash.logback.encoder.LogstashEncoder"/>
+        </appender>
+
+        <logger name="com.waterball.course.service.purchase" level="INFO"/>
+        <logger name="com.waterball.course.service.payment" level="INFO"/>
+        <logger name="com.waterball.course.controller" level="INFO"/>
+
+        <root level="INFO">
+            <appender-ref ref="JSON"/>
+            <appender-ref ref="FILE"/>
+        </root>
+    </springProfile>
+
+    <springProfile name="test">
+        <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder>
+                <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+            </encoder>
+        </appender>
+        <root level="WARN">
+            <appender-ref ref="CONSOLE"/>
+        </root>
+    </springProfile>
+</configuration>
+```
+
+### MDC (Mapped Diagnostic Context)
+
+使用 MDC 在請求生命週期中追蹤相關資訊：
+
+```java
+@Component
+public class LoggingFilter extends OncePerRequestFilter {
+    @Override
+    protected void doFilterInternal(HttpServletRequest request, 
+                                    HttpServletResponse response, 
+                                    FilterChain chain) {
+        try {
+            MDC.put("requestId", UUID.randomUUID().toString());
+            // userId 從 SecurityContext 取得（如果已認證）
+            chain.doFilter(request, response);
+        } finally {
+            MDC.clear();
+        }
+    }
+}
+```
+
+### Log Query Examples
+
+客服/系統人員可用以下方式查詢：
+
+```bash
+# 查詢特定訂單的所有事件
+grep '"orderId":"550e8400-..."' logs/purchase.log
+
+# 查詢所有付款失敗事件
+grep '"event":"PAYMENT_FAILED"' logs/purchase.log
+
+# 查詢特定用戶的購買記錄
+grep '"userId":"user-123"' logs/purchase.log | grep '"event":"PURCHASE_ORDER_CREATED"'
+
+# 查詢 Webhook 異常
+grep '"event":"WEBHOOK_PROCESSING_FAILED"\|"event":"WEBHOOK_VALIDATION_FAILED"' logs/purchase.log
+
+# 查詢 Session 過期
+grep '"event":"CHECKOUT_SESSION_EXPIRED"' logs/purchase.log
+
+# 查詢第三方服務錯誤
+grep '"event":"EXTERNAL_SERVICE_ERROR"' logs/purchase.log
+```
+
+### Dependencies
+
+```xml
+<!-- pom.xml -->
+<dependency>
+    <groupId>net.logstash.logback</groupId>
+    <artifactId>logstash-logback-encoder</artifactId>
+    <version>7.4</version>
+</dependency>
+```
+
+---
+
 ## Success Criteria
 
 ### 功能驗收
