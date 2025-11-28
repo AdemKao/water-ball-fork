@@ -1552,60 +1552,60 @@ UPDATE journeys SET price = 0.00 WHERE price IS NULL;
 - [x] Task 1.4: PurchaseStatus Enum (含 EXPIRED)
 - [x] Task 1.5: PaymentMethod Enum
 - [x] Task 1.6: CheckoutSessionStatus Enum
-- [ ] Task 1.7: PurchaseOrder Entity (含 checkoutSessionId, expiresAt)
-- [ ] Task 1.8: CheckoutSession Entity
-- [ ] Task 1.9: Update Journey Entity
-- [ ] Task 1.10: PurchaseOrderRepository
-- [ ] Task 1.11: CheckoutSessionRepository
+- [x] Task 1.7: PurchaseOrder Entity (含 checkoutSessionId, expiresAt)
+- [x] Task 1.8: CheckoutSession Entity
+- [x] Task 1.9: Update Journey Entity
+- [x] Task 1.10: PurchaseOrderRepository
+- [x] Task 1.11: CheckoutSessionRepository
 
 ### Phase 2: Service Layer (5 tasks)
 
-- [ ] Task 2.1: PaymentDetails classes
-- [ ] Task 2.2: PaymentResult class
-- [ ] Task 2.3: MockPaymentGatewayService
-- [ ] Task 2.4: PaymentWebhookService
-- [ ] Task 2.5: PurchaseService
+- [x] Task 2.1: PaymentDetails classes
+- [x] Task 2.2: PaymentResult class
+- [x] Task 2.3: MockPaymentGatewayService
+- [x] Task 2.4: PaymentWebhookService
+- [x] Task 2.5: PurchaseService
 
 ### Phase 3: DTOs (2 tasks)
 
-- [ ] Task 3.1: Request DTOs (含 CreateCheckoutRequest, PaymentWebhookRequest)
-- [ ] Task 3.2: Response DTOs (含 checkoutUrl, expiresAt, WebhookResponse)
+- [x] Task 3.1: Request DTOs (含 CreateCheckoutRequest, PaymentWebhookRequest)
+- [x] Task 3.2: Response DTOs (含 checkoutUrl, expiresAt, WebhookResponse)
 
 ### Phase 4: Controllers (7 tasks)
 
-- [ ] Task 4.1: PurchaseController
-- [ ] Task 4.2: PaymentWebhookController
-- [ ] Task 4.3: MockPaymentController
-- [ ] Task 4.4: Mock Payment HTML Templates
-- [ ] Task 4.5: SecurityConfig update
-- [ ] Task 4.6: Business Exceptions
-- [ ] Task 4.7: GlobalExceptionHandler update
+- [x] Task 4.1: PurchaseController
+- [x] Task 4.2: PaymentWebhookController
+- [x] Task 4.3: MockPaymentController
+- [x] Task 4.4: Mock Payment HTML Templates
+- [x] Task 4.5: SecurityConfig update
+- [x] Task 4.6: Business Exceptions
+- [x] Task 4.7: GlobalExceptionHandler update
 
 ### Phase 5: Configuration (1 task)
 
-- [ ] Task 5.1: application.yml update
+- [x] Task 5.1: application.yml update
 
 ### Phase 6: Integration Tests (4 tasks)
 
-- [ ] Task 6.1: PurchaseControllerTest
-- [ ] Task 6.2: PaymentWebhookControllerTest
-- [ ] Task 6.3: MockPaymentGatewayServiceTest
-- [ ] Task 6.4: PurchaseServiceTest
+- [x] Task 6.1: PurchaseControllerTest
+- [x] Task 6.2: PaymentWebhookControllerTest
+- [x] Task 6.3: MockPaymentGatewayServiceTest
+- [x] Task 6.4: PurchaseServiceTest
 
 ### Phase 7: E2E Tests (1 task)
 
-- [ ] Task 7.1: PurchaseE2ETest (9 scenarios)
+- [x] Task 7.1: PurchaseE2ETest (9 scenarios)
 
 ### Phase 8: Test Data (2 tasks)
 
-- [ ] Task 8.1: Seed Data update
-- [ ] Task 8.2: Test data files
+- [x] Task 8.1: Seed Data update
+- [x] Task 8.2: Test data files
 
 ### Phase 9: Journey API Enhancement (3 tasks)
 
-- [ ] Task 9.1: Update JourneyListResponse
-- [ ] Task 9.2: Update JourneyDetailResponse
-- [ ] Task 9.3: Update JourneyService
+- [x] Task 9.1: Update JourneyListResponse
+- [x] Task 9.2: Update JourneyDetailResponse
+- [x] Task 9.3: Update JourneyService
 
 ---
 
@@ -1935,72 +1935,72 @@ void createPurchaseOrder_shouldLogPurchaseCreatedEvent() {
 - [x] Task 1.4: PurchaseStatus Enum (含 EXPIRED)
 - [x] Task 1.5: PaymentMethod Enum
 - [x] Task 1.6: CheckoutSessionStatus Enum
-- [ ] Task 1.7: PurchaseOrder Entity (含 checkoutSessionId, expiresAt)
-- [ ] Task 1.8: CheckoutSession Entity
-- [ ] Task 1.9: Update Journey Entity
-- [ ] Task 1.10: PurchaseOrderRepository
-- [ ] Task 1.11: CheckoutSessionRepository
+- [x] Task 1.7: PurchaseOrder Entity (含 checkoutSessionId, expiresAt)
+- [x] Task 1.8: CheckoutSession Entity
+- [x] Task 1.9: Update Journey Entity
+- [x] Task 1.10: PurchaseOrderRepository
+- [x] Task 1.11: CheckoutSessionRepository
 
 ### Phase 2: Service Layer (5 tasks)
 
-- [ ] Task 2.1: PaymentDetails classes
-- [ ] Task 2.2: PaymentResult class
-- [ ] Task 2.3: MockPaymentGatewayService
-- [ ] Task 2.4: PaymentWebhookService
-- [ ] Task 2.5: PurchaseService
+- [x] Task 2.1: PaymentDetails classes
+- [x] Task 2.2: PaymentResult class
+- [x] Task 2.3: MockPaymentGatewayService
+- [x] Task 2.4: PaymentWebhookService
+- [x] Task 2.5: PurchaseService
 
 ### Phase 3: DTOs (2 tasks)
 
-- [ ] Task 3.1: Request DTOs (含 CreateCheckoutRequest, PaymentWebhookRequest)
-- [ ] Task 3.2: Response DTOs (含 checkoutUrl, expiresAt, WebhookResponse)
+- [x] Task 3.1: Request DTOs (含 CreateCheckoutRequest, PaymentWebhookRequest)
+- [x] Task 3.2: Response DTOs (含 checkoutUrl, expiresAt, WebhookResponse)
 
 ### Phase 4: Controllers (7 tasks)
 
-- [ ] Task 4.1: PurchaseController
-- [ ] Task 4.2: PaymentWebhookController
-- [ ] Task 4.3: MockPaymentController
-- [ ] Task 4.4: Mock Payment HTML Templates
-- [ ] Task 4.5: SecurityConfig update
-- [ ] Task 4.6: Business Exceptions
-- [ ] Task 4.7: GlobalExceptionHandler update
+- [x] Task 4.1: PurchaseController
+- [x] Task 4.2: PaymentWebhookController
+- [x] Task 4.3: MockPaymentController
+- [x] Task 4.4: Mock Payment HTML Templates
+- [x] Task 4.5: SecurityConfig update
+- [x] Task 4.6: Business Exceptions
+- [x] Task 4.7: GlobalExceptionHandler update
 
 ### Phase 5: Configuration (1 task)
 
-- [ ] Task 5.1: application.yml update
+- [x] Task 5.1: application.yml update
 
 ### Phase 6: Integration Tests (4 tasks)
 
-- [ ] Task 6.1: PurchaseControllerTest
-- [ ] Task 6.2: PaymentWebhookControllerTest
-- [ ] Task 6.3: MockPaymentGatewayServiceTest
-- [ ] Task 6.4: PurchaseServiceTest
+- [x] Task 6.1: PurchaseControllerTest
+- [x] Task 6.2: PaymentWebhookControllerTest
+- [x] Task 6.3: MockPaymentGatewayServiceTest
+- [x] Task 6.4: PurchaseServiceTest
 
 ### Phase 7: E2E Tests (1 task)
 
-- [ ] Task 7.1: PurchaseE2ETest (9 scenarios)
+- [x] Task 7.1: PurchaseE2ETest (9 scenarios)
 
 ### Phase 8: Test Data (2 tasks)
 
-- [ ] Task 8.1: Seed Data update
-- [ ] Task 8.2: Test data files
+- [x] Task 8.1: Seed Data update
+- [x] Task 8.2: Test data files
 
 ### Phase 9: Journey API Enhancement (3 tasks)
 
-- [ ] Task 9.1: Update JourneyListResponse
-- [ ] Task 9.2: Update JourneyDetailResponse
-- [ ] Task 9.3: Update JourneyService
+- [x] Task 9.1: Update JourneyListResponse
+- [x] Task 9.2: Update JourneyDetailResponse
+- [x] Task 9.3: Update JourneyService
 
 ### Phase 10: Logging Infrastructure (10 tasks)
 
-- [ ] Task 10.1: Add logstash-logback-encoder dependency
-- [ ] Task 10.2: Create logback-spring.xml configuration
-- [ ] Task 10.3: Create LoggingFilter component
-- [ ] Task 10.4: Update SecurityConfig to register LoggingFilter
-- [ ] Task 10.5: Create LoggingConstants utility class
-- [ ] Task 10.6: Add logging to PurchaseService
-- [ ] Task 10.7: Add logging to MockPaymentGatewayService
-- [ ] Task 10.8: Add logging to PaymentWebhookService
-- [ ] Task 10.9: Add logging to PaymentWebhookController
+- [x] Task 10.1: Add logstash-logback-encoder dependency
+- [x] Task 10.2: Create logback-spring.xml configuration
+- [x] Task 10.3: Create LoggingFilter component
+- [x] Task 10.4: Update SecurityConfig to register LoggingFilter
+- [x] Task 10.5: Create LoggingConstants utility class
+- [x] Task 10.6: Add logging to PurchaseService
+- [x] Task 10.7: Add logging to MockPaymentGatewayService
+- [x] Task 10.8: Add logging to PaymentWebhookService
+- [x] Task 10.9: Add logging to PaymentWebhookController
 - [ ] Task 10.10: Create logging integration tests
 
-**Total: 46 tasks**
+**Total: 46 tasks (45 completed, 1 pending)**
