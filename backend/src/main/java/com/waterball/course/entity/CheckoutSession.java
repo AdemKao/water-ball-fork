@@ -40,6 +40,9 @@ public class CheckoutSession {
     @Column(name = "cancel_url", nullable = false, length = 500)
     private String cancelUrl;
 
+    @Column(name = "product_name")
+    private String productName;
+
     @Column(name = "created_at")
     private Instant createdAt;
 

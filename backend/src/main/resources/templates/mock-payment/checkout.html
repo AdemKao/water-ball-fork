@@ -3,8 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mock Payment Gateway</title>
+    <title>Checkout</title>
     <style>
+        :root {
+            --color-black: #0c0c0c;
+            --color-gray-20: #f2f2f2;
+            --color-gray-40: #d1d1d1;
+            --color-gray-60: #919191;
+            --color-gray-80: #525252;
+            --color-gray-90: #1e1e1e;
+            --color-negative: #ee2933;
+            --color-negative-30: #ffebec;
+            --color-positive: #04c500;
+            --color-positive-30: #e9ffe1;
+            --color-primary-30: #c9e6f8;
+            --color-primary-50: #5880c5;
+            --color-primary-70: #2f518b;
+            --color-secondary-30: #fff6ea;
+            --color-secondary-50: #f9ad47;
+            --color-secondary-70: #f39300;
+        }
         * {
             box-sizing: border-box;
             margin: 0;
@@ -12,7 +30,7 @@
         }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: var(--color-gray-20);
             min-height: 100vh;
             display: flex;
             justify-content: center;
@@ -20,156 +38,263 @@
             padding: 20px;
         }
         .container {
-            background: white;
-            border-radius: 16px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            max-width: 480px;
+            display: flex;
+            max-width: 900px;
             width: 100%;
-            overflow: hidden;
+            gap: 0;
         }
-        .header {
-            background: #1a1a2e;
+        .product-panel {
+            background: var(--color-gray-90);
             color: white;
-            padding: 24px;
-            text-align: center;
+            padding: 48px 40px;
+            width: 45%;
+            border-radius: 8px 0 0 8px;
+            display: flex;
+            flex-direction: column;
         }
-        .header h1 {
-            font-size: 1.5rem;
+        .product-info {
+            flex: 1;
+        }
+        .merchant-name {
+            font-size: 14px;
+            color: var(--color-gray-60);
             margin-bottom: 8px;
         }
-        .header .amount {
-            font-size: 2.5rem;
-            font-weight: bold;
-            color: #00d9ff;
-        }
-        .header .currency {
-            font-size: 1rem;
-            color: #888;
-        }
-        .content {
-            padding: 32px;
-        }
-        .payment-method-badge {
-            display: inline-block;
-            padding: 6px 16px;
-            border-radius: 20px;
-            font-size: 0.875rem;
+        .product-amount {
+            font-size: 36px;
             font-weight: 600;
+            letter-spacing: -0.5px;
+        }
+        .product-currency {
+            font-size: 14px;
+            color: var(--color-gray-60);
+            margin-top: 4px;
+        }
+        .product-name {
+            font-size: 18px;
+            font-weight: 500;
+            color: white;
+            margin-bottom: 12px;
+            line-height: 1.4;
+        }
+        .payment-panel {
+            background: white;
+            padding: 48px 40px;
+            width: 55%;
+            border-radius: 0 8px 8px 0;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        .payment-method-tabs {
+            display: flex;
+            gap: 16px;
             margin-bottom: 24px;
+            border-bottom: 1px solid var(--color-gray-40);
+            padding-bottom: 16px;
         }
-        .credit-card {
-            background: #e3f2fd;
-            color: #1565c0;
+        .payment-tab {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 0;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--color-black);
         }
-        .bank-transfer {
-            background: #e8f5e9;
-            color: #2e7d32;
+        .payment-tab.active {
+            color: var(--color-primary-70);
+        }
+        .payment-tab .radio {
+            width: 18px;
+            height: 18px;
+            border: 2px solid var(--color-primary-50);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .payment-tab .radio::after {
+            content: '';
+            width: 10px;
+            height: 10px;
+            background: var(--color-primary-50);
+            border-radius: 50%;
+        }
+        .section-title {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--color-gray-80);
+            margin-bottom: 12px;
         }
         .form-group {
-            margin-bottom: 20px;
+            margin-bottom: 16px;
         }
         .form-group label {
             display: block;
-            margin-bottom: 8px;
+            margin-bottom: 6px;
+            font-size: 14px;
             font-weight: 500;
-            color: #333;
+            color: var(--color-gray-80);
         }
         .form-group input {
             width: 100%;
-            padding: 14px 16px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            font-size: 1rem;
-            transition: border-color 0.2s;
+            padding: 12px;
+            border: 1px solid var(--color-gray-40);
+            border-radius: 6px;
+            font-size: 16px;
+            color: var(--color-black);
+            transition: border-color 0.15s, box-shadow 0.15s;
+            background: white;
+        }
+        .form-group input::placeholder {
+            color: var(--color-gray-60);
         }
         .form-group input:focus {
             outline: none;
-            border-color: #667eea;
+            border-color: var(--color-primary-50);
+            box-shadow: 0 0 0 3px rgba(88, 128, 197, 0.15);
         }
         .form-row {
             display: flex;
-            gap: 16px;
+            gap: 12px;
         }
         .form-row .form-group {
             flex: 1;
         }
-        .test-hint {
-            background: #fff3e0;
-            border: 1px solid #ffcc80;
-            border-radius: 8px;
-            padding: 16px;
-            margin-bottom: 24px;
-            font-size: 0.875rem;
+        .btn-pay {
+            width: 100%;
+            padding: 14px 24px;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            background: var(--color-primary-50);
+            color: white;
+            margin-top: 24px;
+            transition: background 0.15s, transform 0.1s;
         }
-        .test-hint h4 {
-            color: #e65100;
+        .btn-pay:hover {
+            background: var(--color-primary-70);
+        }
+        .btn-pay:active {
+            transform: scale(0.99);
+        }
+        .cancel-link {
+            display: block;
+            text-align: center;
+            margin-top: 16px;
+            padding: 12px 24px;
+            background: var(--color-gray-20);
+            color: var(--color-gray-80);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            border-radius: 6px;
+            transition: background 0.15s;
+        }
+        .cancel-link:hover {
+            background: var(--color-gray-40);
+            color: var(--color-black);
+        }
+        .test-hint {
+            background: var(--color-secondary-30);
+            border: 1px solid var(--color-secondary-50);
+            border-radius: 6px;
+            padding: 12px 16px;
+            margin-bottom: 20px;
+            font-size: 13px;
+        }
+        .test-hint-header {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--color-secondary-70);
+            font-weight: 600;
             margin-bottom: 8px;
         }
+        .test-hint-header svg {
+            width: 16px;
+            height: 16px;
+        }
         .test-hint ul {
-            margin-left: 20px;
-            color: #666;
+            margin: 0;
+            padding-left: 20px;
+            color: var(--color-gray-80);
         }
         .test-hint li {
             margin-bottom: 4px;
         }
-        .buttons {
-            display: flex;
-            gap: 12px;
-            margin-top: 24px;
-        }
-        .btn {
-            flex: 1;
-            padding: 16px 24px;
-            border: none;
-            border-radius: 8px;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-        .btn:hover {
-            transform: translateY(-2px);
-        }
-        .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        .test-hint strong {
+            color: var(--color-black);
+            font-family: 'SF Mono', Monaco, monospace;
+            font-size: 12px;
+            background: var(--color-secondary-50);
             color: white;
-            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+            padding: 1px 6px;
+            border-radius: 3px;
         }
-        .btn-secondary {
-            background: #f5f5f5;
-            color: #666;
+        .powered-by {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            margin-top: auto;
+            padding-top: 32px;
+            font-size: 12px;
+            color: var(--color-gray-60);
         }
-        .btn-secondary:hover {
-            background: #e0e0e0;
+        .powered-by span {
+            font-weight: 600;
+            color: var(--color-secondary-50);
         }
-        .mock-badge {
-            text-align: center;
-            padding: 12px;
-            background: #fafafa;
-            color: #999;
-            font-size: 0.75rem;
-            text-transform: uppercase;
-            letter-spacing: 1px;
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+            }
+            .product-panel,
+            .payment-panel {
+                width: 100%;
+                border-radius: 0;
+            }
+            .product-panel {
+                border-radius: 8px 8px 0 0;
+                padding: 32px 24px;
+            }
+            .payment-panel {
+                border-radius: 0 0 8px 8px;
+                padding: 32px 24px;
+            }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="header">
-            <h1>Mock Payment Gateway</h1>
-            <div class="amount" th:text="${#numbers.formatDecimal(session.amount, 1, 'COMMA', 0, 'POINT')}">1,999</div>
-            <div class="currency" th:text="${session.currency}">TWD</div>
+        <div class="product-panel">
+            <div class="product-info">
+                <div class="merchant-name">Mock Payment Gateway</div>
+                <div class="product-name" th:text="${productName}" th:if="${productName}">Course Title</div>
+                <div class="product-amount" th:text="${currency} + ' ' + ${#numbers.formatDecimal(amount, 1, 'COMMA', 0, 'POINT')}">TWD 1,999</div>
+            </div>
+            <div class="powered-by">
+                Powered by <span>Mock</span>
+            </div>
         </div>
-        
-        <div class="content">
-            <span class="payment-method-badge" 
-                  th:classappend="${isCreditCard} ? 'credit-card' : 'bank-transfer'"
-                  th:text="${isCreditCard} ? 'Credit Card' : 'Bank Transfer'">
-                Credit Card
-            </span>
+
+        <div class="payment-panel">
+            <div class="payment-method-tabs">
+                <div class="payment-tab active">
+                    <div class="radio"></div>
+                    <span th:text="${isCreditCard} ? 'Card' : 'Bank Transfer'">Card</span>
+                </div>
+            </div>
 
             <div class="test-hint">
-                <h4>Test Mode</h4>
+                <div class="test-hint-header">
+                    <svg viewBox="0 0 16 16" fill="currentColor">
+                        <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16zm.93-9.412-1 4.705c-.07.34.029.533.304.533.194 0 .487-.07.686-.246l-.088.416c-.287.346-.92.598-1.465.598-.703 0-1.002-.422-.808-1.319l.738-3.468c.064-.293.006-.399-.287-.47l-.451-.081.082-.381 2.29-.287zM8 5.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2z"/>
+                    </svg>
+                    Test Mode
+                </div>
                 <ul th:if="${isCreditCard}">
                     <li>Card ending in <strong>0000</strong> = Insufficient funds</li>
                     <li>Card ending in <strong>1111</strong> = Card declined</li>
@@ -181,39 +306,34 @@
                 </ul>
             </div>
 
-            <form th:action="@{/mock-payment/checkout/{id}/submit(id=${session.id})}" method="post">
+            <form th:action="@{/mock-payment/checkout/{id}/submit(id=${sessionId})}" method="post">
                 <div th:if="${isCreditCard}">
+                    <div class="section-title">Card information</div>
                     <div class="form-group">
-                        <label for="cardholderName">Cardholder Name</label>
-                        <input type="text" id="cardholderName" name="cardholderName" 
-                               placeholder="JOHN DOE" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="cardNumber">Card Number</label>
                         <input type="text" id="cardNumber" name="cardNumber" 
-                               placeholder="4242 4242 4242 4242" 
+                               placeholder="1234 1234 1234 1234" 
                                maxlength="19" required>
                     </div>
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="expiryMonth">Expiry Month</label>
-                            <input type="text" id="expiryMonth" name="expiryMonth" 
-                                   placeholder="12" maxlength="2" required>
+                            <input type="text" id="expiry" name="expiry" 
+                                   placeholder="MM / YY" maxlength="7" required>
                         </div>
                         <div class="form-group">
-                            <label for="expiryYear">Expiry Year</label>
-                            <input type="text" id="expiryYear" name="expiryYear" 
-                                   placeholder="2025" maxlength="4" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="cvv">CVV</label>
                             <input type="text" id="cvv" name="cvv" 
-                                   placeholder="123" maxlength="4" required>
+                                   placeholder="CVC" maxlength="4" required>
                         </div>
                     </div>
+                    <div class="form-group">
+                        <input type="text" id="cardholderName" name="cardholderName" 
+                               placeholder="Name on card" required>
+                    </div>
+                    <input type="hidden" id="expiryMonth" name="expiryMonth">
+                    <input type="hidden" id="expiryYear" name="expiryYear">
                 </div>
 
                 <div th:unless="${isCreditCard}">
+                    <div class="section-title">Bank details</div>
                     <div class="form-group">
                         <label for="bankCode">Bank Code</label>
                         <input type="text" id="bankCode" name="bankCode" 
@@ -226,19 +346,13 @@
                     </div>
                 </div>
 
-                <div class="buttons">
-                    <a th:href="@{/mock-payment/checkout/{id}/cancel(id=${session.id})}" class="btn btn-secondary">
-                        Cancel
-                    </a>
-                    <button type="submit" class="btn btn-primary">
-                        Pay Now
-                    </button>
-                </div>
+                <button type="submit" class="btn-pay">
+                    Pay
+                </button>
             </form>
-        </div>
-        
-        <div class="mock-badge">
-            This is a mock payment gateway for testing purposes only
+            <a th:href="@{/mock-payment/checkout/{id}/cancel(id=${sessionId})}" class="cancel-link">
+                Back to course
+            </a>
         </div>
     </div>
 
@@ -247,6 +361,25 @@
             let value = e.target.value.replace(/\s/g, '').replace(/\D/g, '');
             let formatted = value.match(/.{1,4}/g)?.join(' ') || '';
             e.target.value = formatted;
+        });
+
+        document.getElementById('expiry')?.addEventListener('input', function(e) {
+            let value = e.target.value.replace(/\D/g, '');
+            if (value.length >= 2) {
+                value = value.substring(0, 2) + ' / ' + value.substring(2, 4);
+            }
+            e.target.value = value;
+        });
+
+        document.querySelector('form')?.addEventListener('submit', function(e) {
+            const expiryField = document.getElementById('expiry');
+            if (expiryField) {
+                const parts = expiryField.value.replace(/\s/g, '').split('/');
+                if (parts.length === 2) {
+                    document.getElementById('expiryMonth').value = parts[0];
+                    document.getElementById('expiryYear').value = '20' + parts[1];
+                }
+            }
         });
     </script>
 </body>

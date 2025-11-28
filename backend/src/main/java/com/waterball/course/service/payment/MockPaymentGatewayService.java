@@ -38,6 +38,7 @@ public class MockPaymentGatewayService {
             .currency(request.getCurrency())
             .successUrl(request.getSuccessUrl())
             .cancelUrl(request.getCancelUrl())
+            .productName(request.getProductName())
             .status(CheckoutSessionStatus.PENDING)
             .expiresAt(Instant.now().plus(checkoutExpirationMinutes, ChronoUnit.MINUTES))
             .build();

@@ -33,7 +33,10 @@ public class MockPaymentController {
             return "mock-payment/expired";
         }
 
-        model.addAttribute("session", session);
+        model.addAttribute("sessionId", session.getId());
+        model.addAttribute("amount", session.getAmount());
+        model.addAttribute("currency", session.getCurrency());
+        model.addAttribute("productName", session.getProductName());
         model.addAttribute("isCreditCard", session.getPaymentMethod() == PaymentMethod.CREDIT_CARD);
         return "mock-payment/checkout";
     }

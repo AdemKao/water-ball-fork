@@ -17,4 +17,5 @@ public class CreateCheckoutRequest {
     private String currency;
     private String successUrl;
     private String cancelUrl;
+    private String productName;
 }

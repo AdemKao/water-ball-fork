@@ -84,8 +84,9 @@ public class PurchaseService {
                 .paymentMethod(request.getPaymentMethod())
                 .amount(journey.getPrice())
                 .currency("TWD")
-                .successUrl(frontendBaseUrl + "/purchase/callback?status=success&orderId=" + order.getId())
-                .cancelUrl(frontendBaseUrl + "/purchase/callback?status=cancelled&orderId=" + order.getId())
+                .successUrl(frontendBaseUrl + "/courses/" + journey.getId() + "/purchase/callback?status=success&purchaseId=" + order.getId())
+                .cancelUrl(frontendBaseUrl + "/courses/" + journey.getId() + "/purchase/callback?status=cancel&purchaseId=" + order.getId())
+                .productName(journey.getTitle())
                 .build();
 
         CheckoutSession session = mockPaymentGatewayService.createCheckoutSession(checkoutRequest);
