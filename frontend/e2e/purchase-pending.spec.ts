@@ -101,7 +101,7 @@ test.describe('Pending Purchase Banner (Redirect Flow)', () => {
       });
     });
 
-    await page.goto(`/courses/${journeyId}`);
+    await page.goto(`/journeys/${journeyId}`);
 
     const banner = page.getByTestId('pending-purchase-banner');
     await expect(banner).toBeVisible();
@@ -128,7 +128,7 @@ test.describe('Pending Purchase Banner (Redirect Flow)', () => {
       });
     });
 
-    await page.goto(`/courses/${journeyId}`);
+    await page.goto(`/journeys/${journeyId}`);
 
     const banner = page.getByTestId('pending-purchase-banner');
     await expect(banner).toContainText(/\d+:\d+|剩餘/);
@@ -159,7 +159,7 @@ test.describe('Pending Purchase Banner (Redirect Flow)', () => {
       });
     });
 
-    await page.goto(`/courses/${journeyId}/purchase`);
+    await page.goto(`/journeys/${journeyId}/purchase`);
 
     const banner = page.getByTestId('pending-purchase-banner');
     await expect(banner).toBeVisible();

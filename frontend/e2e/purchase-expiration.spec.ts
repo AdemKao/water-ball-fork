@@ -102,7 +102,7 @@ test.describe('Purchase Expiration Handling', () => {
   test('should not show pending purchase banner for expired purchase and allow new purchase', async ({
     page,
   }) => {
-    await page.goto(`/courses/${TEST_COURSE_ID}`);
+    await page.goto(`/journeys/${TEST_COURSE_ID}`);
 
     await expect(page.getByTestId('pending-purchase-banner')).not.toBeVisible();
 
@@ -111,7 +111,7 @@ test.describe('Purchase Expiration Handling', () => {
 
   test('should show expired status on callback page for expired purchase', async ({ page }) => {
     await page.goto(
-      `/courses/${TEST_COURSE_ID}/purchase/callback?purchaseId=purchase-001&status=success`
+      `/journeys/${TEST_COURSE_ID}/purchase/callback?purchaseId=purchase-001&status=success`
     );
 
     await expect(page.getByText(/訂單已過期|已過期|expired/i)).toBeVisible();

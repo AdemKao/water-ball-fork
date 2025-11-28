@@ -133,7 +133,7 @@ test.describe('Purchase Flow - Credit Card (Redirect)', () => {
 
     await page.getByTestId('purchase-button').click();
 
-    await expect(page).toHaveURL(new RegExp(`/courses/${TEST_COURSE_ID}/purchase`));
+    await expect(page).toHaveURL(new RegExp(`/journeys/${TEST_COURSE_ID}/purchase`));
 
     await expect(page.getByTestId('payment-method-CREDIT_CARD')).toBeVisible();
     await expect(page.getByTestId('payment-method-BANK_TRANSFER')).toBeVisible();
@@ -144,7 +144,7 @@ test.describe('Purchase Flow - Credit Card (Redirect)', () => {
   });
 
   test('should display course summary on purchase page', async ({ page }) => {
-    await page.goto(`/courses/${TEST_COURSE_ID}/purchase`);
+    await page.goto(`/journeys/${TEST_COURSE_ID}/purchase`);
 
     await expect(page.getByText('Test Course')).toBeVisible();
     await expect(page.getByText(/1,990|NT\$1,990/)).toBeVisible();
@@ -154,7 +154,7 @@ test.describe('Purchase Flow - Credit Card (Redirect)', () => {
     page,
   }) => {
     await page.goto(
-      `/courses/${TEST_COURSE_ID}/purchase/callback?purchaseId=purchase-001&status=success`
+      `/journeys/${TEST_COURSE_ID}/purchase/callback?purchaseId=purchase-001&status=success`
     );
 
     await expect(page.getByTestId('purchase-success')).toBeVisible({ timeout: 15000 });
