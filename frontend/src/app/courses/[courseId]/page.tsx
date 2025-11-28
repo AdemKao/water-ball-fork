@@ -7,13 +7,13 @@ import { useLessonProgress } from '@/hooks/useLessonProgress';
 import { useVideoProgress } from '@/hooks/useVideoProgress';
 import { usePurchase } from '@/hooks/usePurchase';
 import { usePendingPurchases } from '@/hooks/usePendingPurchases';
-import { CourseHeader } from '@/components/course/CourseHeader';
+import { Navbar } from '@/components/layout/navbar';
 import { CourseSidebar } from '@/components/course/CourseSidebar';
 import { PendingPurchaseBanner } from '@/components/purchase';
 import { VideoPlayer, LessonNavigation, LoginRequiredModal } from '@/components/lesson';
 import { useAuth } from '@/hooks/useAuth';
-import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { X } from 'lucide-react';
+import { SidebarProvider } from '@/components/ui/sidebar';
 
 interface PageProps {
   params: Promise<{ courseId: string }>;
@@ -25,10 +25,9 @@ export default function CourseJourneyPage({ params }: PageProps) {
   const { journey, isLoading, error, refetch: refetchJourney } = useJourney(courseId);
   const { cancelPurchase, isCancelling } = usePurchase(courseId);
   const { pendingPurchaseForJourney, refetch } = usePendingPurchases(courseId);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [selectedLessonId, setSelectedLessonId] = useState<string | null>(null);
   const [showLoginModal, setShowLoginModal] = useState(false);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [bannerDismissed, setBannerDismissed] = useState(false);
 
   const activeLessonId = useMemo(() => {
     if (selectedLessonId) return selectedLessonId;
@@ -49,7 +48,6 @@ export default function CourseJourneyPage({ params }: PageProps) {
       return;
     }
     setSelectedLessonId(lessonId);
-    setMobileMenuOpen(false);
   };
 
   const handleContinuePurchase = () => {
@@ -140,14 +138,19 @@ export default function CourseJourneyPage({ params }: PageProps) {
 
     return (
       <div className="space-y-4">
-        <div className="bg-[#F17500]/10 border border-[#F17500]/30 rounded-lg px-4 py-3 flex items-center justify-between">
-          <p className="text-sm">
-            將此體驗課程的全部影片看完就可以獲得 3000 元課程折價券！
-          </p>
-          <button className="text-muted-foreground hover:text-foreground">
-            <X className="h-4 w-4" />
-          </button>
-        </div>
+        {!bannerDismissed && (
+          <div className="bg-[#F17500]/10 border border-[#F17500]/30 rounded-lg px-4 py-3 flex items-center justify-between">
+            <p className="text-sm">
+              將此體驗課程的全部影片看完就可以獲得 3000 元課程折價券！
+            </p>
+            <button
+              onClick={() => setBannerDismissed(true)}
+              className="text-muted-foreground hover:text-foreground"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        )}
 
         {lesson.lessonType === 'VIDEO' && lesson.contentUrl && (
           <VideoPlayer
@@ -167,7 +170,7 @@ export default function CourseJourneyPage({ params }: PageProps) {
         <LessonNavigation
           previousLesson={lesson.previousLesson}
           nextLesson={lesson.nextLesson}
-          courseId={courseId}
+          onNavigate={(lessonId) => setSelectedLessonId(lessonId)}
         />
       </div>
     );
@@ -176,36 +179,19 @@ export default function CourseJourneyPage({ params }: PageProps) {
   return (
     <>
       <div className="h-screen flex flex-col">
-        <CourseHeader
-          onMenuClick={() => setMobileMenuOpen(true)}
-          journeyId={courseId}
-        />
+        <Navbar journeyId={courseId} />
 
-        <div className="flex-1 flex overflow-hidden">
-          <div className="hidden lg:block">
-            <CourseSidebar
-              journey={journey}
-              activeLessonId={activeLessonId || undefined}
-              onLessonClick={handleLessonClick}
-              collapsed={sidebarCollapsed}
-              onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
-            />
-          </div>
-
-          <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-            <SheetContent side="left" className="w-[280px] p-0">
-              <CourseSidebar
-                journey={journey}
-                activeLessonId={activeLessonId || undefined}
-                onLessonClick={handleLessonClick}
-              />
-            </SheetContent>
-          </Sheet>
+        <SidebarProvider className="flex-1 overflow-hidden">
+          <CourseSidebar
+            journey={journey}
+            activeLessonId={activeLessonId || undefined}
+            onLessonClick={handleLessonClick}
+          />
 
           <main className="flex-1 overflow-auto p-4 lg:p-8 bg-muted/30">
             {renderMainContent()}
           </main>
-        </div>
+        </SidebarProvider>
       </div>
 
       {pendingPurchaseForJourney && (
@@ -222,6 +208,7 @@ export default function CourseJourneyPage({ params }: PageProps) {
         onOpenChange={(open) => {
           setShowLoginModal(open);
         }}
+        redirectUrl={`/courses/${courseId}`}
       />
     </>
   );

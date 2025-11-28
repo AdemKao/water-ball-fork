@@ -63,7 +63,7 @@ export default function CoursesPage() {
   if (error) {
     return (
       <div className="container mx-auto px-4 py-8">
-        <h1 className="text-2xl font-bold mb-6 text-[#1B1B1F]">課程列表</h1>
+        <h1 className="text-2xl font-bold mb-6 text-foreground">課程列表</h1>
         <div className="text-red-500">載入課程時發生錯誤：{error.message}</div>
       </div>
     );
@@ -71,7 +71,7 @@ export default function CoursesPage() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold mb-6 text-[#1B1B1F]">課程列表</h1>
+        <h1 className="text-2xl font-bold mb-6 text-foreground">課程列表</h1>
 
       {isLoading ? (
         <>

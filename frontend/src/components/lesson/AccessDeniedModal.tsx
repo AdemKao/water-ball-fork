@@ -49,17 +49,23 @@ interface LoginRequiredModalProps {
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
   onClose?: () => void;
+  redirectUrl?: string;
 }
 
 export function LoginRequiredModal({
   open = true,
   onOpenChange,
   onClose,
+  redirectUrl,
 }: LoginRequiredModalProps) {
   const handleOpenChange = (isOpen: boolean) => {
     onOpenChange?.(isOpen);
     if (!isOpen) onClose?.();
   };
+
+  const loginHref = redirectUrl 
+    ? `/login?redirect=${encodeURIComponent(redirectUrl)}`
+    : '/login';
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -77,7 +83,7 @@ export function LoginRequiredModal({
           <Button variant="outline" onClick={() => handleOpenChange(false)}>
             取消
           </Button>
-          <Link href="/login">
+          <Link href={loginHref}>
             <Button>前往登入</Button>
           </Link>
         </DialogFooter>

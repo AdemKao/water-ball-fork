@@ -7,7 +7,7 @@ interface CouponNoticeProps {
 
 export function CouponNotice({ hasDiscount, discountCourses }: CouponNoticeProps) {
   return (
-    <div className="bg-[#FEF3CD] border border-[#FFC107] rounded-lg p-4">
+    <div className="bg-[#F17500]/10 border border-[#F17500]/30 rounded-lg p-4">
       <div className="flex items-start gap-3">
         <div className="flex-shrink-0">
           <svg
@@ -24,7 +24,7 @@ export function CouponNotice({ hasDiscount, discountCourses }: CouponNoticeProps
             />
           </svg>
         </div>
-        <div className="text-sm text-[#4B5563]">
+        <div className="text-sm text-foreground">
           {hasDiscount && discountCourses && discountCourses.length > 0 ? (
             <p>
               若你曾購買過《{discountCourses.join('》或者《')}》，請私訊{' '}
@@ -50,10 +50,10 @@ export function CouponNotice({ hasDiscount, discountCourses }: CouponNoticeProps
 
 export function CouponNoticeSkeleton() {
   return (
-    <div className="bg-gray-100 rounded-lg p-4">
+    <div className="bg-muted rounded-lg p-4">
       <div className="flex items-start gap-3">
-        <div className="w-5 h-5 bg-muted animate-pulse rounded-full" />
-        <div className="flex-1 h-4 bg-muted animate-pulse rounded" />
+        <div className="w-5 h-5 bg-muted-foreground/20 animate-pulse rounded-full" />
+        <div className="flex-1 h-4 bg-muted-foreground/20 animate-pulse rounded" />
       </div>
     </div>
   );
