@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { Menu, Bell } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
@@ -17,9 +18,13 @@ export function CourseHeader({ onMenuClick, journeyId }: CourseHeaderProps) {
     <header className="h-16 border-b bg-background flex items-center justify-between px-4">
       <div className="flex items-center gap-4">
         <Link href="/" className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
-            <span className="text-primary-foreground font-bold text-sm">W</span>
-          </div>
+          <Image
+            src="/waterball.png"
+            alt="水球軟體學院"
+            width={32}
+            height={32}
+            className="h-8 w-8"
+          />
           <div className="hidden sm:block">
             <p className="text-sm font-semibold">水球軟體學院</p>
             <p className="text-xs text-muted-foreground uppercase">WATERBALLSA.TW</p>
