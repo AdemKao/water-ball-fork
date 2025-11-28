@@ -1342,41 +1342,41 @@ test.describe('Gateway Cancel', () => {
 
 ### Hooks (3 tasks)
 
-- [ ] 3.1 usePurchase.ts (移除 confirmPurchase)
-- [ ] 3.2 usePendingPurchases.ts (新增 pendingPurchaseForJourney)
-- [ ] 3.3 usePurchaseStatus.ts (新增 - 輪詢訂單狀態)
+- [x] 3.1 usePurchase.ts (移除 confirmPurchase)
+- [x] 3.2 usePendingPurchases.ts (新增 pendingPurchaseForJourney)
+- [x] 3.3 usePurchaseStatus.ts (新增 - 輪詢訂單狀態)
 
 ### Components (7 tasks)
 
-- [ ] 4.1 PurchaseButton.tsx
-- [ ] 4.2 PaymentMethodSelector.tsx
-- [ ] 4.3 PurchaseSummary.tsx
-- [ ] 4.4 PendingPurchaseBanner.tsx (更新 - 重導向至 checkoutUrl)
-- [ ] 4.5 PurchaseSuccess.tsx
-- [ ] 4.6 PurchaseStatus.tsx (新增)
-- [ ] 4.7 purchase/index.ts
+- [x] 4.1 PurchaseButton.tsx
+- [x] 4.2 PaymentMethodSelector.tsx
+- [x] 4.3 PurchaseSummary.tsx
+- [x] 4.4 PendingPurchaseBanner.tsx (更新 - 重導向至 checkoutUrl)
+- [x] 4.5 PurchaseSuccess.tsx
+- [x] 4.6 PurchaseStatus.tsx (新增)
+- [x] 4.7 purchase/index.ts
 
 ### Pages (3 tasks)
 
-- [ ] 5.1 purchase/page.tsx (更新 - 重導向流程)
-- [ ] 5.2 purchase/callback/page.tsx (新增 - 取代 confirm)
-- [ ] 5.3 purchase/success/page.tsx
+- [x] 5.1 purchase/page.tsx (更新 - 重導向流程)
+- [x] 5.2 purchase/callback/page.tsx (新增 - 取代 confirm)
+- [x] 5.3 purchase/success/page.tsx
 
 ### Integration (2 tasks)
 
-- [ ] 6.1 courses/[courseId]/page.tsx (更新 - 重導向至 checkoutUrl)
-- [ ] 6.2 JourneyCard.tsx
+- [x] 6.1 courses/[courseId]/page.tsx (更新 - 重導向至 checkoutUrl)
+- [x] 6.2 JourneyCard.tsx
 
 ### E2E Tests (9 tasks)
 
-- [ ] 7.1 purchase-credit-card.spec.ts (更新 - 重導向流程)
-- [ ] 7.2 purchase-bank-transfer.spec.ts (更新 - 重導向流程)
-- [ ] 7.3 purchase-auth.spec.ts
-- [ ] 7.4 purchase-pending.spec.ts (更新 - checkoutUrl)
-- [ ] 7.5 purchase-cancel.spec.ts
-- [ ] 7.6 purchase-already-purchased.spec.ts
-- [ ] 7.7 payment-validation.spec.ts (更新 - 付款方式選擇驗證)
-- [ ] 7.8 purchase-expiration.spec.ts (更新 - EXPIRED 狀態)
-- [ ] 7.9 purchase-gateway-cancel.spec.ts (新增)
+- [x] 7.1 purchase-credit-card.spec.ts (更新 - 重導向流程)
+- [x] 7.2 purchase-bank-transfer.spec.ts (更新 - 重導向流程)
+- [x] 7.3 purchase-auth.spec.ts
+- [x] 7.4 purchase-pending.spec.ts (更新 - checkoutUrl)
+- [x] 7.5 purchase-cancel.spec.ts
+- [x] 7.6 purchase-already-purchased.spec.ts
+- [x] 7.7 payment-validation.spec.ts (更新 - 付款方式選擇驗證)
+- [x] 7.8 purchase-expiration.spec.ts (更新 - EXPIRED 狀態)
+- [ ] 7.9 purchase-gateway-cancel.spec.ts (新增) - Gateway 取消測試已整合至 purchase-cancel.spec.ts
 
-**Total: 27 tasks**
+**Total: 27 tasks (26 完成, 1 整合至其他測試)**
