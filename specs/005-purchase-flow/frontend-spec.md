@@ -2,7 +2,7 @@
 
 ## Overview
 
-實作課程購買流程介面，支援選擇付款方式、確認訂單、完成購買，並顯示待完成購買提示讓用戶可繼續未完成的購買流程。
+實作課程購買流程介面，採用**重導向式付款流程**，模擬真實第三方金流整合。用戶選擇付款方式後，將被重導向至 Mock Payment Gateway 完成付款，付款完成後再重導回前端顯示結果。
 
 ## Technical Stack
 
@@ -18,10 +18,10 @@
 ┌─────────────────────────────────────────────────────────────┐
 │                      Components                              │
 │  PurchaseButton, PaymentMethodSelector, PurchaseSummary      │
-│  PendingPurchaseBanner, PaymentForm, PurchaseSuccess         │
+│  PendingPurchaseBanner, PurchaseSuccess, PurchaseStatus      │
 ├─────────────────────────────────────────────────────────────┤
 │                        Hooks                                 │
-│  usePurchase, usePendingPurchases, usePayment                │
+│  usePurchase, usePendingPurchases, usePurchaseStatus         │
 ├─────────────────────────────────────────────────────────────┤
 │                       Services                               │
 │  purchase.service.ts                                         │
@@ -40,9 +40,9 @@ src/
 │       └── [courseId]/
 │           ├── page.tsx                      # 更新：顯示 PendingPurchaseBanner
 │           └── purchase/
-│               ├── page.tsx                  # 購買頁面
-│               ├── confirm/
-│               │   └── page.tsx              # 確認付款頁面
+│               ├── page.tsx                  # 選擇付款方式頁面
+│               ├── callback/
+│               │   └── page.tsx              # Gateway 回調頁面（處理 success/cancel）
 │               └── success/
 │                   └── page.tsx              # 購買成功頁面
 ├── components/
@@ -54,13 +54,13 @@ src/
 │       ├── PaymentMethodSelector.tsx         # 付款方式選擇
 │       ├── PurchaseSummary.tsx               # 訂單摘要
 │       ├── PendingPurchaseBanner.tsx         # 待完成購買提示
-│       ├── PaymentForm.tsx                   # 付款表單
 │       ├── PurchaseSuccess.tsx               # 購買成功畫面
+│       ├── PurchaseStatus.tsx                # 訂單狀態顯示
 │       └── index.ts
 ├── hooks/
 │   ├── usePurchase.ts                        # 購買流程 hook
 │   ├── usePendingPurchases.ts                # 待完成購買 hook
-│   └── usePayment.ts                         # 付款處理 hook
+│   └── usePurchaseStatus.ts                  # 訂單狀態輪詢 hook
 ├── services/
 │   └── purchase.service.ts                   # 購買 API
 └── types/
@@ -69,9 +69,11 @@ src/
 
 ## User Journey Flowchart
 
+### Main Purchase Flow (Redirect-based)
+
 ```mermaid
 flowchart TD
-    A[課程列表頁] --> B{已購買?}
+    A[課程詳情頁] --> B{已購買?}
     B -->|是| C[顯示「開始學習」按鈕]
     B -->|否| D[顯示「購買」按鈕]
     
@@ -83,28 +85,77 @@ flowchart TD
     F -->|是| I
     
     I --> J[選擇付款方式]
-    J --> K[填寫付款資訊]
-    K --> L[點擊確認購買]
-    L --> M[確認頁面]
+    J --> K[點擊「前往付款」]
+    K --> L[呼叫 API 建立訂單]
+    L --> M[取得 checkoutUrl]
+    M --> N[重導向至 Mock Gateway]
     
-    M --> N[確認付款]
-    N --> O{付款成功?}
-    O -->|是| P[成功頁面]
-    O -->|否| Q[顯示錯誤]
-    Q --> K
+    N --> O[Mock Gateway 結帳頁面]
+    O --> P{用戶操作}
     
-    P --> R[開始學習課程]
+    P -->|完成付款| Q[Gateway 處理付款]
+    Q --> R{付款成功?}
+    R -->|是| S[重導向至 successUrl]
+    R -->|否| T[重導向至 cancelUrl]
+    
+    P -->|取消| T
+    
+    S --> U[成功回調頁面]
+    U --> V[輪詢訂單狀態]
+    V --> W[確認 COMPLETED]
+    W --> X[顯示成功頁面]
+    
+    T --> Y[取消回調頁面]
+    Y --> Z[顯示錯誤或取消訊息]
+    Z --> AA{重試?}
+    AA -->|是| I
+    AA -->|否| A
 ```
+
+### Pending Purchase Resume Flow
 
 ```mermaid
 flowchart TD
     A[課程詳情頁] --> B{有待完成購買?}
     B -->|是| C[底部顯示 PendingPurchaseBanner]
-    C --> D[點擊繼續購買]
-    D --> E[恢復購買流程]
-    E --> F[確認頁面]
+    C --> D{用戶操作}
     
-    B -->|否| G[正常顯示課程內容]
+    D -->|繼續購買| E[重導向至 checkoutUrl]
+    E --> F[Mock Gateway 結帳頁面]
+    
+    D -->|取消訂單| G[呼叫取消 API]
+    G --> H[Banner 消失]
+    H --> I[可重新購買]
+    
+    B -->|否| J[正常顯示課程內容]
+```
+
+### Status Polling Flow
+
+```mermaid
+flowchart TD
+    A[Callback 頁面載入] --> B[從 URL 取得 purchaseId]
+    B --> C[開始輪詢訂單狀態]
+    
+    C --> D[GET /api/purchases/:id]
+    D --> E{狀態?}
+    
+    E -->|PENDING| F[等待 2 秒]
+    F --> D
+    
+    E -->|COMPLETED| G[停止輪詢]
+    G --> H[導向成功頁面]
+    
+    E -->|FAILED| I[停止輪詢]
+    I --> J[顯示失敗原因]
+    J --> K[提供重試選項]
+    
+    E -->|CANCELLED| L[停止輪詢]
+    L --> M[顯示取消訊息]
+    
+    E -->|EXPIRED| N[停止輪詢]
+    N --> O[顯示過期訊息]
+    O --> P[提示重新購買]
 ```
 
 ## Types
@@ -114,18 +165,23 @@ flowchart TD
 ```typescript
 export type PaymentMethod = 'CREDIT_CARD' | 'BANK_TRANSFER';
 
-export type PurchaseStatus = 'PENDING' | 'COMPLETED' | 'FAILED' | 'CANCELLED';
+export type PurchaseStatus = 'PENDING' | 'COMPLETED' | 'FAILED' | 'CANCELLED' | 'EXPIRED';
 
 export interface Purchase {
   id: string;
   journeyId: string;
   journeyTitle: string;
   journeyThumbnailUrl: string | null;
+  journeyDescription?: string | null;
   amount: number;
   currency: string;
   paymentMethod: PaymentMethod;
   status: PurchaseStatus;
+  checkoutUrl?: string | null;
+  failureReason?: string | null;
   createdAt: string;
+  updatedAt?: string;
+  expiresAt?: string | null;
   completedAt: string | null;
 }
 
@@ -137,8 +193,10 @@ export interface PendingPurchase {
   amount: number;
   currency: string;
   paymentMethod: PaymentMethod;
-  createdAt: string;
+  status: 'PENDING';
+  checkoutUrl: string;
   expiresAt: string;
+  createdAt: string;
 }
 
 export interface CreatePurchaseRequest {
@@ -147,36 +205,23 @@ export interface CreatePurchaseRequest {
 }
 
 export interface CreatePurchaseResponse {
-  purchaseId: string;
+  id: string;
+  journeyId: string;
+  journeyTitle: string;
   amount: number;
   currency: string;
-}
-
-export interface ConfirmPurchaseRequest {
-  purchaseId: string;
-  paymentDetails: CreditCardPaymentDetails | BankTransferPaymentDetails;
-}
-
-export interface CreditCardPaymentDetails {
-  type: 'CREDIT_CARD';
-  cardNumber: string;
-  expiryDate: string;
-  cvv: string;
-  cardholderName: string;
-}
-
-export interface BankTransferPaymentDetails {
-  type: 'BANK_TRANSFER';
-  accountNumber: string;
-  accountName: string;
-  bankCode: string;
+  paymentMethod: PaymentMethod;
+  status: PurchaseStatus;
+  checkoutUrl: string;
+  expiresAt: string;
+  createdAt: string;
 }
 
 export interface PaymentMethodOption {
   value: PaymentMethod;
   label: string;
   description: string;
-  icon: string;
+  icon: React.ComponentType;
 }
 
 export interface JourneyPricing {
@@ -185,6 +230,12 @@ export interface JourneyPricing {
   currency: string;
   originalPrice?: number;
   discountPercentage?: number;
+}
+
+export interface PurchaseCallbackParams {
+  purchaseId: string;
+  status: 'success' | 'cancel';
+  error?: string;
 }
 ```
 
@@ -210,7 +261,7 @@ interface PurchaseButtonProps {
 - 顯示價格與購買按鈕
 - 點擊後檢查登入狀態
 - 未登入導向登入頁，並記錄 redirect URL
-- 已登入導向購買頁面
+- 已登入導向購買頁面 `/courses/[courseId]/purchase`
 
 ### PaymentMethodSelector
 
@@ -270,6 +321,7 @@ interface PendingPurchaseBannerProps {
   purchase: PendingPurchase;
   onContinue: () => void;
   onCancel: () => void;
+  isCancelling?: boolean;
 }
 ```
 
@@ -278,47 +330,14 @@ interface PendingPurchaseBannerProps {
 - 提示文字：「您有一筆未完成的購買」
 - 購買金額
 - 到期時間倒數
-- 「繼續購買」按鈕
-- 「取消」按鈕
+- 「繼續付款」按鈕 → 重導向至 checkoutUrl
+- 「取消」按鈕 → 呼叫取消 API
 
 **行為:**
 
 - 固定於頁面底部
-- 點擊繼續導向確認頁面
-- 點擊取消呼叫取消 API
-
-### PaymentForm
-
-付款表單（模擬付款）
-
-```typescript
-interface PaymentFormProps {
-  paymentMethod: PaymentMethod;
-  onSubmit: (details: CreditCardPaymentDetails | BankTransferPaymentDetails) => void;
-  isSubmitting?: boolean;
-  error?: string | null;
-}
-```
-
-**信用卡表單欄位:**
-
-- 卡號 (cardNumber) - 16 位數字
-- 到期日 (expiryDate) - MM/YY 格式
-- CVV (cvv) - 3 位數字
-- 持卡人姓名 (cardholderName)
-
-**銀行轉帳表單欄位:**
-
-- 銀行代碼 (bankCode) - 下拉選擇
-- 帳戶號碼 (accountNumber)
-- 戶名 (accountName)
-
-**驗證規則:**
-
-- 信用卡號：16 位數字，Luhn 演算法驗證（模擬）
-- 到期日：格式 MM/YY，不可過期
-- CVV：3 位數字
-- 銀行帳號：至少 10 位數字
+- 點擊繼續直接重導向至 Mock Gateway
+- 點擊取消呼叫取消 API，成功後 Banner 消失
 
 ### PurchaseSuccess
 
@@ -339,9 +358,30 @@ interface PurchaseSuccessProps {
 
 - 成功圖示與動畫
 - 恭喜訊息
-- 購買明細
+- 購買明細（金額、付款方式、完成時間）
 - 「開始學習」按鈕
 - 「返回課程列表」按鈕
+
+### PurchaseStatus
+
+訂單狀態顯示元件
+
+```typescript
+interface PurchaseStatusProps {
+  status: PurchaseStatus;
+  failureReason?: string | null;
+  onRetry?: () => void;
+  onBackToCourse?: () => void;
+}
+```
+
+**根據狀態顯示:**
+
+- `PENDING` - 處理中動畫
+- `COMPLETED` - 成功圖示
+- `FAILED` - 失敗訊息 + 重試按鈕
+- `CANCELLED` - 取消訊息
+- `EXPIRED` - 過期訊息 + 重新購買按鈕
 
 ## Hooks
 
@@ -354,11 +394,21 @@ function usePurchase(journeyId: string): {
   pricing: JourneyPricing | null;
   isLoadingPricing: boolean;
   createPurchase: (paymentMethod: PaymentMethod) => Promise<CreatePurchaseResponse>;
-  confirmPurchase: (purchaseId: string, paymentDetails: CreditCardPaymentDetails | BankTransferPaymentDetails) => Promise<Purchase>;
   cancelPurchase: (purchaseId: string) => Promise<void>;
   isCreating: boolean;
-  isConfirming: boolean;
+  isCancelling: boolean;
   error: Error | null;
+};
+```
+
+**使用方式:**
+
+```typescript
+const { createPurchase, isCreating } = usePurchase(journeyId);
+
+const handlePurchase = async (method: PaymentMethod) => {
+  const result = await createPurchase(method);
+  window.location.href = result.checkoutUrl;
 };
 ```
 
@@ -369,23 +419,54 @@ function usePurchase(journeyId: string): {
 ```typescript
 function usePendingPurchases(journeyId?: string): {
   pendingPurchases: PendingPurchase[];
+  pendingPurchaseForJourney: PendingPurchase | null;
   isLoading: boolean;
   error: Error | null;
   refetch: () => void;
 };
 ```
 
-### usePayment
+### usePurchaseStatus
 
-付款處理 hook
+訂單狀態輪詢 hook
 
 ```typescript
-function usePayment(): {
-  validateCreditCard: (cardNumber: string) => boolean;
-  formatCardNumber: (value: string) => string;
-  formatExpiryDate: (value: string) => string;
-  isExpired: (expiryDate: string) => boolean;
+interface UsePurchaseStatusOptions {
+  purchaseId: string;
+  enabled?: boolean;
+  pollingInterval?: number;
+  onStatusChange?: (status: PurchaseStatus) => void;
+}
+
+function usePurchaseStatus(options: UsePurchaseStatusOptions): {
+  purchase: Purchase | null;
+  status: PurchaseStatus | null;
+  isLoading: boolean;
+  isPolling: boolean;
+  error: Error | null;
+  stopPolling: () => void;
 };
+```
+
+**行為:**
+
+- 自動輪詢直到狀態變為終態 (COMPLETED, FAILED, CANCELLED, EXPIRED)
+- 預設輪詢間隔 2 秒
+- 最大輪詢次數 30 次（1 分鐘）
+- 支援手動停止輪詢
+
+**使用方式:**
+
+```typescript
+const { purchase, status, isPolling } = usePurchaseStatus({
+  purchaseId,
+  enabled: true,
+  onStatusChange: (status) => {
+    if (status === 'COMPLETED') {
+      router.push(`/courses/${courseId}/purchase/success?purchaseId=${purchaseId}`);
+    }
+  },
+});
 ```
 
 ## Services
@@ -394,111 +475,232 @@ function usePayment(): {
 
 ```typescript
 export const purchaseService = {
-  // GET /api/journeys/{journeyId} - pricing is included in journey detail response
-  async getJourneyPricing(journeyId: string): Promise<JourneyPricing>;
-  
-  // POST /api/purchases
   async createPurchase(data: CreatePurchaseRequest): Promise<CreatePurchaseResponse>;
   
-  // POST /api/purchases/{purchaseId}/pay
-  async processPayment(purchaseId: string, paymentDetails: CreditCardPaymentDetails | BankTransferPaymentDetails): Promise<PaymentResultResponse>;
-  
-  // DELETE /api/purchases/{purchaseId}
   async cancelPurchase(purchaseId: string): Promise<void>;
   
-  // GET /api/purchases/{purchaseId}
   async getPurchase(purchaseId: string): Promise<Purchase>;
   
-  // GET /api/purchases/pending
   async getPendingPurchases(): Promise<PendingPurchase[]>;
   
-  // GET /api/purchases/pending/journey/{journeyId}
   async getPendingPurchaseByJourney(journeyId: string): Promise<PendingPurchase | null>;
   
-  // GET /api/purchases
-  async getUserPurchases(): Promise<Purchase[]>;
+  async getUserPurchases(params?: { status?: PurchaseStatus; page?: number; size?: number }): Promise<{
+    content: Purchase[];
+    totalElements: number;
+    totalPages: number;
+    number: number;
+    size: number;
+  }>;
 };
 ```
 
 ## Page Implementation
 
-### /courses/[courseId]/purchase (購買頁面)
+### /courses/[courseId]/purchase (選擇付款方式頁面)
+
+**URL:** `/courses/[courseId]/purchase`
+
+**功能:**
+
+1. 顯示課程資訊與價格
+2. 選擇付款方式
+3. 建立訂單並重導向至 Gateway
+
+**狀態:**
 
 ```typescript
 interface PurchasePageState {
-  step: 'select-method' | 'payment-form';
   selectedMethod: PaymentMethod | null;
-  purchaseId: string | null;
-}
-```
-
-**步驟 1：選擇付款方式**
-
-- 顯示課程資訊 (PurchaseSummary)
-- 顯示付款方式選項 (PaymentMethodSelector)
-- 「下一步」按鈕
-
-**步驟 2：填寫付款資訊**
-
-- 顯示訂單摘要
-- 顯示付款表單 (PaymentForm)
-- 「返回」按鈕
-- 「確認購買」按鈕
-
-### /courses/[courseId]/purchase/confirm (確認付款頁面)
-
-```typescript
-// URL: /courses/[courseId]/purchase/confirm?purchaseId=xxx
-```
-
-**顯示內容:**
-
-- 訂單摘要
-- 付款方式
-- 付款金額
-- 確認條款 checkbox
-- 「確認付款」按鈕
-- 「返回修改」按鈕
-
-**行為:**
-
-- 點擊確認付款後呼叫 confirmPurchase API
-- 成功導向成功頁面
-- 失敗顯示錯誤訊息
-
-### /courses/[courseId]/purchase/success (購買成功頁面)
-
-```typescript
-// URL: /courses/[courseId]/purchase/success?purchaseId=xxx
-```
-
-**顯示內容:**
-
-- PurchaseSuccess 元件
-- 成功動畫
-- 購買詳情
-- 導航按鈕
-
-## State Management
-
-### Purchase Flow State
-
-```typescript
-interface PurchaseFlowState {
-  currentStep: 'method' | 'payment' | 'confirm' | 'success';
-  journeyId: string;
-  selectedMethod: PaymentMethod | null;
-  purchaseId: string | null;
-  paymentDetails: CreditCardPaymentDetails | BankTransferPaymentDetails | null;
+  isCreating: boolean;
   error: string | null;
 }
 ```
 
-### State Persistence
+**流程:**
 
-- 使用 URL query parameters 保存購買狀態
-- purchaseId 用於恢復未完成的購買
-- 頁面刷新後可從 URL 恢復狀態
+1. 載入課程資訊與價格
+2. 檢查是否有待完成購買
+   - 有：顯示 Banner，點擊可直接前往 Gateway
+   - 無：顯示付款方式選擇
+3. 用戶選擇付款方式
+4. 點擊「前往付款」
+5. 呼叫 `createPurchase` API
+6. 取得 `checkoutUrl`
+7. `window.location.href = checkoutUrl` 重導向
+
+**UI:**
+
+```
+┌────────────────────────────────────────┐
+│  ← 返回課程                            │
+├────────────────────────────────────────┤
+│                                        │
+│  ┌──────────────────────────────────┐  │
+│  │  課程縮圖                         │  │
+│  │  課程標題                         │  │
+│  │  5 章節 · 20 課程                 │  │
+│  └──────────────────────────────────┘  │
+│                                        │
+│  選擇付款方式                          │
+│                                        │
+│  ┌──────────────────────────────────┐  │
+│  │ ○ 💳 信用卡付款                   │  │
+│  │   支援 Visa、MasterCard、JCB     │  │
+│  └──────────────────────────────────┘  │
+│                                        │
+│  ┌──────────────────────────────────┐  │
+│  │ ○ 🏦 銀行轉帳                     │  │
+│  │   ATM 轉帳或網路銀行              │  │
+│  └──────────────────────────────────┘  │
+│                                        │
+│  ────────────────────────────────────  │
+│                                        │
+│  小計                      NT$ 1,999   │
+│                                        │
+│  ┌──────────────────────────────────┐  │
+│  │         前往付款                  │  │
+│  └──────────────────────────────────┘  │
+│                                        │
+└────────────────────────────────────────┘
+```
+
+### /courses/[courseId]/purchase/callback (Gateway 回調頁面)
+
+**URL:** `/courses/[courseId]/purchase/callback?purchaseId=xxx&status=success|cancel&error=xxx`
+
+**功能:**
+
+1. 接收 Gateway 回調
+2. 輪詢訂單狀態
+3. 根據結果導向或顯示訊息
+
+**Query Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| purchaseId | string | 訂單 ID |
+| status | 'success' \| 'cancel' | Gateway 回調狀態 |
+| error | string? | 錯誤訊息（cancel 時） |
+
+**流程:**
+
+```typescript
+// 成功回調
+if (status === 'success') {
+  // 開始輪詢訂單狀態
+  // 等待 Webhook 處理完成
+  // 確認 COMPLETED 後導向成功頁
+}
+
+// 取消回調
+if (status === 'cancel') {
+  // 顯示取消/錯誤訊息
+  // 提供重試選項
+}
+```
+
+**UI (處理中):**
+
+```
+┌────────────────────────────────────────┐
+│                                        │
+│           ⏳                           │
+│                                        │
+│       正在確認付款結果...               │
+│                                        │
+│       請稍候，不要關閉此頁面             │
+│                                        │
+└────────────────────────────────────────┘
+```
+
+**UI (失敗):**
+
+```
+┌────────────────────────────────────────┐
+│                                        │
+│           ❌                           │
+│                                        │
+│         付款失敗                        │
+│                                        │
+│    錯誤原因：餘額不足                   │
+│                                        │
+│  ┌──────────────────────────────────┐  │
+│  │         重新嘗試                  │  │
+│  └──────────────────────────────────┘  │
+│                                        │
+│  ┌──────────────────────────────────┐  │
+│  │         返回課程                  │  │
+│  └──────────────────────────────────┘  │
+│                                        │
+└────────────────────────────────────────┘
+```
+
+### /courses/[courseId]/purchase/success (購買成功頁面)
+
+**URL:** `/courses/[courseId]/purchase/success?purchaseId=xxx`
+
+**功能:**
+
+1. 顯示購買成功資訊
+2. 提供開始學習入口
+
+**UI:**
+
+```
+┌────────────────────────────────────────┐
+│                                        │
+│           ✅                           │
+│                                        │
+│       恭喜！購買成功                    │
+│                                        │
+│  ┌──────────────────────────────────┐  │
+│  │  課程縮圖                         │  │
+│  │  軟體設計之旅                     │  │
+│  └──────────────────────────────────┘  │
+│                                        │
+│  訂單編號：660e8400-...                │
+│  付款金額：NT$ 1,999                   │
+│  付款方式：信用卡                      │
+│  完成時間：2024/01/01 12:00            │
+│                                        │
+│  ┌──────────────────────────────────┐  │
+│  │         開始學習                  │  │
+│  └──────────────────────────────────┘  │
+│                                        │
+│        返回課程列表                     │
+│                                        │
+└────────────────────────────────────────┘
+```
+
+## State Management
+
+### URL-based State
+
+購買流程使用 URL 參數保存狀態：
+
+```
+/courses/[courseId]/purchase
+  → 選擇付款方式
+
+/courses/[courseId]/purchase/callback?purchaseId=xxx&status=success
+  → 成功回調，等待確認
+
+/courses/[courseId]/purchase/callback?purchaseId=xxx&status=cancel&error=xxx
+  → 取消/失敗回調
+
+/courses/[courseId]/purchase/success?purchaseId=xxx
+  → 購買成功頁面
+```
+
+### Redirect URLs
+
+建立訂單時設定的回調 URL：
+
+```typescript
+const successUrl = `${window.location.origin}/courses/${courseId}/purchase/callback?purchaseId=${purchaseId}&status=success`;
+const cancelUrl = `${window.location.origin}/courses/${courseId}/purchase/callback?purchaseId=${purchaseId}&status=cancel`;
+```
 
 ## Page Updates
 
@@ -507,9 +709,26 @@ interface PurchaseFlowState {
 新增待完成購買提示：
 
 ```typescript
-// 在頁面底部顯示 PendingPurchaseBanner
-// 檢查是否有該課程的待完成購買
-// 若有，顯示 banner 讓用戶繼續購買
+export default function CoursePage({ params }: { params: { courseId: string } }) {
+  const { pendingPurchaseForJourney, isLoading } = usePendingPurchases(params.courseId);
+  
+  return (
+    <div>
+      {/* 課程內容 */}
+      
+      {/* 待完成購買 Banner */}
+      {pendingPurchaseForJourney && (
+        <PendingPurchaseBanner
+          purchase={pendingPurchaseForJourney}
+          onContinue={() => {
+            window.location.href = pendingPurchaseForJourney.checkoutUrl;
+          }}
+          onCancel={handleCancel}
+        />
+      )}
+    </div>
+  );
+}
 ```
 
 ### JourneyCard 更新
@@ -534,81 +753,89 @@ interface JourneyCardProps {
 
 ```typescript
 type PurchaseError =
-  | 'ALREADY_PURCHASED'      // 已購買過
-  | 'PURCHASE_EXPIRED'       // 購買已過期
-  | 'PAYMENT_FAILED'         // 付款失敗
-  | 'INVALID_PAYMENT_DETAILS'// 付款資訊錯誤
-  | 'JOURNEY_NOT_FOUND'      // 課程不存在
-  | 'UNAUTHORIZED';          // 未登入
+  | 'ALREADY_PURCHASED'       // 已購買過
+  | 'PURCHASE_EXPIRED'        // 購買已過期
+  | 'PAYMENT_FAILED'          // 付款失敗
+  | 'SESSION_EXPIRED'         // Checkout Session 過期
+  | 'JOURNEY_NOT_FOUND'       // 課程不存在
+  | 'UNAUTHORIZED'            // 未登入
+  | 'NETWORK_ERROR';          // 網路錯誤
 ```
 
 ### 錯誤處理 UI
 
-- 已購買：顯示提示並導向課程頁面
-- 購買過期：提示重新購買
-- 付款失敗：顯示錯誤並允許重試
-- 未登入：導向登入頁面
+| 錯誤類型 | 處理方式 |
+|----------|----------|
+| ALREADY_PURCHASED | 顯示提示並導向課程頁面 |
+| PURCHASE_EXPIRED | 提示重新購買 |
+| PAYMENT_FAILED | 顯示錯誤原因，提供重試選項 |
+| SESSION_EXPIRED | 提示重新建立訂單 |
+| UNAUTHORIZED | 導向登入頁面 |
+| NETWORK_ERROR | 顯示重試按鈕 |
 
 ## UI States
 
 ### Loading States
 
-- 價格載入中
-- 建立購買中
-- 確認付款中
-- 取消購買中
+- 課程資訊載入中
+- 建立訂單中（顯示 loading，防止重複點擊）
+- 重導向中
+- 輪詢狀態中
 
-### Empty States
+### Error States
 
-- 無待完成購買
+- API 錯誤
+- 付款失敗（顯示原因）
+- Session 過期
 
 ### Success States
 
 - 購買成功動畫
-- 成功頁面顯示
+- Confetti 效果（可選）
 
 ## Responsive Design
 
 ### Desktop (≥1024px)
 
-- 左側：訂單摘要
-- 右側：付款表單/方式選擇
+- 左側：課程資訊
+- 右側：付款選項與摘要
 
 ### Tablet (768px-1023px)
 
 - 單欄式佈局
-- 訂單摘要在上
-- 付款表單在下
+- 課程資訊在上
+- 付款選項在下
 
 ### Mobile (<768px)
 
 - 單欄式佈局
-- 訂單摘要可收合
-- 付款表單全寬
+- 緊湊的付款選項
 - PendingPurchaseBanner 固定底部
 
 ## E2E Test Scenarios
 
-### 測試案例 1：完整購買流程（信用卡）
+### 測試案例 1：完整購買流程（信用卡成功）
 
 ```gherkin
 Feature: 信用卡購買課程
   Scenario: 已登入用戶使用信用卡購買課程
     Given 用戶已登入
-    And 用戶在課程列表頁
-    When 用戶點擊未購買課程的「購買」按鈕
+    And 用戶在課程詳情頁
+    When 用戶點擊「購買」按鈕
     Then 導向購買頁面
     When 用戶選擇「信用卡付款」
-    And 填寫信用卡資訊
-    And 點擊「確認購買」
-    Then 導向確認頁面
-    When 用戶勾選同意條款
+    And 點擊「前往付款」
+    Then 重導向至 Mock Gateway 結帳頁面
+    When 用戶填寫有效信用卡資訊
     And 點擊「確認付款」
-    Then 顯示購買成功頁面
-    And 用戶可以開始學習課程
+    Then 重導向回成功回調頁面
+    And 顯示「正在確認付款結果」
+    When 訂單狀態變為 COMPLETED
+    Then 導向購買成功頁面
+    And 用戶可以點擊「開始學習」
 ```
 
-### 測試案例 2：完整購買流程（銀行轉帳）
+### 測試案例 2：完整購買流程（銀行轉帳成功）
 
 ```gherkin
 Feature: 銀行轉帳購買課程
@@ -616,9 +843,11 @@ Feature: 銀行轉帳購買課程
     Given 用戶已登入
     When 用戶進入購買頁面
     And 選擇「銀行轉帳」
-    And 填寫銀行帳戶資訊
-    And 完成購買流程
-    Then 顯示購買成功頁面
+    And 點擊「前往付款」
+    Then 重導向至 Mock Gateway
+    When 用戶填寫銀行帳戶資訊並確認
+    Then 重導向回成功回調頁面
+    And 顯示購買成功頁面
 ```
 
 ### 測試案例 3：未登入用戶購買
@@ -629,11 +858,27 @@ Feature: 未登入購買
     Given 用戶未登入
     When 用戶點擊「購買」按鈕
     Then 導向登入頁面
+    And URL 包含 redirect 參數
     When 用戶完成登入
     Then 導向購買頁面（原本要購買的課程）
 ```
 
-### 測試案例 4：繼續未完成購買
+### 測試案例 4：付款失敗重試
+
+```gherkin
+Feature: 付款失敗重試
+  Scenario: 用戶付款失敗後重試
+    Given 用戶已登入
+    And 用戶在 Mock Gateway 結帳頁面
+    When 用戶輸入會失敗的卡號（結尾 0000）
+    And 點擊確認付款
+    Then 重導向回取消回調頁面
+    And 顯示「付款失敗：餘額不足」
+    When 用戶點擊「重新嘗試」
+    Then 導向購買頁面重新開始
+```
+
+### 測試案例 5：繼續未完成購買
 
 ```gherkin
 Feature: 繼續未完成購買
@@ -641,12 +886,12 @@ Feature: 繼續未完成購買
     Given 用戶有一筆待完成的購買
     When 用戶進入該課程詳情頁
     Then 底部顯示 PendingPurchaseBanner
-    When 用戶點擊「繼續購買」
-    Then 導向確認頁面
-    And 顯示之前選擇的付款方式
+    And 顯示到期時間倒數
+    When 用戶點擊「繼續付款」
+    Then 直接重導向至 Mock Gateway checkoutUrl
 ```
 
-### 測試案例 5：取消待完成購買
+### 測試案例 6：取消待完成購買
 
 ```gherkin
 Feature: 取消待完成購買
@@ -660,94 +905,49 @@ Feature: 取消待完成購買
     And 用戶可以重新購買
 ```
 
-### 測試案例 6：已購買課程無法重複購買
+### 測試案例 7：已購買課程無法重複購買
 
 ```gherkin
 Feature: 防止重複購買
   Scenario: 已購買課程不顯示購買按鈕
     Given 用戶已購買某課程
-    When 用戶在課程列表頁查看該課程
+    When 用戶在課程詳情頁查看該課程
     Then 顯示「開始學習」而非「購買」按鈕
     When 用戶直接訪問購買頁面 URL
     Then 顯示「您已購買此課程」提示
-    And 導向課程詳情頁
+    And 自動導向課程詳情頁
 ```
 
-### 測試案例 7：付款驗證
+### 測試案例 8：Gateway 取消返回
 
 ```gherkin
-Feature: 付款表單驗證
-  Scenario: 信用卡資訊驗證
-    Given 用戶在付款表單頁面
-    When 用戶輸入無效的信用卡號
-    Then 顯示「信用卡號格式錯誤」
-    When 用戶輸入過期的到期日
-    Then 顯示「信用卡已過期」
-    When 用戶輸入錯誤的 CVV 格式
-    Then 顯示「CVV 格式錯誤」
+Feature: Gateway 取消返回
+  Scenario: 用戶在 Gateway 頁面點擊取消
+    Given 用戶在 Mock Gateway 結帳頁面
+    When 用戶點擊「取消」
+    Then 重導向回取消回調頁面
+    And 顯示「購買已取消」訊息
+    And 訂單狀態保持 PENDING（可稍後繼續）
 ```
 
-### 測試案例 8：購買過期處理
+### 測試案例 9：Session 過期處理
 
 ```gherkin
-Feature: 購買過期處理
-  Scenario: 待完成購買過期
-    Given 用戶有一筆已過期的待完成購買
-    When 用戶嘗試繼續購買
-    Then 顯示「購買已過期，請重新購買」
-    And 導向購買頁面重新開始
+Feature: Session 過期處理
+  Scenario: Checkout Session 過期
+    Given 用戶有一筆過期的待完成購買
+    When 用戶嘗試存取過期的 checkoutUrl
+    Then 顯示「Session 已過期」訊息
+    And 提示用戶重新購買
 ```
-
-## Implementation Tasks
-
-### Phase 1: Types & Services
-
-1. [ ] 建立 `types/purchase.ts`
-2. [ ] 建立 `services/purchase.service.ts`
-
-### Phase 2: Hooks
-
-3. [ ] 建立 `hooks/usePurchase.ts`
-4. [ ] 建立 `hooks/usePendingPurchases.ts`
-5. [ ] 建立 `hooks/usePayment.ts`
-
-### Phase 3: Components
-
-6. [ ] 建立 `components/purchase/PurchaseButton.tsx`
-7. [ ] 建立 `components/purchase/PaymentMethodSelector.tsx`
-8. [ ] 建立 `components/purchase/PurchaseSummary.tsx`
-9. [ ] 建立 `components/purchase/PendingPurchaseBanner.tsx`
-10. [ ] 建立 `components/purchase/PaymentForm.tsx`
-11. [ ] 建立 `components/purchase/PurchaseSuccess.tsx`
-12. [ ] 建立 `components/purchase/index.ts`
-
-### Phase 4: Pages
-
-13. [ ] 建立 `courses/[courseId]/purchase/page.tsx`
-14. [ ] 建立 `courses/[courseId]/purchase/confirm/page.tsx`
-15. [ ] 建立 `courses/[courseId]/purchase/success/page.tsx`
-
-### Phase 5: Integration
-
-16. [ ] 更新 `courses/[courseId]/page.tsx` - 加入 PendingPurchaseBanner
-17. [ ] 更新 `components/course/JourneyCard.tsx` - 加入 PurchaseButton
-
-### Phase 6: Testing
-
-18. [ ] E2E 測試：完整購買流程（信用卡）
-19. [ ] E2E 測試：完整購買流程（銀行轉帳）
-20. [ ] E2E 測試：未登入用戶購買
-21. [ ] E2E 測試：繼續未完成購買
-22. [ ] E2E 測試：取消待完成購買
-23. [ ] E2E 測試：已購買課程無法重複購買
-24. [ ] E2E 測試：付款驗證
-25. [ ] E2E 測試：購買過期處理
 
 ## Success Criteria
 
 - [ ] 未購買課程顯示購買按鈕與價格
 - [ ] 可選擇信用卡或銀行轉帳付款
-- [ ] 付款表單驗證正確運作
+- [ ] 點擊「前往付款」後正確重導向至 Mock Gateway
+- [ ] Gateway 付款成功後正確重導回 Frontend
+- [ ] 訂單狀態輪詢正常運作
 - [ ] 購買成功後可立即存取課程
 - [ ] 待完成購買可繼續或取消
 - [ ] 已購買課程無法重複購買

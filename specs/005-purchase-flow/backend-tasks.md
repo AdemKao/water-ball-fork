@@ -14,9 +14,11 @@ CREATE TABLE purchase_orders (
     amount DECIMAL(10, 2) NOT NULL,
     payment_method VARCHAR(50) NOT NULL,
     status VARCHAR(50) NOT NULL DEFAULT 'PENDING',
+    checkout_session_id VARCHAR(255),
     failure_reason VARCHAR(500),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    expires_at TIMESTAMP,
     completed_at TIMESTAMP
 );
 
@@ -24,18 +26,50 @@ CREATE INDEX idx_purchase_orders_user_id ON purchase_orders(user_id);
 CREATE INDEX idx_purchase_orders_journey_id ON purchase_orders(journey_id);
 CREATE INDEX idx_purchase_orders_status ON purchase_orders(status);
 CREATE INDEX idx_purchase_orders_user_status ON purchase_orders(user_id, status);
+CREATE INDEX idx_purchase_orders_checkout_session ON purchase_orders(checkout_session_id);
 ```
 
 **驗收條件:**
 
 - [ ] Migration 執行成功
 - [ ] 所有 index 建立正確
+- [ ] checkout_session_id 和 expires_at 欄位存在
 
 ---
 
-### Task 1.2: 建立 Flyway Migration - Add Price to Journeys
+### Task 1.2: 建立 Flyway Migration - Checkout Sessions Table
 
-**檔案:** `src/main/resources/db/migration/V20251127000002__add_price_to_journeys.sql`
+**檔案:** `src/main/resources/db/migration/V20251127000002__create_checkout_sessions_table.sql`
+
+```sql
+CREATE TABLE checkout_sessions (
+    id VARCHAR(255) PRIMARY KEY,
+    purchase_order_id UUID NOT NULL REFERENCES purchase_orders(id) ON DELETE CASCADE,
+    payment_method VARCHAR(50) NOT NULL,
+    amount DECIMAL(10, 2) NOT NULL,
+    currency VARCHAR(10) NOT NULL DEFAULT 'TWD',
+    status VARCHAR(50) NOT NULL DEFAULT 'PENDING',
+    success_url VARCHAR(500) NOT NULL,
+    cancel_url VARCHAR(500) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    expires_at TIMESTAMP NOT NULL,
+    completed_at TIMESTAMP
+);
+
+CREATE INDEX idx_checkout_sessions_purchase_order ON checkout_sessions(purchase_order_id);
+CREATE INDEX idx_checkout_sessions_status ON checkout_sessions(status);
+```
+
+**驗收條件:**
+
+- [ ] Migration 執行成功
+- [ ] checkout_sessions 表格建立成功
+
+---
+
+### Task 1.3: 建立 Flyway Migration - Add Price to Journeys
+
+**檔案:** `src/main/resources/db/migration/V20251127000003__add_price_to_journeys.sql`
 
 ```sql
 ALTER TABLE journeys ADD COLUMN price DECIMAL(10, 2) NOT NULL DEFAULT 0.00;
@@ -47,7 +81,7 @@ ALTER TABLE journeys ADD COLUMN price DECIMAL(10, 2) NOT NULL DEFAULT 0.00;
 
 ---
 
-### Task 1.3: 建立 PurchaseStatus Enum
+### Task 1.4: 建立 PurchaseStatus Enum
 
 **檔案:** `src/main/java/com/waterball/course/entity/PurchaseStatus.java`
 
@@ -58,17 +92,18 @@ public enum PurchaseStatus {
     PENDING,
     COMPLETED,
     FAILED,
-    CANCELLED
+    CANCELLED,
+    EXPIRED
 }
 ```
 
 **驗收條件:**
 
-- [ ] Enum 包含四種狀態
+- [ ] Enum 包含五種狀態 (含 EXPIRED)
 
 ---
 
-### Task 1.4: 建立 PaymentMethod Enum
+### Task 1.5: 建立 PaymentMethod Enum
 
 **檔案:** `src/main/java/com/waterball/course/entity/PaymentMethod.java`
 
@@ -87,7 +122,28 @@ public enum PaymentMethod {
 
 ---
 
-### Task 1.5: 建立 PurchaseOrder Entity
+### Task 1.6: 建立 CheckoutSessionStatus Enum
+
+**檔案:** `src/main/java/com/waterball/course/entity/CheckoutSessionStatus.java`
+
+```java
+package com.waterball.course.entity;
+
+public enum CheckoutSessionStatus {
+    PENDING,
+    SUCCESS,
+    FAILED,
+    EXPIRED
+}
+```
+
+**驗收條件:**
+
+- [ ] Enum 包含四種狀態
+
+---
+
+### Task 1.7: 建立 PurchaseOrder Entity
 
 **檔案:** `src/main/java/com/waterball/course/entity/PurchaseOrder.java`
 
@@ -120,6 +176,9 @@ public class PurchaseOrder {
     @Column(nullable = false)
     private PurchaseStatus status = PurchaseStatus.PENDING;
 
+    @Column(name = "checkout_session_id")
+    private String checkoutSessionId;
+
     @Column(name = "failure_reason")
     private String failureReason;
 
@@ -128,6 +187,9 @@ public class PurchaseOrder {
 
     @Column(name = "updated_at")
     private Instant updatedAt;
+
+    @Column(name = "expires_at")
+    private Instant expiresAt;
 
     @Column(name = "completed_at")
     private Instant completedAt;
@@ -148,11 +210,78 @@ public class PurchaseOrder {
 **驗收條件:**
 
 - [ ] Entity 與 database schema 對應正確
+- [ ] 包含 checkoutSessionId 和 expiresAt 欄位
 - [ ] 時間戳記自動更新
 
 ---
 
-### Task 1.6: 更新 Journey Entity - 新增 price 欄位
+### Task 1.8: 建立 CheckoutSession Entity
+
+**檔案:** `src/main/java/com/waterball/course/entity/CheckoutSession.java`
+
+```java
+@Entity
+@Table(name = "checkout_sessions")
+@Getter @Setter
+@NoArgsConstructor
+@Builder
+@AllArgsConstructor
+public class CheckoutSession {
+    @Id
+    private String id;
+
+    @Column(name = "purchase_order_id", nullable = false)
+    private UUID purchaseOrderId;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "payment_method", nullable = false)
+    private PaymentMethod paymentMethod;
+
+    @Column(nullable = false, precision = 10, scale = 2)
+    private BigDecimal amount;
+
+    @Column(nullable = false)
+    private String currency = "TWD";
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private CheckoutSessionStatus status = CheckoutSessionStatus.PENDING;
+
+    @Column(name = "success_url", nullable = false)
+    private String successUrl;
+
+    @Column(name = "cancel_url", nullable = false)
+    private String cancelUrl;
+
+    @Column(name = "created_at")
+    private Instant createdAt;
+
+    @Column(name = "expires_at", nullable = false)
+    private Instant expiresAt;
+
+    @Column(name = "completed_at")
+    private Instant completedAt;
+
+    @PrePersist
+    protected void onCreate() {
+        createdAt = Instant.now();
+    }
+
+    public boolean isExpired() {
+        return Instant.now().isAfter(expiresAt);
+    }
+}
+```
+
+**驗收條件:**
+
+- [ ] Entity 與 database schema 對應正確
+- [ ] 包含 isExpired() 方法
+- [ ] 包含 successUrl 和 cancelUrl 欄位
+
+---
+
+### Task 1.9: 更新 Journey Entity - 新增 price 欄位
 
 **檔案:** `src/main/java/com/waterball/course/entity/Journey.java`
 
@@ -170,7 +299,7 @@ private BigDecimal price = BigDecimal.ZERO;
 
 ---
 
-### Task 1.7: 建立 PurchaseOrderRepository
+### Task 1.10: 建立 PurchaseOrderRepository
 
 **檔案:** `src/main/java/com/waterball/course/repository/PurchaseOrderRepository.java`
 
@@ -180,6 +309,8 @@ public interface PurchaseOrderRepository extends JpaRepository<PurchaseOrder, UU
     
     Optional<PurchaseOrder> findByUserIdAndJourneyIdAndStatus(UUID userId, UUID journeyId, PurchaseStatus status);
     
+    Optional<PurchaseOrder> findByCheckoutSessionId(String checkoutSessionId);
+    
     List<PurchaseOrder> findByUserIdAndStatus(UUID userId, PurchaseStatus status);
     
     Page<PurchaseOrder> findByUserId(UUID userId, Pageable pageable);
@@ -188,13 +319,38 @@ public interface PurchaseOrderRepository extends JpaRepository<PurchaseOrder, UU
     
     @Query("SELECT po FROM PurchaseOrder po WHERE po.user.id = :userId AND po.status = 'PENDING'")
     List<PurchaseOrder> findPendingByUserId(@Param("userId") UUID userId);
+
+    @Query("SELECT po FROM PurchaseOrder po WHERE po.user.id = :userId AND po.journey.id = :journeyId AND po.status = 'PENDING'")
+    Optional<PurchaseOrder> findPendingByUserIdAndJourneyId(@Param("userId") UUID userId, @Param("journeyId") UUID journeyId);
 }
 ```
 
 **驗收條件:**
 
 - [ ] 所有查詢方法實作完成
+- [ ] 包含 findByCheckoutSessionId 方法
 - [ ] 分頁功能正確
+
+---
+
+### Task 1.11: 建立 CheckoutSessionRepository
+
+**檔案:** `src/main/java/com/waterball/course/repository/CheckoutSessionRepository.java`
+
+```java
+@Repository
+public interface CheckoutSessionRepository extends JpaRepository<CheckoutSession, String> {
+    
+    Optional<CheckoutSession> findByPurchaseOrderId(UUID purchaseOrderId);
+    
+    List<CheckoutSession> findByStatusAndExpiresAtBefore(CheckoutSessionStatus status, Instant time);
+}
+```
+
+**驗收條件:**
+
+- [ ] Repository 包含基本查詢方法
+- [ ] 可依 purchaseOrderId 查詢
 
 ---
 
@@ -271,15 +427,71 @@ public record PaymentResult(
 
 ---
 
-### Task 2.3: 建立 MockPaymentService
+### Task 2.3: 建立 MockPaymentGatewayService
 
-**檔案:** `src/main/java/com/waterball/course/service/payment/MockPaymentService.java`
+**檔案:** `src/main/java/com/waterball/course/service/payment/MockPaymentGatewayService.java`
 
 ```java
 @Service
-public class MockPaymentService {
+@RequiredArgsConstructor
+public class MockPaymentGatewayService {
+    private final CheckoutSessionRepository checkoutSessionRepository;
+    private final PaymentWebhookService webhookService;
     
-    public PaymentResult processPayment(PurchaseOrder order, PaymentDetails details) {
+    @Value("${app.payment.checkout-expiration-minutes:60}")
+    private int checkoutExpirationMinutes;
+    
+    @Value("${app.payment.mock-gateway.base-url:http://localhost:8080}")
+    private String baseUrl;
+
+    public CheckoutSession createCheckoutSession(CreateCheckoutRequest request) {
+        CheckoutSession session = CheckoutSession.builder()
+            .id(generateSessionId())
+            .purchaseOrderId(request.getPurchaseOrderId())
+            .paymentMethod(request.getPaymentMethod())
+            .amount(request.getAmount())
+            .currency(request.getCurrency())
+            .successUrl(request.getSuccessUrl())
+            .cancelUrl(request.getCancelUrl())
+            .status(CheckoutSessionStatus.PENDING)
+            .expiresAt(Instant.now().plus(checkoutExpirationMinutes, ChronoUnit.MINUTES))
+            .build();
+        
+        return checkoutSessionRepository.save(session);
+    }
+    
+    public String getCheckoutUrl(String sessionId) {
+        return String.format("%s/mock-payment/checkout/%s", baseUrl, sessionId);
+    }
+    
+    public Optional<CheckoutSession> getCheckoutSession(String sessionId) {
+        return checkoutSessionRepository.findById(sessionId);
+    }
+    
+    @Transactional
+    public PaymentResult processPayment(String sessionId, PaymentDetails details) {
+        CheckoutSession session = checkoutSessionRepository.findById(sessionId)
+            .orElseThrow(() -> new CheckoutSessionNotFoundException("Session not found"));
+        
+        if (session.isExpired()) {
+            session.setStatus(CheckoutSessionStatus.EXPIRED);
+            checkoutSessionRepository.save(session);
+            throw new SessionExpiredException("Session expired");
+        }
+        
+        PaymentResult result = simulatePayment(session.getPaymentMethod(), details);
+        
+        session.setStatus(result.success() ? 
+            CheckoutSessionStatus.SUCCESS : CheckoutSessionStatus.FAILED);
+        session.setCompletedAt(Instant.now());
+        checkoutSessionRepository.save(session);
+        
+        webhookService.sendPaymentNotification(session, result);
+        
+        return result;
+    }
+    
+    private PaymentResult simulatePayment(PaymentMethod method, PaymentDetails details) {
         if (details instanceof CreditCardDetails card) {
             if (card.getCardNumber().endsWith("0000")) {
                 return PaymentResult.failed("Insufficient funds");
@@ -297,19 +509,81 @@ public class MockPaymentService {
         
         return PaymentResult.success();
     }
+    
+    private String generateSessionId() {
+        return "cs_" + UUID.randomUUID().toString().replace("-", "").substring(0, 24);
+    }
 }
 ```
 
 **驗收條件:**
 
+- [ ] 可建立 CheckoutSession
+- [ ] 可取得 checkoutUrl
 - [ ] 卡號結尾 0000 -> Insufficient funds
 - [ ] 卡號結尾 1111 -> Card declined  
 - [ ] 銀行代碼 999 -> Invalid bank
 - [ ] 其他情況 -> 成功
+- [ ] 過期 session 正確處理
 
 ---
 
-### Task 2.4: 建立 PurchaseService
+### Task 2.4: 建立 PaymentWebhookService
+
+**檔案:** `src/main/java/com/waterball/course/service/payment/PaymentWebhookService.java`
+
+```java
+@Service
+@RequiredArgsConstructor
+public class PaymentWebhookService {
+    private final PurchaseOrderRepository purchaseOrderRepository;
+    private final UserPurchaseRepository userPurchaseRepository;
+    
+    @Value("${app.payment.webhook-secret:mock-webhook-secret-12345}")
+    private String webhookSecret;
+
+    public void sendPaymentNotification(CheckoutSession session, PaymentResult result) {
+        // Mock: 直接處理，實際場景會是 async HTTP call
+        handlePaymentResult(session.getId(), result);
+    }
+
+    @Transactional
+    public void handlePaymentResult(String sessionId, PaymentResult result) {
+        PurchaseOrder order = purchaseOrderRepository.findByCheckoutSessionId(sessionId)
+            .orElseThrow(() -> new PurchaseOrderNotFoundException("Order not found for session: " + sessionId));
+        
+        if (result.success()) {
+            order.setStatus(PurchaseStatus.COMPLETED);
+            order.setCompletedAt(Instant.now());
+            purchaseOrderRepository.save(order);
+
+            UserPurchase userPurchase = new UserPurchase();
+            userPurchase.setUser(order.getUser());
+            userPurchase.setJourney(order.getJourney());
+            userPurchaseRepository.save(userPurchase);
+        } else {
+            order.setStatus(PurchaseStatus.FAILED);
+            order.setFailureReason(result.failureReason());
+            purchaseOrderRepository.save(order);
+        }
+    }
+    
+    public boolean validateWebhookSecret(String secret) {
+        return webhookSecret.equals(secret);
+    }
+}
+```
+
+**驗收條件:**
+
+- [ ] 可處理付款成功通知
+- [ ] 付款成功後建立 UserPurchase
+- [ ] 可處理付款失敗通知
+- [ ] 可驗證 webhook secret
+
+---
+
+### Task 2.5: 建立 PurchaseService
 
 **檔案:** `src/main/java/com/waterball/course/service/purchase/PurchaseService.java`
 
@@ -321,7 +595,13 @@ public class PurchaseService {
     private final PurchaseOrderRepository purchaseOrderRepository;
     private final JourneyRepository journeyRepository;
     private final UserPurchaseRepository userPurchaseRepository;
-    private final MockPaymentService mockPaymentService;
+    private final MockPaymentGatewayService mockPaymentGatewayService;
+    
+    @Value("${app.payment.checkout-expiration-minutes:60}")
+    private int checkoutExpirationMinutes;
+    
+    @Value("${app.frontend.base-url:http://localhost:3000}")
+    private String frontendBaseUrl;
 
     public PurchaseOrderResponse createPurchaseOrder(UUID userId, CreatePurchaseRequest request) {
         Journey journey = journeyRepository.findByIdAndIsPublishedTrue(request.getJourneyId())
@@ -332,56 +612,49 @@ public class PurchaseService {
         }
 
         Optional<PurchaseOrder> existingPending = purchaseOrderRepository
-                .findByUserIdAndJourneyIdAndStatus(userId, journey.getId(), PurchaseStatus.PENDING);
+                .findPendingByUserIdAndJourneyId(userId, journey.getId());
         
         if (existingPending.isPresent()) {
-            return toResponse(existingPending.get());
+            PurchaseOrder existing = existingPending.get();
+            if (existing.getExpiresAt() != null && existing.getExpiresAt().isAfter(Instant.now())) {
+                String checkoutUrl = mockPaymentGatewayService.getCheckoutUrl(existing.getCheckoutSessionId());
+                return toResponseWithCheckoutUrl(existing, checkoutUrl);
+            }
+            // Expired, mark as expired
+            existing.setStatus(PurchaseStatus.EXPIRED);
+            purchaseOrderRepository.save(existing);
         }
 
+        // Create new order
         PurchaseOrder order = new PurchaseOrder();
-        order.setUser(new User());
-        order.getUser().setId(userId);
+        User user = new User();
+        user.setId(userId);
+        order.setUser(user);
         order.setJourney(journey);
         order.setAmount(journey.getPrice());
         order.setPaymentMethod(request.getPaymentMethod());
         order.setStatus(PurchaseStatus.PENDING);
-
+        order.setExpiresAt(Instant.now().plus(checkoutExpirationMinutes, ChronoUnit.MINUTES));
+        
         purchaseOrderRepository.save(order);
-        return toResponse(order);
-    }
 
-    public PaymentResultResponse processPayment(UUID userId, UUID purchaseId, PaymentDetails paymentDetails) {
-        PurchaseOrder order = purchaseOrderRepository.findById(purchaseId)
-                .orElseThrow(() -> new PurchaseOrderNotFoundException("Purchase order not found"));
-
-        if (!order.getUser().getId().equals(userId)) {
-            throw new AccessDeniedException("Access denied");
-        }
-
-        if (order.getStatus() != PurchaseStatus.PENDING) {
-            throw new InvalidOrderStatusException("Order is not in pending status");
-        }
-
-        PaymentResult result = mockPaymentService.processPayment(order, paymentDetails);
-
-        if (result.success()) {
-            order.setStatus(PurchaseStatus.COMPLETED);
-            order.setCompletedAt(Instant.now());
-            purchaseOrderRepository.save(order);
-
-            UserPurchase userPurchase = new UserPurchase();
-            userPurchase.setUser(order.getUser());
-            userPurchase.setJourney(order.getJourney());
-            userPurchaseRepository.save(userPurchase);
-
-            return PaymentResultResponse.success(order.getId(), order.getCompletedAt());
-        } else {
-            order.setStatus(PurchaseStatus.FAILED);
-            order.setFailureReason(result.failureReason());
-            purchaseOrderRepository.save(order);
-
-            return PaymentResultResponse.failed(order.getId(), result.failureReason());
-        }
+        // Create checkout session
+        CreateCheckoutRequest checkoutRequest = CreateCheckoutRequest.builder()
+                .purchaseOrderId(order.getId())
+                .paymentMethod(request.getPaymentMethod())
+                .amount(journey.getPrice())
+                .currency("TWD")
+                .successUrl(frontendBaseUrl + "/purchase/callback?status=success&orderId=" + order.getId())
+                .cancelUrl(frontendBaseUrl + "/purchase/callback?status=cancelled&orderId=" + order.getId())
+                .build();
+        
+        CheckoutSession session = mockPaymentGatewayService.createCheckoutSession(checkoutRequest);
+        
+        order.setCheckoutSessionId(session.getId());
+        purchaseOrderRepository.save(order);
+        
+        String checkoutUrl = mockPaymentGatewayService.getCheckoutUrl(session.getId());
+        return toResponseWithCheckoutUrl(order, checkoutUrl);
     }
 
     public void cancelPurchase(UUID userId, UUID purchaseId) {
@@ -409,7 +682,12 @@ public class PurchaseService {
             throw new AccessDeniedException("Access denied");
         }
 
-        return toDetailResponse(order);
+        String checkoutUrl = null;
+        if (order.getStatus() == PurchaseStatus.PENDING && order.getCheckoutSessionId() != null) {
+            checkoutUrl = mockPaymentGatewayService.getCheckoutUrl(order.getCheckoutSessionId());
+        }
+        
+        return toDetailResponse(order, checkoutUrl);
     }
 
     @Transactional(readOnly = true)
@@ -424,26 +702,51 @@ public class PurchaseService {
     @Transactional(readOnly = true)
     public List<PurchaseOrderResponse> getPendingPurchases(UUID userId) {
         return purchaseOrderRepository.findPendingByUserId(userId).stream()
-                .map(this::toResponse)
+                .map(order -> {
+                    String checkoutUrl = null;
+                    if (order.getCheckoutSessionId() != null) {
+                        checkoutUrl = mockPaymentGatewayService.getCheckoutUrl(order.getCheckoutSessionId());
+                    }
+                    return toResponseWithCheckoutUrl(order, checkoutUrl);
+                })
                 .collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
+    public PurchaseOrderResponse getPendingPurchaseByJourney(UUID userId, UUID journeyId) {
+        PurchaseOrder order = purchaseOrderRepository.findPendingByUserIdAndJourneyId(userId, journeyId)
+                .orElseThrow(() -> new PurchaseOrderNotFoundException("No pending order for this journey"));
+        
+        String checkoutUrl = null;
+        if (order.getCheckoutSessionId() != null) {
+            checkoutUrl = mockPaymentGatewayService.getCheckoutUrl(order.getCheckoutSessionId());
+        }
+        return toResponseWithCheckoutUrl(order, checkoutUrl);
+    }
+
     private PurchaseOrderResponse toResponse(PurchaseOrder order) {
+        return toResponseWithCheckoutUrl(order, null);
+    }
+
+    private PurchaseOrderResponse toResponseWithCheckoutUrl(PurchaseOrder order, String checkoutUrl) {
         return PurchaseOrderResponse.builder()
                 .id(order.getId())
                 .journeyId(order.getJourney().getId())
                 .journeyTitle(order.getJourney().getTitle())
                 .journeyThumbnailUrl(order.getJourney().getThumbnailUrl())
                 .amount(order.getAmount())
+                .currency("TWD")
                 .paymentMethod(order.getPaymentMethod())
                 .status(order.getStatus())
+                .checkoutUrl(checkoutUrl)
                 .failureReason(order.getFailureReason())
+                .expiresAt(order.getExpiresAt())
                 .createdAt(order.getCreatedAt())
                 .completedAt(order.getCompletedAt())
                 .build();
     }
 
-    private PurchaseOrderDetailResponse toDetailResponse(PurchaseOrder order) {
+    private PurchaseOrderDetailResponse toDetailResponse(PurchaseOrder order, String checkoutUrl) {
         return PurchaseOrderDetailResponse.builder()
                 .id(order.getId())
                 .journeyId(order.getJourney().getId())
@@ -451,11 +754,14 @@ public class PurchaseService {
                 .journeyThumbnailUrl(order.getJourney().getThumbnailUrl())
                 .journeyDescription(order.getJourney().getDescription())
                 .amount(order.getAmount())
+                .currency("TWD")
                 .paymentMethod(order.getPaymentMethod())
                 .status(order.getStatus())
+                .checkoutUrl(checkoutUrl)
                 .failureReason(order.getFailureReason())
                 .createdAt(order.getCreatedAt())
                 .updatedAt(order.getUpdatedAt())
+                .expiresAt(order.getExpiresAt())
                 .completedAt(order.getCompletedAt())
                 .build();
     }
@@ -464,12 +770,14 @@ public class PurchaseService {
 
 **驗收條件:**
 
-- [ ] createPurchaseOrder - 建立訂單、檢查重複購買、返回現有 PENDING 訂單
-- [ ] processPayment - 處理付款、更新狀態、建立 UserPurchase
+- [ ] createPurchaseOrder - 建立訂單、建立 CheckoutSession、返回 checkoutUrl
+- [ ] createPurchaseOrder - 檢查重複購買
+- [ ] createPurchaseOrder - 返回現有 PENDING 訂單
 - [ ] cancelPurchase - 取消訂單
-- [ ] getPurchaseOrder - 取得訂單詳情
+- [ ] getPurchaseOrder - 取得訂單詳情 (含 checkoutUrl)
 - [ ] getPurchaseHistory - 分頁查詢歷史
-- [ ] getPendingPurchases - 取得待付款訂單
+- [ ] getPendingPurchases - 取得待付款訂單 (含 checkoutUrl)
+- [ ] getPendingPurchaseByJourney - 取得特定課程待付款訂單
 
 ---
 
@@ -489,6 +797,23 @@ public class CreatePurchaseRequest {
     
     @NotNull(message = "Payment method is required")
     private PaymentMethod paymentMethod;
+}
+```
+
+**檔案:** `src/main/java/com/waterball/course/dto/request/CreateCheckoutRequest.java`
+
+```java
+@Getter @Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class CreateCheckoutRequest {
+    private UUID purchaseOrderId;
+    private PaymentMethod paymentMethod;
+    private BigDecimal amount;
+    private String currency;
+    private String successUrl;
+    private String cancelUrl;
 }
 ```
 
@@ -537,10 +862,30 @@ public class BankTransferPaymentRequest {
 }
 ```
 
+**檔案:** `src/main/java/com/waterball/course/dto/request/PaymentWebhookRequest.java`
+
+```java
+@Getter @Setter
+@NoArgsConstructor
+@AllArgsConstructor
+public class PaymentWebhookRequest {
+    @NotBlank
+    private String sessionId;
+    
+    @NotBlank
+    private String status; // SUCCESS, FAILED
+    
+    private String failureReason;
+    
+    private Instant completedAt;
+}
+```
+
 **驗收條件:**
 
 - [ ] 所有 validation annotations 正確
-- [ ] 錯誤訊息清楚
+- [ ] 包含 CreateCheckoutRequest
+- [ ] 包含 PaymentWebhookRequest
 
 ---
 
@@ -559,9 +904,12 @@ public class PurchaseOrderResponse {
     private String journeyTitle;
     private String journeyThumbnailUrl;
     private BigDecimal amount;
+    private String currency;
     private PaymentMethod paymentMethod;
     private PurchaseStatus status;
+    private String checkoutUrl;  // NEW: 結帳頁面 URL
     private String failureReason;
+    private Instant expiresAt;   // NEW: 訂單過期時間
     private Instant createdAt;
     private Instant completedAt;
 }
@@ -581,57 +929,42 @@ public class PurchaseOrderDetailResponse {
     private String journeyThumbnailUrl;
     private String journeyDescription;
     private BigDecimal amount;
+    private String currency;
     private PaymentMethod paymentMethod;
     private PurchaseStatus status;
+    private String checkoutUrl;  // NEW: 結帳頁面 URL (僅 PENDING 狀態)
     private String failureReason;
     private Instant createdAt;
     private Instant updatedAt;
+    private Instant expiresAt;   // NEW: 訂單過期時間
     private Instant completedAt;
 }
 ```
 
-**檔案:** `src/main/java/com/waterball/course/dto/response/PaymentResultResponse.java`
+**檔案:** `src/main/java/com/waterball/course/dto/response/WebhookResponse.java`
 
 ```java
 @Getter @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
-public class PaymentResultResponse {
-    private UUID purchaseId;
-    private PurchaseStatus status;
-    private String message;
-    private Instant completedAt;
-    private String failureReason;
-
-    public static PaymentResultResponse success(UUID purchaseId, Instant completedAt) {
-        return PaymentResultResponse.builder()
-                .purchaseId(purchaseId)
-                .status(PurchaseStatus.COMPLETED)
-                .message("Payment successful")
-                .completedAt(completedAt)
-                .build();
-    }
-
-    public static PaymentResultResponse failed(UUID purchaseId, String reason) {
-        return PaymentResultResponse.builder()
-                .purchaseId(purchaseId)
-                .status(PurchaseStatus.FAILED)
-                .message("Payment failed")
-                .failureReason(reason)
-                .build();
+public class WebhookResponse {
+    private boolean received;
+    
+    public static WebhookResponse success() {
+        return new WebhookResponse(true);
     }
 }
 ```
 
 **驗收條件:**
 
-- [ ] 所有 Response DTO 建立完成
-- [ ] Builder pattern 實作
+- [ ] PurchaseOrderResponse 包含 checkoutUrl 和 expiresAt
+- [ ] PurchaseOrderDetailResponse 包含 checkoutUrl 和 expiresAt
+- [ ] WebhookResponse 建立完成
 
 ---
 
-## Phase 4: Controller
+## Phase 4: Controllers
 
 ### Task 4.1: 建立 PurchaseController
 
@@ -650,7 +983,12 @@ public class PurchaseController {
             @Valid @RequestBody CreatePurchaseRequest request) {
         PurchaseOrderResponse response = purchaseService.createPurchaseOrder(
                 principal.getUser().getId(), request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        
+        HttpStatus status = response.getStatus() == PurchaseStatus.PENDING && 
+                           response.getCheckoutUrl() != null ? 
+                           HttpStatus.CREATED : HttpStatus.OK;
+        
+        return ResponseEntity.status(status).body(response);
     }
 
     @GetMapping
@@ -673,24 +1011,21 @@ public class PurchaseController {
         return ResponseEntity.ok(response);
     }
 
+    @GetMapping("/pending/journey/{journeyId}")
+    public ResponseEntity<PurchaseOrderResponse> getPendingPurchaseByJourney(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @PathVariable UUID journeyId) {
+        PurchaseOrderResponse response = purchaseService.getPendingPurchaseByJourney(
+                principal.getUser().getId(), journeyId);
+        return ResponseEntity.ok(response);
+    }
+
     @GetMapping("/{purchaseId}")
     public ResponseEntity<PurchaseOrderDetailResponse> getPurchaseOrder(
             @AuthenticationPrincipal UserPrincipal principal,
             @PathVariable UUID purchaseId) {
         PurchaseOrderDetailResponse response = purchaseService.getPurchaseOrder(
                 principal.getUser().getId(), purchaseId);
-        return ResponseEntity.ok(response);
-    }
-
-    @PostMapping("/{purchaseId}/pay")
-    public ResponseEntity<PaymentResultResponse> processPayment(
-            @AuthenticationPrincipal UserPrincipal principal,
-            @PathVariable UUID purchaseId,
-            @Valid @RequestBody Object paymentRequest) {
-        // Determine payment method from order and convert request
-        PaymentDetails details = convertToPaymentDetails(paymentRequest);
-        PaymentResultResponse response = purchaseService.processPayment(
-                principal.getUser().getId(), purchaseId, details);
         return ResponseEntity.ok(response);
     }
 
@@ -701,24 +1036,171 @@ public class PurchaseController {
         purchaseService.cancelPurchase(principal.getUser().getId(), purchaseId);
         return ResponseEntity.noContent().build();
     }
+}
+```
 
-    private PaymentDetails convertToPaymentDetails(Object request) {
-        // Implementation to convert request to appropriate PaymentDetails
-        // Based on the content of the request
-        throw new UnsupportedOperationException("Implement based on request type");
+**驗收條件:**
+
+- [ ] POST /api/purchases - 建立訂單並返回 checkoutUrl
+- [ ] GET /api/purchases - 分頁查詢購買歷史
+- [ ] GET /api/purchases/pending - 取得待付款訂單
+- [ ] GET /api/purchases/pending/journey/{journeyId} - 取得特定課程待付款訂單
+- [ ] GET /api/purchases/{purchaseId} - 取得訂單詳情
+- [ ] DELETE /api/purchases/{purchaseId} - 取消訂單
+
+---
+
+### Task 4.2: 建立 PaymentWebhookController
+
+**檔案:** `src/main/java/com/waterball/course/controller/PaymentWebhookController.java`
+
+```java
+@RestController
+@RequestMapping("/api/webhooks")
+@RequiredArgsConstructor
+public class PaymentWebhookController {
+    private final PaymentWebhookService webhookService;
+
+    @PostMapping("/payment")
+    public ResponseEntity<WebhookResponse> handlePaymentWebhook(
+            @RequestHeader("X-Webhook-Secret") String secret,
+            @Valid @RequestBody PaymentWebhookRequest request) {
+        
+        if (!webhookService.validateWebhookSecret(secret)) {
+            throw new InvalidWebhookSecretException("Invalid webhook secret");
+        }
+        
+        PaymentResult result = "SUCCESS".equals(request.getStatus()) ?
+                PaymentResult.success() :
+                PaymentResult.failed(request.getFailureReason());
+        
+        webhookService.handlePaymentResult(request.getSessionId(), result);
+        
+        return ResponseEntity.ok(WebhookResponse.success());
     }
 }
 ```
 
 **驗收條件:**
 
-- [ ] 所有 API endpoints 實作
-- [ ] 適當的 HTTP status codes
-- [ ] Authentication 正確處理
+- [ ] POST /api/webhooks/payment - 接收付款結果通知
+- [ ] 驗證 X-Webhook-Secret header
+- [ ] 處理 SUCCESS 和 FAILED 狀態
 
 ---
 
-### Task 4.2: 更新 SecurityConfig
+### Task 4.3: 建立 MockPaymentController
+
+**檔案:** `src/main/java/com/waterball/course/controller/MockPaymentController.java`
+
+```java
+@Controller
+@RequestMapping("/mock-payment")
+@RequiredArgsConstructor
+public class MockPaymentController {
+    private final MockPaymentGatewayService gatewayService;
+    private final CheckoutSessionRepository checkoutSessionRepository;
+
+    @GetMapping("/checkout/{sessionId}")
+    public String showCheckoutPage(@PathVariable String sessionId, Model model) {
+        CheckoutSession session = checkoutSessionRepository.findById(sessionId)
+                .orElseThrow(() -> new CheckoutSessionNotFoundException("Session not found"));
+        
+        if (session.isExpired()) {
+            model.addAttribute("error", "Session expired");
+            model.addAttribute("cancelUrl", session.getCancelUrl());
+            return "mock-payment/expired";
+        }
+        
+        model.addAttribute("session", session);
+        model.addAttribute("isCreditCard", session.getPaymentMethod() == PaymentMethod.CREDIT_CARD);
+        return "mock-payment/checkout";
+    }
+
+    @PostMapping("/checkout/{sessionId}/submit")
+    public String processPayment(
+            @PathVariable String sessionId,
+            @RequestParam Map<String, String> formData,
+            RedirectAttributes redirectAttributes) {
+        
+        CheckoutSession session = checkoutSessionRepository.findById(sessionId)
+                .orElseThrow(() -> new CheckoutSessionNotFoundException("Session not found"));
+        
+        PaymentDetails details;
+        if (session.getPaymentMethod() == PaymentMethod.CREDIT_CARD) {
+            details = new CreditCardDetails(
+                    formData.get("cardNumber"),
+                    formData.get("expiryMonth"),
+                    formData.get("expiryYear"),
+                    formData.get("cvv"),
+                    formData.get("cardholderName")
+            );
+        } else {
+            details = new BankTransferDetails(
+                    formData.get("accountNumber"),
+                    formData.get("bankCode")
+            );
+        }
+        
+        try {
+            PaymentResult result = gatewayService.processPayment(sessionId, details);
+            
+            if (result.success()) {
+                return "redirect:" + session.getSuccessUrl();
+            } else {
+                String cancelUrl = session.getCancelUrl() + 
+                        (session.getCancelUrl().contains("?") ? "&" : "?") + 
+                        "error=" + URLEncoder.encode(result.failureReason(), StandardCharsets.UTF_8);
+                return "redirect:" + cancelUrl;
+            }
+        } catch (SessionExpiredException e) {
+            return "redirect:" + session.getCancelUrl() + "?error=session_expired";
+        }
+    }
+
+    @GetMapping("/checkout/{sessionId}/cancel")
+    public String cancelPayment(@PathVariable String sessionId) {
+        CheckoutSession session = checkoutSessionRepository.findById(sessionId)
+                .orElseThrow(() -> new CheckoutSessionNotFoundException("Session not found"));
+        
+        return "redirect:" + session.getCancelUrl();
+    }
+}
+```
+
+**驗收條件:**
+
+- [ ] GET /mock-payment/checkout/{sessionId} - 顯示結帳頁面
+- [ ] POST /mock-payment/checkout/{sessionId}/submit - 處理付款
+- [ ] GET /mock-payment/checkout/{sessionId}/cancel - 取消付款
+- [ ] 過期 session 正確處理
+- [ ] 依付款方式顯示不同表單
+
+---
+
+### Task 4.4: 建立 Mock Payment HTML Templates
+
+**檔案:** `src/main/resources/templates/mock-payment/checkout.html`
+
+建立 Thymeleaf 模板，顯示模擬的結帳頁面，包含：
+- 訂單資訊（金額、課程名稱）
+- 依付款方式顯示信用卡或銀行轉帳表單
+- 「確認付款」按鈕
+- 「取消」按鈕
+
+**檔案:** `src/main/resources/templates/mock-payment/expired.html`
+
+建立過期頁面模板。
+
+**驗收條件:**
+
+- [ ] checkout.html 可顯示結帳表單
+- [ ] expired.html 可顯示過期訊息
+- [ ] 表單可正確提交
+
+---
+
+### Task 4.5: 更新 SecurityConfig
 
 **檔案:** `src/main/java/com/waterball/course/config/SecurityConfig.java`
 
@@ -728,6 +1210,8 @@ public class PurchaseController {
 .authorizeHttpRequests(auth -> auth
     // ... existing rules
     .requestMatchers("/api/purchases/**").authenticated()
+    .requestMatchers("/api/webhooks/payment").permitAll()  // Webhook 不需認證，用 secret 驗證
+    .requestMatchers("/mock-payment/**").permitAll()       // Mock Gateway 頁面公開
     .anyRequest().authenticated()
 )
 ```
@@ -735,65 +1219,23 @@ public class PurchaseController {
 **驗收條件:**
 
 - [ ] /api/purchases/** 需要認證
+- [ ] /api/webhooks/payment 允許匿名存取
+- [ ] /mock-payment/** 允許匿名存取
 
 ---
 
-### Task 4.3: 建立 Business Exceptions
+### Task 4.6: 建立 Business Exceptions
 
-**檔案:** `src/main/java/com/waterball/course/exception/JourneyNotFoundException.java`
+**檔案:** 建立以下 Exception 類別：
 
-```java
-@ResponseStatus(HttpStatus.NOT_FOUND)
-public class JourneyNotFoundException extends RuntimeException {
-    public JourneyNotFoundException(String message) {
-        super(message);
-    }
-}
-```
-
-**檔案:** `src/main/java/com/waterball/course/exception/PurchaseOrderNotFoundException.java`
-
-```java
-@ResponseStatus(HttpStatus.NOT_FOUND)
-public class PurchaseOrderNotFoundException extends RuntimeException {
-    public PurchaseOrderNotFoundException(String message) {
-        super(message);
-    }
-}
-```
-
-**檔案:** `src/main/java/com/waterball/course/exception/AlreadyPurchasedException.java`
-
-```java
-@ResponseStatus(HttpStatus.CONFLICT)
-public class AlreadyPurchasedException extends RuntimeException {
-    public AlreadyPurchasedException(String message) {
-        super(message);
-    }
-}
-```
-
-**檔案:** `src/main/java/com/waterball/course/exception/InvalidOrderStatusException.java`
-
-```java
-@ResponseStatus(HttpStatus.BAD_REQUEST)
-public class InvalidOrderStatusException extends RuntimeException {
-    public InvalidOrderStatusException(String message) {
-        super(message);
-    }
-}
-```
-
-**檔案:** `src/main/java/com/waterball/course/exception/PaymentValidationException.java`
-
-```java
-@ResponseStatus(HttpStatus.BAD_REQUEST)
-public class PaymentValidationException extends RuntimeException {
-    public PaymentValidationException(String message) {
-        super(message);
-    }
-}
-```
+- `JourneyNotFoundException` (404)
+- `PurchaseOrderNotFoundException` (404)
+- `CheckoutSessionNotFoundException` (404)
+- `AlreadyPurchasedException` (409)
+- `InvalidOrderStatusException` (400)
+- `SessionExpiredException` (400)
+- `PaymentValidationException` (400)
+- `InvalidWebhookSecretException` (401)
 
 **驗收條件:**
 
@@ -802,52 +1244,9 @@ public class PaymentValidationException extends RuntimeException {
 
 ---
 
-### Task 4.4: 更新 GlobalExceptionHandler
+### Task 4.7: 更新 GlobalExceptionHandler
 
-**檔案:** `src/main/java/com/waterball/course/exception/GlobalExceptionHandler.java`
-
-新增處理購買相關 exceptions：
-
-```java
-@ExceptionHandler(AlreadyPurchasedException.class)
-public ResponseEntity<ErrorResponse> handleAlreadyPurchased(
-        AlreadyPurchasedException ex, HttpServletRequest request) {
-    ErrorResponse error = new ErrorResponse(
-            LocalDateTime.now(),
-            HttpStatus.CONFLICT.value(),
-            "Conflict",
-            ex.getMessage(),
-            request.getRequestURI()
-    );
-    return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
-}
-
-@ExceptionHandler(InvalidOrderStatusException.class)
-public ResponseEntity<ErrorResponse> handleInvalidOrderStatus(
-        InvalidOrderStatusException ex, HttpServletRequest request) {
-    ErrorResponse error = new ErrorResponse(
-            LocalDateTime.now(),
-            HttpStatus.BAD_REQUEST.value(),
-            "Bad Request",
-            ex.getMessage(),
-            request.getRequestURI()
-    );
-    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
-}
-
-@ExceptionHandler(PurchaseOrderNotFoundException.class)
-public ResponseEntity<ErrorResponse> handlePurchaseOrderNotFound(
-        PurchaseOrderNotFoundException ex, HttpServletRequest request) {
-    ErrorResponse error = new ErrorResponse(
-            LocalDateTime.now(),
-            HttpStatus.NOT_FOUND.value(),
-            "Not Found",
-            ex.getMessage(),
-            request.getRequestURI()
-    );
-    return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
-}
-```
+新增處理購買相關 exceptions 的 handler methods。
 
 **驗收條件:**
 
@@ -855,29 +1254,54 @@ public ResponseEntity<ErrorResponse> handlePurchaseOrderNotFound(
 
 ---
 
-## Phase 5: Integration Tests
+## Phase 5: Configuration
 
-### Task 5.1: 建立 PurchaseControllerTest
+### Task 5.1: 更新 application.yml
 
-**檔案:** `src/test/java/com/waterball/course/controller/PurchaseControllerTest.java`
+**檔案:** `src/main/resources/application.yml`
+
+新增：
+
+```yaml
+app:
+  payment:
+    webhook-secret: ${PAYMENT_WEBHOOK_SECRET:mock-webhook-secret-12345}
+    checkout-expiration-minutes: 60
+    mock-gateway:
+      enabled: true
+      base-url: ${MOCK_GATEWAY_BASE_URL:http://localhost:8080}
+  frontend:
+    base-url: ${FRONTEND_BASE_URL:http://localhost:3000}
+```
+
+**驗收條件:**
+
+- [ ] 設定 webhook-secret
+- [ ] 設定 checkout-expiration-minutes
+- [ ] 設定 mock-gateway base-url
+- [ ] 設定 frontend base-url
+
+---
+
+## Phase 6: Integration Tests
+
+### Task 6.1: 建立 PurchaseControllerTest
 
 **測試案例:**
 
-- `createPurchase_withValidRequest_shouldReturn201`
-- `createPurchase_withExistingPendingOrder_shouldReturn200`
+- `createPurchase_withValidRequest_shouldReturn201WithCheckoutUrl`
+- `createPurchase_withExistingPendingOrder_shouldReturn200WithSameCheckoutUrl`
 - `createPurchase_withAlreadyPurchased_shouldReturn409`
 - `createPurchase_withInvalidJourney_shouldReturn404`
 - `createPurchase_withoutAuth_shouldReturn401`
 - `getPurchaseHistory_shouldReturnPaginatedResults`
 - `getPurchaseHistory_withStatusFilter_shouldReturnFiltered`
-- `getPendingPurchases_shouldReturnPendingOrders`
+- `getPendingPurchases_shouldReturnPendingOrdersWithCheckoutUrl`
+- `getPendingPurchaseByJourney_withPendingOrder_shouldReturn200`
+- `getPendingPurchaseByJourney_withNoPendingOrder_shouldReturn404`
 - `getPurchaseOrder_withValidId_shouldReturn200`
 - `getPurchaseOrder_withOtherUserOrder_shouldReturn403`
 - `getPurchaseOrder_withInvalidId_shouldReturn404`
-- `processPayment_withCreditCard_success_shouldReturn200`
-- `processPayment_withCreditCard_declined_shouldReturnFailed`
-- `processPayment_withBankTransfer_success_shouldReturn200`
-- `processPayment_withNonPendingOrder_shouldReturn400`
 - `cancelPurchase_withPendingOrder_shouldReturn204`
 - `cancelPurchase_withCompletedOrder_shouldReturn400`
 
@@ -888,17 +1312,33 @@ public ResponseEntity<ErrorResponse> handlePurchaseOrderNotFound(
 
 ---
 
-### Task 5.2: 建立 MockPaymentServiceTest
-
-**檔案:** `src/test/java/com/waterball/course/service/MockPaymentServiceTest.java`
+### Task 6.2: 建立 PaymentWebhookControllerTest
 
 **測試案例:**
 
+- `handleWebhook_withValidSecret_success_shouldUpdateOrderCompleted`
+- `handleWebhook_withValidSecret_failed_shouldUpdateOrderFailed`
+- `handleWebhook_withInvalidSecret_shouldReturn401`
+- `handleWebhook_withUnknownSession_shouldReturn404`
+
+**驗收條件:**
+
+- [ ] Webhook 處理正確
+- [ ] Secret 驗證正確
+
+---
+
+### Task 6.3: 建立 MockPaymentGatewayServiceTest
+
+**測試案例:**
+
+- `createCheckoutSession_shouldReturnSessionWithId`
 - `processPayment_withValidCreditCard_shouldReturnSuccess`
 - `processPayment_withCardEndingIn0000_shouldReturnInsufficientFunds`
 - `processPayment_withCardEndingIn1111_shouldReturnCardDeclined`
 - `processPayment_withValidBankTransfer_shouldReturnSuccess`
 - `processPayment_withBankCode999_shouldReturnInvalidBank`
+- `processPayment_withExpiredSession_shouldThrowException`
 
 **驗收條件:**
 
@@ -907,19 +1347,18 @@ public ResponseEntity<ErrorResponse> handlePurchaseOrderNotFound(
 
 ---
 
-### Task 5.3: 建立 PurchaseServiceTest
-
-**檔案:** `src/test/java/com/waterball/course/service/PurchaseServiceTest.java`
+### Task 6.4: 建立 PurchaseServiceTest
 
 **測試案例:**
 
-- `createPurchaseOrder_withValidRequest_shouldCreateOrder`
+- `createPurchaseOrder_withValidRequest_shouldCreateOrderAndCheckoutSession`
 - `createPurchaseOrder_withExistingPending_shouldReturnExisting`
+- `createPurchaseOrder_withExpiredPending_shouldCreateNewOrder`
 - `createPurchaseOrder_withAlreadyPurchased_shouldThrowException`
-- `processPayment_withSuccess_shouldCreateUserPurchase`
-- `processPayment_withFailure_shouldUpdateOrderStatus`
 - `cancelPurchase_withPending_shouldUpdateStatus`
 - `cancelPurchase_withNonPending_shouldThrowException`
+- `getPendingPurchaseByJourney_withPending_shouldReturnOrder`
+- `getPendingPurchaseByJourney_withNoPending_shouldThrowException`
 
 **驗收條件:**
 
@@ -928,54 +1367,67 @@ public ResponseEntity<ErrorResponse> handlePurchaseOrderNotFound(
 
 ---
 
-## Phase 6: E2E Tests
+## Phase 7: E2E Tests
 
-### Task 6.1: 建立 PurchaseE2ETest
+### Task 7.1: 建立 PurchaseE2ETest
 
-**檔案:** `src/test/java/com/waterball/course/e2e/PurchaseE2ETest.java`
-
-**測試場景 6.1.1:** 完整購買流程（信用卡成功）
+**測試場景 7.1.1:** 完整購買流程（信用卡成功）
 
 ```java
 @Test
 void completePurchaseFlow_withCreditCard_success() {
-    // 1. POST /api/purchases -> 201, status PENDING
-    // 2. POST /api/purchases/{id}/pay -> 200, status COMPLETED
-    // 3. GET /api/journeys/{journeyId} -> isPurchased = true
+    // 1. POST /api/purchases -> 201, status PENDING, has checkoutUrl
+    // 2. GET /mock-payment/checkout/{sessionId} -> 200, show form
+    // 3. POST /mock-payment/checkout/{sessionId}/submit (valid card) -> redirect to successUrl
+    // 4. GET /api/purchases/{id} -> status COMPLETED
+    // 5. GET /api/journeys/{journeyId} -> isPurchased = true
 }
 ```
 
-**測試場景 6.1.2:** 付款失敗（餘額不足）
+**測試場景 7.1.2:** 付款失敗（餘額不足）
 
 ```java
 @Test
 void purchaseFlow_withInsufficientFunds_shouldFail() {
     // 1. POST /api/purchases -> 201
-    // 2. POST /api/purchases/{id}/pay (card ending 0000) -> 200, status FAILED
+    // 2. POST /mock-payment/checkout/{sessionId}/submit (card ending 0000) 
+    //    -> redirect to cancelUrl with error
+    // 3. GET /api/purchases/{id} -> status FAILED, failureReason = "Insufficient funds"
 }
 ```
 
-**測試場景 6.1.3:** 繼續未完成購買
+**測試場景 7.1.3:** 用戶在 Gateway 取消
+
+```java
+@Test
+void userCancelsOnGateway() {
+    // 1. POST /api/purchases -> 201
+    // 2. GET /mock-payment/checkout/{sessionId}/cancel -> redirect to cancelUrl
+    // 3. GET /api/purchases/{id} -> status PENDING (可重試)
+}
+```
+
+**測試場景 7.1.4:** 繼續未完成購買
 
 ```java
 @Test
 void resumePendingPurchase() {
     // 1. POST /api/purchases -> 201
-    // 2. POST /api/purchases (same journey) -> 200, return existing
+    // 2. POST /api/purchases (same journey) -> 200, return existing with same checkoutUrl
 }
 ```
 
-**測試場景 6.1.4:** 已購買課程
+**測試場景 7.1.5:** 已購買課程
 
 ```java
 @Test
 void alreadyPurchased_shouldReturn409() {
-    // 1. Complete purchase
+    // 1. Complete purchase via gateway
     // 2. POST /api/purchases (same journey) -> 409
 }
 ```
 
-**測試場景 6.1.5:** 取消待付款訂單
+**測試場景 7.1.6:** 取消待付款訂單
 
 ```java
 @Test
@@ -986,56 +1438,36 @@ void cancelPendingOrder() {
 }
 ```
 
-**測試場景 6.1.6:** 不能取消已完成訂單
+**測試場景 7.1.7:** Session 過期
 
 ```java
 @Test
-void cannotCancelCompletedOrder() {
-    // 1. Complete purchase
-    // 2. DELETE /api/purchases/{id} -> 400
-}
-```
-
-**測試場景 6.1.7:** 不能對非 PENDING 訂單付款
-
-```java
-@Test
-void cannotPayNonPendingOrder() {
+void expiredSession_shouldShowError() {
     // 1. POST /api/purchases -> 201
-    // 2. DELETE /api/purchases/{id} -> 204
-    // 3. POST /api/purchases/{id}/pay -> 400
+    // 2. Manually expire session in DB
+    // 3. GET /mock-payment/checkout/{sessionId} -> show expired page
 }
 ```
 
-**測試場景 6.1.8:** 付款成功後可存取課程
+**測試場景 7.1.8:** 付款成功後可存取課程
 
 ```java
 @Test
 void accessControl_afterPurchase() {
     // 1. GET /api/lessons/{id} (PURCHASED) -> 403
-    // 2. Complete purchase
+    // 2. Complete purchase via gateway
     // 3. GET /api/lessons/{id} -> 200
 }
 ```
 
-**測試場景 6.1.9:** 購買歷史分頁
+**測試場景 7.1.9:** Webhook 正確處理
 
 ```java
 @Test
-void purchaseHistory_pagination() {
-    // 1. Create 25 purchases
-    // 2. GET /api/purchases?page=0&size=10 -> 10 items
-    // 3. GET /api/purchases?page=1&size=10 -> 10 items
-}
-```
-
-**測試場景 6.1.10:** 依狀態篩選購買歷史
-
-```java
-@Test
-void purchaseHistory_filterByStatus() {
-    // 1. Create COMPLETED and PENDING orders
-    // 2. GET /api/purchases?status=PENDING -> only PENDING orders
+void webhookHandler_updatesOrderStatus() {
+    // 1. POST /api/purchases -> 201
+    // 2. POST /api/webhooks/payment (SUCCESS) with valid secret
+    // 3. GET /api/purchases/{id} -> status COMPLETED
 }
 ```
 
@@ -1046,11 +1478,11 @@ void purchaseHistory_filterByStatus() {
 
 ---
 
-## Phase 7: Test Data
+## Phase 8: Test Data
 
-### Task 7.1: 更新 Seed Data
+### Task 8.1: 更新 Seed Data
 
-**檔案:** `src/main/resources/db/migration/V20251127000003__seed_purchase_data.sql`
+**檔案:** `src/main/resources/db/migration/V20251127000004__seed_purchase_data.sql`
 
 ```sql
 -- Update journey prices
@@ -1065,17 +1497,11 @@ UPDATE journeys SET price = 0.00 WHERE price IS NULL;
 
 ---
 
-### Task 7.2: 建立測試資料檔案
+### Task 8.2: 建立測試資料檔案
 
 **檔案:** `src/test/resources/sql/test-purchase-data.sql`
 
-```sql
--- Insert test purchase orders
-INSERT INTO purchase_orders (id, user_id, journey_id, amount, payment_method, status, created_at)
-VALUES 
-    ('00000000-0000-0000-0000-000000000001', :userId, :journeyId, 1999.00, 'CREDIT_CARD', 'PENDING', NOW()),
-    ('00000000-0000-0000-0000-000000000002', :userId, :journeyId2, 2999.00, 'BANK_TRANSFER', 'COMPLETED', NOW());
-```
+建立測試用的 purchase_orders 和 checkout_sessions 資料。
 
 **驗收條件:**
 
@@ -1083,104 +1509,102 @@ VALUES
 
 ---
 
-## Phase 8: Journey API Enhancement
+## Phase 9: Journey API Enhancement
 
-### Task 8.1: 更新 JourneyListResponse DTO 加入定價欄位
+### Task 9.1: 更新 JourneyListResponse DTO 加入定價欄位
 
-**檔案:** `src/main/java/com/waterball/course/dto/response/JourneyListResponse.java`
-
-新增欄位：
-
-```java
-private Integer price;
-private String currency;
-private Integer originalPrice;
-private Integer discountPercentage;
-```
+新增欄位：`price`, `currency`
 
 **驗收條件:**
 
-- [ ] JourneyListResponse 包含 price, currency, originalPrice, discountPercentage 欄位
+- [ ] JourneyListResponse 包含 price, currency 欄位
 
 ---
 
-### Task 8.2: 更新 JourneyDetailResponse DTO 加入定價欄位
+### Task 9.2: 更新 JourneyDetailResponse DTO 加入定價欄位
 
-**檔案:** `src/main/java/com/waterball/course/dto/response/JourneyDetailResponse.java`
-
-新增欄位：
-
-```java
-private Integer price;
-private String currency;
-private Integer originalPrice;
-private Integer discountPercentage;
-```
+新增欄位：`price`, `currency`
 
 **驗收條件:**
 
-- [ ] JourneyDetailResponse 包含 price, currency, originalPrice, discountPercentage 欄位
+- [ ] JourneyDetailResponse 包含 price, currency 欄位
 
 ---
 
-### Task 8.3: 更新 JourneyService 設定定價資訊
+### Task 9.3: 更新 JourneyService 設定定價資訊
 
-**檔案:** `src/main/java/com/waterball/course/service/course/JourneyService.java`
-
-更新 `toJourneyListResponse` 和 `toJourneyDetailResponse` 方法，從 Journey entity 取得 price 並設定到 response 中。
+從 Journey entity 取得 price 並設定到 response 中，currency 預設為 "TWD"。
 
 **驗收條件:**
 
 - [ ] getPublishedJourneys 回傳的每個 journey 包含 pricing 資訊
 - [ ] getJourneyDetail 回傳的 journey 包含 pricing 資訊
-- [ ] currency 預設為 "TWD"
 
 ---
 
 ## Summary Checklist
 
-### Phase 1: Database & Entity (7 tasks)
+### Phase 1: Database & Entity (11 tasks)
 
-- [x] Task 1.1: Flyway Migration - purchase_orders
-- [x] Task 1.2: Flyway Migration - add price to journeys
-- [x] Task 1.3: PurchaseStatus Enum
-- [x] Task 1.4: PaymentMethod Enum
-- [x] Task 1.5: PurchaseOrder Entity
-- [x] Task 1.6: Update Journey Entity
-- [x] Task 1.7: PurchaseOrderRepository
+- [ ] Task 1.1: Flyway Migration - purchase_orders
+- [ ] Task 1.2: Flyway Migration - checkout_sessions
+- [ ] Task 1.3: Flyway Migration - add price to journeys
+- [ ] Task 1.4: PurchaseStatus Enum (含 EXPIRED)
+- [ ] Task 1.5: PaymentMethod Enum
+- [ ] Task 1.6: CheckoutSessionStatus Enum
+- [ ] Task 1.7: PurchaseOrder Entity (含 checkoutSessionId, expiresAt)
+- [ ] Task 1.8: CheckoutSession Entity
+- [ ] Task 1.9: Update Journey Entity
+- [ ] Task 1.10: PurchaseOrderRepository
+- [ ] Task 1.11: CheckoutSessionRepository
 
-### Phase 2: Service Layer (4 tasks)
+### Phase 2: Service Layer (5 tasks)
 
-- [x] Task 2.1: PaymentDetails classes
-- [x] Task 2.2: PaymentResult class
-- [x] Task 2.3: MockPaymentService
-- [x] Task 2.4: PurchaseService
+- [ ] Task 2.1: PaymentDetails classes
+- [ ] Task 2.2: PaymentResult class
+- [ ] Task 2.3: MockPaymentGatewayService
+- [ ] Task 2.4: PaymentWebhookService
+- [ ] Task 2.5: PurchaseService
 
 ### Phase 3: DTOs (2 tasks)
 
-- [x] Task 3.1: Request DTOs
-- [x] Task 3.2: Response DTOs
+- [ ] Task 3.1: Request DTOs (含 CreateCheckoutRequest, PaymentWebhookRequest)
+- [ ] Task 3.2: Response DTOs (含 checkoutUrl, expiresAt, WebhookResponse)
 
-### Phase 4: Controller (4 tasks)
+### Phase 4: Controllers (7 tasks)
 
-- [x] Task 4.1: PurchaseController
-- [x] Task 4.2: SecurityConfig update
-- [x] Task 4.3: Business Exceptions
-- [x] Task 4.4: GlobalExceptionHandler update
+- [ ] Task 4.1: PurchaseController
+- [ ] Task 4.2: PaymentWebhookController
+- [ ] Task 4.3: MockPaymentController
+- [ ] Task 4.4: Mock Payment HTML Templates
+- [ ] Task 4.5: SecurityConfig update
+- [ ] Task 4.6: Business Exceptions
+- [ ] Task 4.7: GlobalExceptionHandler update
 
-### Phase 5: Integration Tests (3 tasks)
+### Phase 5: Configuration (1 task)
 
-- [x] Task 5.1: PurchaseControllerTest
-- [x] Task 5.2: MockPaymentServiceTest
-- [x] Task 5.3: PurchaseServiceTest
+- [ ] Task 5.1: application.yml update
 
-### Phase 6: E2E Tests (1 task)
+### Phase 6: Integration Tests (4 tasks)
 
-- [x] Task 6.1: PurchaseE2ETest (10 scenarios)
+- [ ] Task 6.1: PurchaseControllerTest
+- [ ] Task 6.2: PaymentWebhookControllerTest
+- [ ] Task 6.3: MockPaymentGatewayServiceTest
+- [ ] Task 6.4: PurchaseServiceTest
 
-### Phase 7: Test Data (2 tasks)
+### Phase 7: E2E Tests (1 task)
 
-- [x] Task 7.1: Seed Data update
-- [x] Task 7.2: Test data files
+- [ ] Task 7.1: PurchaseE2ETest (9 scenarios)
 
-**Total: 23 tasks**
+### Phase 8: Test Data (2 tasks)
+
+- [ ] Task 8.1: Seed Data update
+- [ ] Task 8.2: Test data files
+
+### Phase 9: Journey API Enhancement (3 tasks)
+
+- [ ] Task 9.1: Update JourneyListResponse
+- [ ] Task 9.2: Update JourneyDetailResponse
+- [ ] Task 9.3: Update JourneyService
+
+**Total: 36 tasks**
