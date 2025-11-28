@@ -9,3 +9,6 @@ export * from './WBCourseCard';
 export * from './OrderRecordSection';
 export * from './CouponNotice';
 export * from './PurchaseSteps';
+export * from './PendingPurchaseNotice';
+export * from './CourseHeader';
+export * from './CourseSidebar';
