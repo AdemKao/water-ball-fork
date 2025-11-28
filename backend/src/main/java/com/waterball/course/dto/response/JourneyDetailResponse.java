@@ -1,5 +1,6 @@
 package com.waterball.course.dto.response;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -19,5 +20,10 @@ public class JourneyDetailResponse {
     private String description;
     private String thumbnailUrl;
     private List<ChapterResponse> chapters;
+    @JsonProperty("isPurchased")
     private boolean isPurchased;
+    private Integer price;
+    private String currency;
+    private Integer originalPrice;
+    private Integer discountPercentage;
 }

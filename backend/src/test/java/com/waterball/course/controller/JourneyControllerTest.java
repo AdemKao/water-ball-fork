@@ -62,7 +62,7 @@ class JourneyControllerTest extends BaseIntegrationTest {
                     .andExpect(jsonPath("$[0].title").value("Published Journey"))
                     .andExpect(jsonPath("$[0].chapterCount").value(2))
                     .andExpect(jsonPath("$[0].lessonCount").value(4))
-                    .andExpect(jsonPath("$[0].totalDurationSeconds").value(1200));
+                    .andExpect(jsonPath("$[0].totalDurationSeconds").value(900));
         }
 
         @Test

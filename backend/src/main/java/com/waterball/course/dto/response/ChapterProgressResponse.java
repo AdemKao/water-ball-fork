@@ -1,5 +1,6 @@
 package com.waterball.course.dto.response;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -17,5 +18,6 @@ public class ChapterProgressResponse {
     private String title;
     private int totalLessons;
     private int completedLessons;
+    @JsonProperty("isCompleted")
     private boolean isCompleted;
 }

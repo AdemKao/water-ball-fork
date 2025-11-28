@@ -1,5 +1,6 @@
 package com.waterball.course.dto.response;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -13,6 +14,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Builder
 public class ProgressResponse {
+    @JsonProperty("isCompleted")
     private boolean isCompleted;
     private int lastPositionSeconds;
     private LocalDateTime completedAt;

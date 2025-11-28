@@ -6,3 +6,4 @@ export * from './navigation';
 export * from './journey';
 export * from './chapter';
 export * from './progress';
+export * from './purchase';

@@ -54,6 +54,10 @@ public class JourneyService {
         int lessonCount = lessonRepository.countByJourneyId(journey.getId());
         int totalDuration = lessonRepository.sumDurationByJourneyId(journey.getId());
 
+        Integer priceValue = journey.getPrice() != null 
+                ? journey.getPrice().intValue() 
+                : 1990;
+
         return JourneyListResponse.builder()
                 .id(journey.getId())
                 .title(journey.getTitle())
@@ -62,6 +66,10 @@ public class JourneyService {
                 .chapterCount(chapterCount)
                 .lessonCount(lessonCount)
                 .totalDurationSeconds(totalDuration)
+                .price(priceValue)
+                .currency("TWD")
+                .originalPrice(null)
+                .discountPercentage(null)
                 .build();
     }
 
@@ -71,6 +79,10 @@ public class JourneyService {
                 .map(chapter -> toChapterResponse(chapter, userId, journey.getId(), progressMap))
                 .collect(Collectors.toList());
 
+        Integer priceValue = journey.getPrice() != null 
+                ? journey.getPrice().intValue() 
+                : 1990;
+
         return JourneyDetailResponse.builder()
                 .id(journey.getId())
                 .title(journey.getTitle())
@@ -78,6 +90,10 @@ public class JourneyService {
                 .thumbnailUrl(journey.getThumbnailUrl())
                 .chapters(chapters)
                 .isPurchased(isPurchased)
+                .price(priceValue)
+                .currency("TWD")
+                .originalPrice(null)
+                .discountPercentage(null)
                 .build();
     }
 

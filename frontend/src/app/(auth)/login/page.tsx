@@ -1,19 +1,21 @@
 'use client';
 
 import { useAuth } from '@/hooks/useAuth';
-import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useEffect, Suspense } from 'react';
 import { GoogleLoginButton } from '@/components/auth';
 
-export default function LoginPage() {
+function LoginContent() {
   const { isAuthenticated, isLoading } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectUrl = searchParams.get('redirect') || '/';
 
   useEffect(() => {
     if (!isLoading && isAuthenticated) {
-      router.push('/');
+      router.push(redirectUrl);
     }
-  }, [isAuthenticated, isLoading, router]);
+  }, [isAuthenticated, isLoading, router, redirectUrl]);
 
   if (isLoading) {
     return (
@@ -38,9 +40,17 @@ export default function LoginPage() {
         </div>
 
         <div className="mt-8 flex justify-center">
-          <GoogleLoginButton />
+          <GoogleLoginButton redirectUrl={redirectUrl} />
         </div>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="flex min-h-screen items-center justify-center"><p>Loading...</p></div>}>
+      <LoginContent />
+    </Suspense>
   );
 }

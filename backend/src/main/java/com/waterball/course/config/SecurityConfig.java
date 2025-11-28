@@ -25,6 +25,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final LoggingFilter loggingFilter;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -41,9 +42,13 @@ public class SecurityConfig {
                 .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/journeys").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/journeys/{journeyId}").permitAll()
+                .requestMatchers("/api/webhooks/payment").permitAll()
+                .requestMatchers("/mock-payment/**").permitAll()
+                .requestMatchers("/api/purchases/**").authenticated()
                 .anyRequest().authenticated()
             )
-            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+            .addFilterAfter(loggingFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
