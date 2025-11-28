@@ -15,7 +15,10 @@ import com.waterball.course.repository.PurchaseOrderRepository;
 import com.waterball.course.repository.UserPurchaseRepository;
 import com.waterball.course.repository.UserRepository;
 import com.waterball.course.service.payment.MockPaymentGatewayService;
+import com.waterball.course.util.LoggingConstants;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -29,7 +32,10 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import static net.logstash.logback.argument.StructuredArguments.kv;
+
 @Service
+@Slf4j
 @RequiredArgsConstructor
 @Transactional
 public class PurchaseService {
@@ -64,6 +70,13 @@ public class PurchaseService {
             }
             existing.setStatus(PurchaseStatus.EXPIRED);
             purchaseOrderRepository.save(existing);
+            log.warn("Purchase order expired",
+                kv("event", LoggingConstants.PURCHASE_ORDER_STATUS_CHANGED),
+                kv("orderId", existing.getId()),
+                kv("userId", userId),
+                kv("journeyId", journey.getId()),
+                kv("oldStatus", PurchaseStatus.PENDING),
+                kv("newStatus", PurchaseStatus.EXPIRED));
         }
 
         User user = userRepository.findById(userId)
@@ -94,6 +107,15 @@ public class PurchaseService {
         order.setCheckoutSessionId(session.getId());
         purchaseOrderRepository.save(order);
 
+        MDC.put("orderId", order.getId().toString());
+        log.info("Purchase order created",
+            kv("event", LoggingConstants.PURCHASE_ORDER_CREATED),
+            kv("orderId", order.getId()),
+            kv("userId", userId),
+            kv("journeyId", journey.getId()),
+            kv("amount", journey.getPrice()),
+            kv("paymentMethod", request.getPaymentMethod()));
+
         String checkoutUrl = mockPaymentGatewayService.getCheckoutUrl(session.getId());
         return toResponseWithCheckoutUrl(order, checkoutUrl);
     }
@@ -112,6 +134,12 @@ public class PurchaseService {
 
         order.setStatus(PurchaseStatus.CANCELLED);
         purchaseOrderRepository.save(order);
+
+        log.info("Purchase order cancelled",
+            kv("event", LoggingConstants.PURCHASE_ORDER_CANCELLED),
+            kv("orderId", purchaseId),
+            kv("userId", userId),
+            kv("journeyId", order.getJourney().getId()));
     }
 
     @Transactional(readOnly = true)
