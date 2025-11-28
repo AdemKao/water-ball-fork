@@ -126,11 +126,11 @@ test.describe('Purchase Flow - Bank Transfer (Redirect)', () => {
   });
 
   test('should navigate to purchase page and select bank transfer', async ({ page }) => {
-    await page.goto('/courses/journey-1');
+    await page.goto('/journeys/journey-1');
 
     await page.getByTestId('purchase-button').click();
 
-    await expect(page).toHaveURL(/\/courses\/journey-1\/purchase/);
+    await expect(page).toHaveURL(/\/journeys\/journey-1\/purchase/);
 
     await page.getByTestId('payment-method-BANK_TRANSFER').click();
 
@@ -138,7 +138,7 @@ test.describe('Purchase Flow - Bank Transfer (Redirect)', () => {
   });
 
   test('should allow user to switch between payment methods', async ({ page }) => {
-    await page.goto('/courses/journey-1/purchase');
+    await page.goto('/journeys/journey-1/purchase');
 
     await page.getByTestId('payment-method-BANK_TRANSFER').click();
     await expect(page.getByTestId('payment-method-BANK_TRANSFER')).toHaveAttribute(
@@ -155,7 +155,7 @@ test.describe('Purchase Flow - Bank Transfer (Redirect)', () => {
 
   test('should handle callback with success status for bank transfer', async ({ page }) => {
     await page.goto(
-      '/courses/journey-1/purchase/callback?purchaseId=purchase-123&status=success'
+      '/journeys/journey-1/purchase/callback?purchaseId=purchase-123&status=success'
     );
 
     await expect(page.getByTestId('purchase-success')).toBeVisible({ timeout: 15000 });

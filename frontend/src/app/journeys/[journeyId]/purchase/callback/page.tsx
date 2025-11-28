@@ -1,18 +1,14 @@
 'use client';
 
-import { use, useEffect } from 'react';
+import { use, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { usePurchaseStatus } from '@/hooks/usePurchaseStatus';
 import { PurchaseStatus } from '@/components/purchase';
+import { PurchaseLayout } from '@/components/order';
 import { ProtectedRoute } from '@/components/auth';
 import { Loader2 } from 'lucide-react';
 
-export default function CallbackPage({
-  params,
-}: {
-  params: Promise<{ courseId: string }>;
-}) {
-  const { courseId } = use(params);
+function CallbackContent({ journeyId }: { journeyId: string }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   
@@ -27,33 +23,33 @@ export default function CallbackPage({
     enabled: !!purchaseId && isSuccessCallback,
     onStatusChange: (newStatus) => {
       if (newStatus === 'COMPLETED') {
-        router.replace(`/courses/${courseId}/purchase/success?purchaseId=${purchaseId}`);
+        router.replace(`/journeys/${journeyId}/purchase/success?purchaseId=${purchaseId}`);
       }
     },
   });
 
   useEffect(() => {
     if (!purchaseId) {
-      router.replace(`/courses/${courseId}`);
+      router.replace(`/journeys/${journeyId}/orders`);
     }
-  }, [purchaseId, courseId, router]);
+  }, [purchaseId, journeyId, router]);
 
   if (!purchaseId) {
     return null;
   }
 
   const handleRetry = () => {
-    router.push(`/courses/${courseId}/purchase`);
+    router.push(`/journeys/${journeyId}/purchase`);
   };
 
   const handleBackToCourse = () => {
-    router.push(`/courses/${courseId}`);
+    router.push(`/courses/${journeyId}`);
   };
 
   if (callbackStatus === 'cancel') {
     return (
-      <ProtectedRoute>
-        <div className="flex min-h-screen items-center justify-center bg-background py-16">
+      <PurchaseLayout currentStep={2}>
+        <div className="flex min-h-[60vh] items-center justify-center">
           <PurchaseStatus
             status="CANCELLED"
             failureReason={errorMessage}
@@ -61,24 +57,24 @@ export default function CallbackPage({
             onBackToCourse={handleBackToCourse}
           />
         </div>
-      </ProtectedRoute>
+      </PurchaseLayout>
     );
   }
 
   if (isLoading) {
     return (
-      <ProtectedRoute>
-        <div className="flex min-h-screen items-center justify-center">
+      <PurchaseLayout currentStep={2}>
+        <div className="flex min-h-[60vh] items-center justify-center">
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
-      </ProtectedRoute>
+      </PurchaseLayout>
     );
   }
 
   if (status && status !== 'PENDING' && status !== 'COMPLETED') {
     return (
-      <ProtectedRoute>
-        <div className="flex min-h-screen items-center justify-center bg-background py-16">
+      <PurchaseLayout currentStep={2}>
+        <div className="flex min-h-[60vh] items-center justify-center">
           <PurchaseStatus
             status={status}
             failureReason={purchase?.failureReason}
@@ -86,13 +82,13 @@ export default function CallbackPage({
             onBackToCourse={handleBackToCourse}
           />
         </div>
-      </ProtectedRoute>
+      </PurchaseLayout>
     );
   }
 
   return (
-    <ProtectedRoute>
-      <div className="flex min-h-screen items-center justify-center bg-background py-16">
+    <PurchaseLayout currentStep={2}>
+      <div className="flex min-h-[60vh] items-center justify-center">
         <div className="text-center">
           <Loader2 className="mx-auto h-12 w-12 animate-spin text-blue-500" />
           <h1 className="mt-6 text-2xl font-bold">正在確認付款結果...</h1>
@@ -101,6 +97,30 @@ export default function CallbackPage({
           </p>
         </div>
       </div>
+    </PurchaseLayout>
+  );
+}
+
+export default function CallbackPage({
+  params,
+}: {
+  params: Promise<{ journeyId: string }>;
+}) {
+  const { journeyId } = use(params);
+
+  return (
+    <ProtectedRoute>
+      <Suspense
+        fallback={
+          <PurchaseLayout currentStep={2}>
+            <div className="flex min-h-[60vh] items-center justify-center">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+          </PurchaseLayout>
+        }
+      >
+        <CallbackContent journeyId={journeyId} />
+      </Suspense>
     </ProtectedRoute>
   );
 }

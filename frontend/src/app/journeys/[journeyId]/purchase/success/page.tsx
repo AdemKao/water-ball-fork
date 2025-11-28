@@ -1,21 +1,17 @@
 'use client';
 
-import { use, useEffect, useState } from 'react';
+import { use, useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { purchaseService } from '@/services/purchase.service';
 import { useJourney } from '@/hooks/useJourney';
 import { PurchaseSuccess } from '@/components/purchase';
+import { PurchaseLayout } from '@/components/order';
 import { ProtectedRoute } from '@/components/auth';
 import { Loader2, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Purchase } from '@/types';
 
-export default function SuccessPage({
-  params,
-}: {
-  params: Promise<{ courseId: string }>;
-}) {
-  const { courseId } = use(params);
+function SuccessContent({ journeyId }: { journeyId: string }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const purchaseId = searchParams.get('purchaseId');
@@ -24,11 +20,11 @@ export default function SuccessPage({
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const { journey, isLoading: isLoadingJourney } = useJourney(courseId);
+  const { journey, isLoading: isLoadingJourney } = useJourney(journeyId);
 
   useEffect(() => {
     if (!purchaseId) {
-      router.replace(`/courses/${courseId}`);
+      router.replace(`/courses/${journeyId}`);
       return;
     }
 
@@ -41,22 +37,22 @@ export default function SuccessPage({
       .finally(() => {
         setIsLoading(false);
       });
-  }, [purchaseId, courseId, router]);
+  }, [purchaseId, journeyId, router]);
 
   if (isLoading || isLoadingJourney) {
     return (
-      <ProtectedRoute>
-        <div className="flex min-h-screen items-center justify-center">
+      <PurchaseLayout currentStep={3}>
+        <div className="flex min-h-[60vh] items-center justify-center">
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
-      </ProtectedRoute>
+      </PurchaseLayout>
     );
   }
 
   if (!purchase || !journey || error) {
     return (
-      <ProtectedRoute>
-        <div className="flex min-h-screen items-center justify-center">
+      <PurchaseLayout currentStep={3}>
+        <div className="flex min-h-[60vh] items-center justify-center">
           <div className="text-center">
             <AlertCircle className="mx-auto h-12 w-12 text-destructive" />
             <h1 className="mt-4 text-xl font-semibold">無法載入購買資訊</h1>
@@ -70,7 +66,7 @@ export default function SuccessPage({
             </Button>
           </div>
         </div>
-      </ProtectedRoute>
+      </PurchaseLayout>
     );
   }
 
@@ -81,10 +77,32 @@ export default function SuccessPage({
   };
 
   return (
+    <PurchaseLayout currentStep={3}>
+      <PurchaseSuccess purchase={purchase} journey={journeyInfo} />
+    </PurchaseLayout>
+  );
+}
+
+export default function SuccessPage({
+  params,
+}: {
+  params: Promise<{ journeyId: string }>;
+}) {
+  const { journeyId } = use(params);
+
+  return (
     <ProtectedRoute>
-      <div className="min-h-screen bg-background py-16">
-        <PurchaseSuccess purchase={purchase} journey={journeyInfo} />
-      </div>
+      <Suspense
+        fallback={
+          <PurchaseLayout currentStep={3}>
+            <div className="flex min-h-[60vh] items-center justify-center">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+          </PurchaseLayout>
+        }
+      >
+        <SuccessContent journeyId={journeyId} />
+      </Suspense>
     </ProtectedRoute>
   );
 }

@@ -41,6 +41,20 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+
+  --breakpoint-sm: 480px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 1024px;
+  --breakpoint-xl: 1280px;
+
+  --color-wb-primary: #F17500;
+  --color-wb-primary-hover: #D96A00;
+  --color-wb-primary-light: #FFF3E6;
+  --color-wb-heading: #1B1B1F;
+  --color-wb-paragraph: #4B5563;
+  --color-wb-border: #E5E7EB;
+  --color-wb-bg-secondary: #F9FAFB;
+  --color-wb-bg-tertiary: #F3F4F6;
 }
 
 :root {
@@ -51,7 +65,7 @@
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(50% 0.168 222);
+  --primary: #1877F2;
   --primary-foreground: oklch(0.985 0 0);
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
@@ -70,7 +84,7 @@
   --chart-5: oklch(0.769 0.188 70.08);
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(50% 0.168 222);
+  --sidebar-primary: #F17500;
   --sidebar-primary-foreground: oklch(0.985 0 0);
   --sidebar-accent: oklch(0.97 0 0);
   --sidebar-accent-foreground: oklch(0.205 0 0);
@@ -85,8 +99,8 @@
   --card-foreground: oklch(0.985 0 0);
   --popover: oklch(0.205 0 0);
   --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(79.2% 0.249 198.4);
-  --primary-foreground: oklch(0.205 0 0);
+  --primary: hsl(50.59 100% 50%);
+  --primary-foreground: oklch(0.145 0 0);
   --secondary: oklch(0.269 0 0);
   --secondary-foreground: oklch(0.985 0 0);
   --muted: oklch(0.269 0 0);
@@ -104,8 +118,8 @@
   --chart-5: oklch(0.645 0.246 16.439);
   --sidebar: oklch(0.205 0 0);
   --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(79.2% 0.249 198.4);
-  --sidebar-primary-foreground: oklch(0.205 0 0);
+  --sidebar-primary: #F17500;
+  --sidebar-primary-foreground: oklch(0.985 0 0);
   --sidebar-accent: oklch(0.269 0 0);
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
@@ -118,5 +132,39 @@
   }
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+@layer utilities {
+  .container-wb {
+    @apply mx-auto w-full max-w-[1280px] px-4;
+  }
+
+  @media (min-width: 640px) {
+    .container-wb {
+      @apply px-6;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .container-wb {
+      @apply px-8;
+    }
+  }
+
+  .text-heading {
+    color: #1B1B1F;
+  }
+
+  .text-paragraph {
+    color: #4B5563;
+  }
+
+  .bg-primary-gradient {
+    background: linear-gradient(135deg, #F17500 0%, #FF9A3C 100%);
+  }
+
+  .bg-hero-gradient {
+    background: linear-gradient(180deg, #FFF3E6 0%, #FFFFFF 100%);
   }
 }

@@ -1,32 +1,93 @@
 import Link from 'next/link';
-import { Lock } from 'lucide-react';
+import { Lock, LogIn } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 interface AccessDeniedModalProps {
   journeyId: string;
   journeyTitle?: string;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
-export function AccessDeniedModal({ journeyId }: AccessDeniedModalProps) {
+export function AccessDeniedModal({
+  journeyId,
+  open = true,
+  onOpenChange,
+}: AccessDeniedModalProps) {
   return (
-    <div className="fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-50">
-      <div className="bg-card border rounded-lg p-8 max-w-md mx-4 text-center space-y-4">
-        <div className="mx-auto w-12 h-12 rounded-full bg-yellow-500/20 flex items-center justify-center">
-          <Lock className="h-6 w-6 text-yellow-500" />
-        </div>
-        <h2 className="text-xl font-semibold">需要購買才能觀看</h2>
-        <p className="text-muted-foreground">
-          此課程內容需要購買後才能觀看完整內容
-        </p>
-        <div className="flex gap-3 justify-center pt-4">
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="text-center sm:max-w-md" showCloseButton={false}>
+        <DialogHeader className="items-center">
+          <div className="mx-auto w-12 h-12 rounded-full bg-yellow-500/20 flex items-center justify-center mb-2">
+            <Lock className="h-6 w-6 text-yellow-500" />
+          </div>
+          <DialogTitle>需要購買才能觀看</DialogTitle>
+          <DialogDescription>
+            此課程內容需要購買後才能觀看完整內容
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter className="sm:justify-center gap-3">
           <Link href={`/courses/${journeyId}`}>
             <Button variant="outline">返回課程</Button>
           </Link>
-          <Button className="bg-primary text-primary-foreground">
-            立即購買
+          <Button>立即購買</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+interface LoginRequiredModalProps {
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  onClose?: () => void;
+  redirectUrl?: string;
+}
+
+export function LoginRequiredModal({
+  open = true,
+  onOpenChange,
+  onClose,
+  redirectUrl,
+}: LoginRequiredModalProps) {
+  const handleOpenChange = (isOpen: boolean) => {
+    onOpenChange?.(isOpen);
+    if (!isOpen) onClose?.();
+  };
+
+  const loginHref = redirectUrl 
+    ? `/login?redirect=${encodeURIComponent(redirectUrl)}`
+    : '/login';
+
+  return (
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogContent className="text-center sm:max-w-md" showCloseButton={false}>
+        <DialogHeader className="items-center">
+          <div className="mx-auto w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center mb-2">
+            <LogIn className="h-6 w-6 text-primary" />
+          </div>
+          <DialogTitle>請先登入</DialogTitle>
+          <DialogDescription>
+            登入後即可觀看試聽課程內容
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter className="sm:justify-center gap-3">
+          <Button variant="outline" onClick={() => handleOpenChange(false)}>
+            取消
           </Button>
-        </div>
-      </div>
-    </div>
+          <Link href={loginHref}>
+            <Button>前往登入</Button>
+          </Link>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

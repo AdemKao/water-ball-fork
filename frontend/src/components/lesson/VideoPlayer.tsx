@@ -174,7 +174,7 @@ function YouTubePlayer({
   };
 
   return (
-    <div className="relative w-full aspect-video bg-black rounded-lg overflow-hidden">
+    <div className="relative w-full aspect-video bg-black rounded-lg overflow-hidden [&_iframe]:w-full [&_iframe]:h-full">
       <div ref={containerRef} className="absolute inset-0 w-full h-full" />
 
       {showResumePrompt && initialPosition > 0 && isReady && (

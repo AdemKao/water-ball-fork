@@ -1,6 +1,7 @@
 export * from './user';
 export * from './auth';
 export * from './course';
+export * from './course-card';
 export * from './lesson';
 export * from './navigation';
 export * from './journey';

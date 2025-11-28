@@ -1,13 +1,19 @@
 'use client';
 
-import { use } from 'react';
-import { useRouter } from 'next/navigation';
+import { use, useState, useMemo } from 'react';
 import { useJourney } from '@/hooks/useJourney';
+import { useLesson } from '@/hooks/useLesson';
+import { useLessonProgress } from '@/hooks/useLessonProgress';
+import { useVideoProgress } from '@/hooks/useVideoProgress';
 import { usePurchase } from '@/hooks/usePurchase';
 import { usePendingPurchases } from '@/hooks/usePendingPurchases';
-import { ChapterAccordion, CourseProgress } from '@/components/course';
-import { PurchaseButton, PendingPurchaseBanner } from '@/components/purchase';
-import { Button } from '@/components/ui/button';
+import { Navbar } from '@/components/layout/navbar';
+import { CourseSidebar } from '@/components/course/CourseSidebar';
+import { PendingPurchaseBanner } from '@/components/purchase';
+import { VideoPlayer, LessonNavigation, LoginRequiredModal } from '@/components/lesson';
+import { useAuth } from '@/hooks/useAuth';
+import { X } from 'lucide-react';
+import { SidebarProvider } from '@/components/ui/sidebar';
 
 interface PageProps {
   params: Promise<{ courseId: string }>;
@@ -15,13 +21,33 @@ interface PageProps {
 
 export default function CourseJourneyPage({ params }: PageProps) {
   const { courseId } = use(params);
-  const router = useRouter();
-  const { journey, isLoading, error } = useJourney(courseId);
+  const { user, isLoading: isAuthLoading } = useAuth();
+  const { journey, isLoading, error, refetch: refetchJourney } = useJourney(courseId);
   const { cancelPurchase, isCancelling } = usePurchase(courseId);
   const { pendingPurchaseForJourney, refetch } = usePendingPurchases(courseId);
+  const [selectedLessonId, setSelectedLessonId] = useState<string | null>(null);
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [bannerDismissed, setBannerDismissed] = useState(false);
 
-  const handleLessonClick = (lessonId: string) => {
-    router.push(`/courses/${courseId}/lessons/${lessonId}`);
+  const activeLessonId = useMemo(() => {
+    if (selectedLessonId) return selectedLessonId;
+    return journey?.chapters[0]?.lessons[0]?.id || null;
+  }, [selectedLessonId, journey]);
+
+  const { lesson, isLoading: isLessonLoading, isUnauthorized } = useLesson(activeLessonId || '');
+  const { progress, markComplete } = useLessonProgress(
+    activeLessonId || '',
+    lesson?.progress,
+    { onComplete: refetchJourney }
+  );
+  const { updatePosition } = useVideoProgress(activeLessonId || '');
+
+  const handleLessonClick = (lessonId: string, isTrial: boolean) => {
+    if (isTrial && !user && !isAuthLoading) {
+      setShowLoginModal(true);
+      return;
+    }
+    setSelectedLessonId(lessonId);
   };
 
   const handleContinuePurchase = () => {
@@ -42,13 +68,13 @@ export default function CourseJourneyPage({ params }: PageProps) {
 
   if (isLoading) {
     return (
-      <div className="container mx-auto px-4 py-8 space-y-4">
-        <div className="h-8 w-1/3 bg-muted animate-pulse rounded" />
-        <div className="h-4 w-2/3 bg-muted animate-pulse rounded" />
-        <div className="space-y-2 mt-8">
-          {[...Array(3)].map((_, i) => (
-            <div key={i} className="h-16 bg-muted animate-pulse rounded-lg" />
-          ))}
+      <div className="h-screen flex flex-col">
+        <div className="h-16 border-b bg-background animate-pulse" />
+        <div className="flex-1 flex">
+          <div className="w-[280px] bg-muted animate-pulse hidden lg:block" />
+          <div className="flex-1 p-8">
+            <div className="aspect-video bg-muted animate-pulse rounded-lg max-w-4xl" />
+          </div>
         </div>
       </div>
     );
@@ -56,101 +82,116 @@ export default function CourseJourneyPage({ params }: PageProps) {
 
   if (error || !journey) {
     return (
-      <div className="container mx-auto px-4 py-8 text-center">
-        <p className="text-destructive">
-          {error?.message || '課程不存在'}
-        </p>
+      <div className="h-screen flex items-center justify-center">
+        <p className="text-destructive">{error?.message || '課程不存在'}</p>
       </div>
     );
   }
 
-  const completedLessons = journey.chapters.reduce(
-    (acc, ch) => acc + ch.lessons.filter(l => l.isCompleted).length,
-    0
-  );
-  const progressPercentage = journey.lessonCount > 0 
-    ? Math.round((completedLessons / journey.lessonCount) * 100) 
-    : 0;
+  const currentLesson = journey.chapters
+    .flatMap((c) => c.lessons)
+    .find((l) => l.id === activeLessonId);
 
-  const getFirstUncompletedLesson = () => {
-    for (const chapter of journey.chapters) {
-      for (const lesson of chapter.lessons) {
-        if (!lesson.isCompleted) {
-          return lesson.id;
-        }
-      }
-    }
-    return journey.chapters[0]?.lessons[0]?.id;
-  };
+  const isTrialLesson = currentLesson?.accessType === 'TRIAL';
+  const needsLogin = (isTrialLesson && !user && !isAuthLoading) || isUnauthorized;
 
-  const handleStartLearning = () => {
-    const lessonId = getFirstUncompletedLesson();
-    if (lessonId) {
-      router.push(`/courses/${courseId}/lessons/${lessonId}`);
+  const renderMainContent = () => {
+    if (!activeLessonId || !currentLesson) {
+      return (
+        <div className="flex items-center justify-center h-full text-muted-foreground">
+          請選擇一個課程開始學習
+        </div>
+      );
     }
+
+    if (isLessonLoading && !isUnauthorized) {
+      return (
+        <div className="max-w-4xl mx-auto">
+          <div className="aspect-video bg-muted animate-pulse rounded-lg" />
+        </div>
+      );
+    }
+
+    if (needsLogin) {
+      return (
+        <div className="flex items-center justify-center h-full">
+          <div className="text-center space-y-4">
+            <p className="text-muted-foreground">請先登入以觀看試聽課程</p>
+            <button
+              onClick={() => setShowLoginModal(true)}
+              className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
+            >
+              登入
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    if (!lesson) {
+      return (
+        <div className="flex items-center justify-center h-full text-muted-foreground">
+          無法載入課程內容
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-4">
+        {!bannerDismissed && (
+          <div className="bg-primary/10 border border-primary/30 rounded-lg px-4 py-3 flex items-center justify-between">
+            <p className="text-sm">
+              將此體驗課程的全部影片看完就可以獲得 3000 元課程折價券！
+            </p>
+            <button
+              onClick={() => setBannerDismissed(true)}
+              className="text-muted-foreground hover:text-foreground"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        )}
+
+        {lesson.lessonType === 'VIDEO' && lesson.contentUrl && (
+          <VideoPlayer
+            contentUrl={lesson.contentUrl}
+            initialPosition={progress?.lastPositionSeconds}
+            onTimeUpdate={(time) => updatePosition(time)}
+            onEnded={() => markComplete()}
+          />
+        )}
+
+        {lesson.lessonType === 'ARTICLE' && (
+          <div className="prose dark:prose-invert max-w-none">
+            {lesson.contentUrl}
+          </div>
+        )}
+
+        <LessonNavigation
+          previousLesson={lesson.previousLesson}
+          nextLesson={lesson.nextLesson}
+          onNavigate={(lessonId) => setSelectedLessonId(lessonId)}
+        />
+      </div>
+    );
   };
 
   return (
     <>
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
-        <div className="space-y-6">
-          <div className="space-y-2">
-            <h1 className="text-3xl font-bold">{journey.title}</h1>
-            {journey.description && (
-              <p className="text-muted-foreground">{journey.description}</p>
-            )}
-          </div>
+      <div className="h-screen flex flex-col">
+        <Navbar journeyId={courseId} />
 
-          {!journey.isPurchased && (
-            <div className="flex items-center gap-4 rounded-lg border bg-card p-4">
-              <div className="flex-1">
-                <p className="font-medium">購買此課程以解鎖所有內容</p>
-                <p className="text-sm text-muted-foreground">
-                  {journey.chapterCount} 章節 · {journey.lessonCount} 堂課
-                </p>
-              </div>
-              <PurchaseButton
-                journeyId={courseId}
-                price={journey.price}
-                currency={journey.currency}
-              />
-            </div>
-          )}
+        <SidebarProvider className="flex-1 overflow-hidden">
+          <CourseSidebar
+            journey={journey}
+            activeLessonId={activeLessonId || undefined}
+            onLessonClick={handleLessonClick}
+          />
 
-          {journey.isPurchased && (
-            <div className="flex items-center gap-4">
-              <div className="flex-1">
-                <CourseProgress
-                  progress={{
-                    journeyId: journey.id,
-                    totalLessons: journey.lessonCount,
-                    completedLessons,
-                    progressPercentage,
-                    chapters: [],
-                  }}
-                />
-              </div>
-              <Button
-                onClick={handleStartLearning}
-                data-testid={completedLessons > 0 ? 'continue-learning-button' : 'start-learning-button'}
-              >
-                {completedLessons > 0 ? '繼續學習' : '開始學習'}
-              </Button>
-            </div>
-          )}
-
-          <div className="space-y-3">
-            {journey.chapters.map((chapter, index) => (
-              <ChapterAccordion
-                key={chapter.id}
-                chapter={chapter}
-                isPurchased={journey.isPurchased}
-                defaultOpen={index === 0}
-                onLessonClick={handleLessonClick}
-              />
-            ))}
-          </div>
-        </div>
+          <main className="flex-1 overflow-auto p-4 lg:p-8 bg-muted/30">
+            {renderMainContent()}
+          </main>
+        </SidebarProvider>
       </div>
 
       {pendingPurchaseForJourney && (
@@ -161,6 +202,14 @@ export default function CourseJourneyPage({ params }: PageProps) {
           isCancelling={isCancelling}
         />
       )}
+
+      <LoginRequiredModal
+        open={showLoginModal || needsLogin}
+        onOpenChange={(open) => {
+          setShowLoginModal(open);
+        }}
+        redirectUrl={`/courses/${courseId}`}
+      />
     </>
   );
 }

@@ -77,7 +77,7 @@ test.describe('Payment Method Selection Validation', () => {
   });
 
   test('should show both payment method options', async ({ page }) => {
-    await page.goto(`/courses/${TEST_COURSE_ID}/purchase`);
+    await page.goto(`/journeys/${TEST_COURSE_ID}/purchase`);
 
     await expect(page.getByTestId('payment-method-CREDIT_CARD')).toBeVisible();
     await expect(page.getByTestId('payment-method-BANK_TRANSFER')).toBeVisible();
@@ -87,14 +87,14 @@ test.describe('Payment Method Selection Validation', () => {
   });
 
   test('should disable proceed button when no payment method selected', async ({ page }) => {
-    await page.goto(`/courses/${TEST_COURSE_ID}/purchase`);
+    await page.goto(`/journeys/${TEST_COURSE_ID}/purchase`);
 
     const proceedButton = page.getByTestId('proceed-to-payment-button');
     await expect(proceedButton).toBeDisabled();
   });
 
   test('should enable proceed button after selecting payment method', async ({ page }) => {
-    await page.goto(`/courses/${TEST_COURSE_ID}/purchase`);
+    await page.goto(`/journeys/${TEST_COURSE_ID}/purchase`);
 
     await page.getByTestId('payment-method-CREDIT_CARD').click();
 
@@ -102,7 +102,7 @@ test.describe('Payment Method Selection Validation', () => {
   });
 
   test('should highlight selected payment method', async ({ page }) => {
-    await page.goto(`/courses/${TEST_COURSE_ID}/purchase`);
+    await page.goto(`/journeys/${TEST_COURSE_ID}/purchase`);
 
     await page.getByTestId('payment-method-CREDIT_CARD').click();
     await expect(page.getByTestId('payment-method-CREDIT_CARD')).toHaveAttribute(
