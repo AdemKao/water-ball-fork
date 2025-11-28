@@ -5,3 +5,7 @@ export * from './ChapterAccordion';
 export * from './JourneyCard';
 export * from './JourneyList';
 export * from './CourseProgress';
+export * from './WBCourseCard';
+export * from './OrderRecordSection';
+export * from './CouponNotice';
+export * from './PurchaseSteps';
