@@ -54,7 +54,7 @@ export function Navbar({ journeyId, onMenuClick }: NavbarProps) {
             <Link href={`/journeys/${journeyId}/roadmap`}>
               <Button
                 variant="outline"
-                className="border-[#F17500] text-[#F17500] hover:bg-[#F17500]/10 hidden sm:flex"
+                className="border-primary text-primary hover:bg-primary/10 hidden sm:flex"
               >
                 <span className="mr-2">🏛️</span>
                 前往挑戰

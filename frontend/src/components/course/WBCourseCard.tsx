@@ -56,7 +56,7 @@ export function WBCourseCard({ course, onPurchase, onPreview }: WBCourseCardProp
             </span>
           )}
           {course.isPaidOnly && (
-            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-[#F17500]/10 text-[#F17500]">
+            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-primary/10 text-primary">
               僅限付費
             </span>
           )}
@@ -69,7 +69,7 @@ export function WBCourseCard({ course, onPurchase, onPreview }: WBCourseCardProp
           {course.isOwned ? (
             <Link href={`/courses/${course.id}`} className="flex-1">
               <Button
-                className="w-full bg-[#F17500] hover:bg-[#D96800] text-white"
+                className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
               >
                 上課去
               </Button>
@@ -87,7 +87,7 @@ export function WBCourseCard({ course, onPurchase, onPreview }: WBCourseCardProp
               </Link>
               <Link href={`/journeys/${course.id}/orders`} className="flex-1">
                 <Button
-                  className="w-full bg-[#F17500] hover:bg-[#D96800] text-white"
+                  className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
                   onClick={() => onPurchase?.(course.id)}
                 >
                   立刻購買

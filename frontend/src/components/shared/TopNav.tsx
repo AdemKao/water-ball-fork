@@ -51,7 +51,7 @@ export function TopNav() {
                 className={cn(
                   "px-4 py-2 text-sm font-medium rounded-lg transition-colors",
                   pathname === item.href
-                    ? "text-[#F17500] bg-[#FFF3E6]"
+                    ? "text-primary bg-primary/10"
                     : "text-[#4B5563] hover:text-[#1B1B1F] hover:bg-[#F3F4F6]"
                 )}
               >
@@ -115,7 +115,7 @@ export function TopNav() {
                   className={cn(
                     "px-4 py-3 text-sm font-medium rounded-lg transition-colors",
                     pathname === item.href
-                      ? "text-[#F17500] bg-[#FFF3E6]"
+                      ? "text-primary bg-primary/10"
                       : "text-[#4B5563] hover:text-[#1B1B1F] hover:bg-[#F3F4F6]"
                   )}
                 >

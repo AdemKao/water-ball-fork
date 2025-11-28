@@ -45,7 +45,7 @@ export function OrderRecordSection({ orders, isLoading }: OrderRecordSectionProp
                 {order.status === 'pending' && (
                   <Link
                     href={`/journeys/${order.journeyId}/purchase/${order.id}`}
-                    className="text-sm text-[#F17500] hover:underline font-medium"
+                    className="text-sm text-primary hover:underline font-medium"
                   >
                     繼續付款
                   </Link>

@@ -12,13 +12,13 @@ import { ChapterWithLessons, LessonSummary } from "@/types";
 function getLessonIcon(lessonType: string) {
   switch (lessonType) {
     case 'VIDEO':
-      return <Play className="w-4 h-4 text-[#F17500]" />;
+      return <Play className="w-4 h-4 text-primary" />;
     case 'ARTICLE':
-      return <FileText className="w-4 h-4 text-[#F17500]" />;
+      return <FileText className="w-4 h-4 text-primary" />;
     case 'GOOGLE_FORM':
-      return <ClipboardList className="w-4 h-4 text-[#F17500]" />;
+      return <ClipboardList className="w-4 h-4 text-primary" />;
     default:
-      return <Play className="w-4 h-4 text-[#F17500]" />;
+      return <Play className="w-4 h-4 text-primary" />;
   }
 }
 
@@ -154,14 +154,14 @@ export default function JourneyDetailPage() {
           <Container>
             <div className="grid md:grid-cols-2 gap-8 mb-12">
               <div className="bg-[#1e293b] rounded-xl p-8 flex items-center gap-6">
-                <div className="text-5xl font-bold text-[#F17500]">{totalLessons}+</div>
+                <div className="text-5xl font-bold text-primary">{totalLessons}+</div>
                 <div className="text-gray-300">
                   <div className="text-xl font-semibold text-white">堂課程</div>
                   <div>完整涵蓋核心知識</div>
                 </div>
               </div>
               <div className="bg-[#1e293b] rounded-xl p-8 flex items-center gap-6">
-                <div className="text-5xl font-bold text-[#F17500]">{journey.chapterCount}</div>
+                <div className="text-5xl font-bold text-primary">{journey.chapterCount}</div>
                 <div className="text-gray-300">
                   <div className="text-xl font-semibold text-white">個章節</div>
                   <div>循序漸進的學習路徑</div>
@@ -205,7 +205,7 @@ export default function JourneyDetailPage() {
             <h2 className="text-2xl font-bold text-white text-center mb-12">專業完課認證</h2>
             
             <div className="max-w-3xl mx-auto mb-12">
-              <div className="bg-gradient-to-br from-[#F17500] to-[#d96a00] rounded-xl p-8 text-center">
+              <div className="bg-gradient-to-br from-primary to-primary/80 rounded-xl p-8 text-center">
                 <Award className="w-16 h-16 mx-auto mb-4 text-white" />
                 <h3 className="text-2xl font-bold text-white mb-2">{journey.title} 認證</h3>
                 <p className="text-white/80">完成所有課程內容後，獲得專業認證證書</p>
@@ -218,21 +218,21 @@ export default function JourneyDetailPage() {
             <div className="grid md:grid-cols-3 gap-8">
               <div className="text-center">
                 <div className="w-16 h-16 mx-auto mb-4 bg-[#0f172a] rounded-full flex items-center justify-center">
-                  <Globe className="w-8 h-8 text-[#F17500]" />
+                  <Globe className="w-8 h-8 text-primary" />
                 </div>
                 <h3 className="text-lg font-semibold text-white mb-2">中文課程</h3>
                 <p className="text-gray-400">全中文授課，學習無障礙</p>
               </div>
               <div className="text-center">
                 <div className="w-16 h-16 mx-auto mb-4 bg-[#0f172a] rounded-full flex items-center justify-center">
-                  <Smartphone className="w-8 h-8 text-[#F17500]" />
+                  <Smartphone className="w-8 h-8 text-primary" />
                 </div>
                 <h3 className="text-lg font-semibold text-white mb-2">支援行動裝置</h3>
                 <p className="text-gray-400">隨時隨地，都能學習</p>
               </div>
               <div className="text-center">
                 <div className="w-16 h-16 mx-auto mb-4 bg-[#0f172a] rounded-full flex items-center justify-center">
-                  <Award className="w-8 h-8 text-[#F17500]" />
+                  <Award className="w-8 h-8 text-primary" />
                 </div>
                 <h3 className="text-lg font-semibold text-white mb-2">專業完課認證</h3>
                 <p className="text-gray-400">證明你的專業能力</p>

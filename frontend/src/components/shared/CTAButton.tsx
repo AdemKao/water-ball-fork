@@ -29,11 +29,11 @@ export function CTAButton({
 
   const variants = {
     primary:
-      "bg-[#F17500] text-white hover:bg-[#D96A00] focus:ring-[#F17500]",
+      "bg-primary text-primary-foreground hover:bg-primary/90 focus:ring-primary",
     secondary:
       "bg-[#1B1B1F] text-white hover:bg-[#2D2D33] focus:ring-[#1B1B1F]",
     outline:
-      "border-2 border-[#F17500] text-[#F17500] hover:bg-[#FFF3E6] focus:ring-[#F17500]",
+      "border-2 border-primary text-primary hover:bg-primary/10 focus:ring-primary",
   };
 
   const sizes = {

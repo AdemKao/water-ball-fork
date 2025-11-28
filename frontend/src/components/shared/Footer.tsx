@@ -59,8 +59,8 @@ export function Footer() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             <div className="lg:col-span-2">
               <Link href="/" className="flex items-center gap-2 mb-4">
-                <div className="h-10 w-10 rounded-full bg-[#F17500] flex items-center justify-center">
-                  <span className="text-white font-bold text-lg">W</span>
+                <div className="h-10 w-10 rounded-full bg-primary flex items-center justify-center">
+                  <span className="text-primary-foreground font-bold text-lg">W</span>
                 </div>
                 <span className="font-bold text-xl">水球軟體學院</span>
               </Link>
@@ -76,7 +76,7 @@ export function Footer() {
                   <li key={link.href}>
                     <Link
                       href={link.href}
-                      className="text-gray-400 text-sm hover:text-[#F17500] transition-colors"
+                      className="text-gray-400 text-sm hover:text-primary transition-colors"
                     >
                       {link.label}
                     </Link>
@@ -94,7 +94,7 @@ export function Footer() {
                     href={link.href}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="h-10 w-10 rounded-full bg-gray-800 flex items-center justify-center text-gray-400 hover:bg-[#F17500] hover:text-white transition-all"
+                    className="h-10 w-10 rounded-full bg-gray-800 flex items-center justify-center text-gray-400 hover:bg-primary hover:text-primary-foreground transition-all"
                     aria-label={link.name}
                   >
                     {link.icon}
@@ -115,7 +115,7 @@ export function Footer() {
                 <Link
                   key={link.href}
                   href={link.href}
-                  className="text-gray-400 text-xs hover:text-[#F17500] transition-colors"
+                  className="text-gray-400 text-xs hover:text-primary transition-colors"
                 >
                   {link.label}
                 </Link>

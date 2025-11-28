@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 function HeroSection() {
   return (
     <section className="py-8">
-      <div className="border-t-4 border-[#F17500] bg-[#1B1B1F] rounded-lg p-8">
+      <div className="border-t-4 border-primary bg-[#1B1B1F] rounded-lg p-8">
         <h1 className="text-3xl md:text-4xl font-bold text-white mb-4">
           歡迎來到水球軟體學院
         </h1>
@@ -59,21 +59,21 @@ function CourseCard({
             <MonitorPlay className="w-8 h-8 text-blue-400" />
           </div>
           <h3 className="text-lg font-bold text-white">{title}</h3>
-          <p className="text-sm text-[#F17500] mt-1">精通一套能落地的高效率設計思路</p>
+          <p className="text-sm text-primary mt-1">精通一套能落地的高效率設計思路</p>
         </div>
       </div>
       <div className="bg-[#27272A] p-4">
         <h4 className="text-lg font-semibold text-white">{title}</h4>
-        <p className="text-[#F17500] font-medium mt-1">{author}</p>
+        <p className="text-primary font-medium mt-1">{author}</p>
         <p className="text-[#9CA3AF] text-sm mt-2">{description}</p>
         {discount && (
-          <p className="text-[#F17500] text-sm mt-3">{discount}</p>
+          <p className="text-primary text-sm mt-3">{discount}</p>
         )}
-        <Link href={primaryAction.href}>
-          <Button className="w-full mt-4 bg-transparent border-2 border-[#FACC15] text-[#FACC15] hover:bg-[#FACC15] hover:text-[#1B1B1F]">
+        <Button variant="outline" asChild className="w-full mt-4 border-2 border-[#FACC15] text-[#FACC15] hover:bg-[#FACC15] hover:text-[#1B1B1F]">
+          <Link href={primaryAction.href}>
             {primaryAction.label}
-          </Button>
-        </Link>
+          </Link>
+        </Button>
       </div>
     </div>
   );
@@ -139,13 +139,12 @@ function FeatureCard({ icon: Icon, title, description, action }: FeatureCardProp
         <div className="flex-1">
           <h3 className="text-xl font-semibold text-white mb-3">{title}</h3>
           <p className="text-[#9CA3AF] mb-4">{description}</p>
-          <Link
-            href={action.href}
-            className="inline-flex items-center gap-2 text-white border border-white/30 rounded-md px-4 py-2 hover:bg-white/10 transition-colors"
-          >
-            {action.label}
-            <ArrowRight className="w-4 h-4" />
-          </Link>
+          <Button variant="outline" asChild className="border-white/30 text-white hover:bg-white/10 group">
+            <Link href={action.href}>
+              {action.label}
+              <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+            </Link>
+          </Button>
         </div>
       </div>
     </div>
@@ -185,11 +184,11 @@ function InstructorSection() {
           </div>
           <div>
             <h2 className="text-2xl font-bold text-white mb-2">講師介紹</h2>
-            <h3 className="text-3xl font-bold text-[#F17500] mb-6">水球潘</h3>
+            <h3 className="text-3xl font-bold text-primary mb-6">水球潘</h3>
             <div className="space-y-4">
               {highlights.map((item, index) => (
                 <div key={index} className="flex items-start gap-3">
-                  <span className="inline-flex items-center justify-center px-3 py-1 text-sm font-medium bg-[#F17500] text-white rounded">
+                  <span className="inline-flex items-center justify-center px-3 py-1 text-sm font-medium bg-primary text-primary-foreground rounded">
                     {item.badge}
                   </span>
                   <p className="text-[#9CA3AF]">{item.text}</p>
@@ -206,7 +205,7 @@ function InstructorSection() {
 function FooterCTASection() {
   return (
     <section className="py-8">
-      <div className="bg-gradient-to-r from-[#F17500] to-[#FF9500] rounded-lg p-8 text-center">
+      <div className="bg-gradient-to-r from-primary to-primary/80 rounded-lg p-8 text-center">
         <h2 className="text-2xl md:text-3xl font-bold text-white mb-4">
           準備好開始你的軟體設計之旅了嗎？
         </h2>
@@ -214,19 +213,16 @@ function FooterCTASection() {
           立即加入水球軟體學院，與數千名工程師一起成長，掌握業界最需要的軟體設計能力。
         </p>
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          <Link href="/courses">
-            <Button className="bg-white text-[#F17500] hover:bg-white/90 px-8 py-3 h-auto text-lg font-semibold">
+          <Button asChild className="bg-white text-primary hover:bg-white/90 px-8 py-3 h-auto text-lg font-semibold">
+            <Link href="/courses">
               瀏覽課程
-            </Button>
-          </Link>
-          <Link href="#">
-            <Button
-              variant="outline"
-              className="border-2 border-white text-white hover:bg-white/10 px-8 py-3 h-auto text-lg font-semibold bg-transparent"
-            >
+            </Link>
+          </Button>
+          <Button variant="outline" asChild className="border-2 border-white text-white hover:bg-white/10 px-8 py-3 h-auto text-lg font-semibold bg-transparent">
+            <Link href="#">
               加入 Discord 社群
-            </Button>
-          </Link>
+            </Link>
+          </Button>
         </div>
       </div>
     </section>

@@ -15,7 +15,7 @@ export function PendingPurchaseNotice({ pendingPurchases }: PendingPurchaseNotic
       <div className="flex items-start gap-3">
         <div className="flex-shrink-0">
           <svg
-            className="w-5 h-5 text-[#F17500]"
+            className="w-5 h-5 text-primary"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -38,7 +38,7 @@ export function PendingPurchaseNotice({ pendingPurchases }: PendingPurchaseNotic
                 <span className="text-[#4B5563]">{purchase.journeyTitle}</span>
                 <Link
                   href={`/journeys/${purchase.journeyId}/purchase/${purchase.id}`}
-                  className="text-[#F17500] underline hover:no-underline"
+                  className="text-primary underline hover:no-underline"
                 >
                   前往付款
                 </Link>

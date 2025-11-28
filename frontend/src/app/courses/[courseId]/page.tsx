@@ -139,7 +139,7 @@ export default function CourseJourneyPage({ params }: PageProps) {
     return (
       <div className="space-y-4">
         {!bannerDismissed && (
-          <div className="bg-[#F17500]/10 border border-[#F17500]/30 rounded-lg px-4 py-3 flex items-center justify-between">
+          <div className="bg-primary/10 border border-primary/30 rounded-lg px-4 py-3 flex items-center justify-between">
             <p className="text-sm">
               將此體驗課程的全部影片看完就可以獲得 3000 元課程折價券！
             </p>

@@ -35,8 +35,8 @@ export default function SopPage() {
         {!isAuthenticated ? (
           <div className="bg-[#2A2A2F] rounded-lg border border-gray-700 p-8">
             <div className="flex flex-col items-center justify-center text-center space-y-6">
-              <div className="w-16 h-16 rounded-full bg-[#F17500]/10 flex items-center justify-center">
-                <Lock className="w-8 h-8 text-[#F17500]" />
+              <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+                <Lock className="w-8 h-8 text-primary" />
               </div>
               
               <div className="space-y-2">
@@ -51,7 +51,7 @@ export default function SopPage() {
               <div className="flex flex-col sm:flex-row gap-4">
                 <Button
                   asChild
-                  className="bg-[#F17500] hover:bg-[#F17500]/90 text-white px-6"
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground px-6"
                 >
                   <Link href="/login">
                     登入
@@ -60,7 +60,7 @@ export default function SopPage() {
                 <Button
                   asChild
                   variant="outline"
-                  className="border-[#F17500] text-[#F17500] hover:bg-[#F17500]/10"
+                  className="border-primary text-primary hover:bg-primary/10"
                 >
                   <Link href="/courses">
                     購買課程
@@ -104,7 +104,7 @@ export default function SopPage() {
                     key={item.id}
                     className="flex items-center gap-3 p-3 rounded-md bg-[#1B1B1F] text-gray-300 hover:bg-[#3A3A3F] cursor-pointer transition-colors"
                   >
-                    <FileText className="w-4 h-4 flex-shrink-0 text-[#F17500]" />
+                    <FileText className="w-4 h-4 flex-shrink-0 text-primary" />
                     <span>{item.title}</span>
                     <ChevronRight className="w-4 h-4 ml-auto" />
                   </li>
