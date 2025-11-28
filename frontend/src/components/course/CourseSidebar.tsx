@@ -116,41 +116,42 @@ export function CourseSidebar({
   onToggleCollapse,
 }: CourseSidebarProps) {
   return (
-    <aside className={cn(
-      "bg-background border-r flex flex-col h-full relative transition-all duration-300",
-      collapsed ? "w-0 overflow-hidden" : "w-[280px]"
-    )}>
-      <ScrollArea className="flex-1">
-        {journey.chapters.map((chapter, index) => (
-          <ChapterSection
-            key={chapter.id}
-            title={chapter.title}
-            lessons={chapter.lessons}
-            isPurchased={journey.isPurchased}
-            defaultOpen={
-              index === 0 ||
-              chapter.lessons.some((l) => l.id === activeLessonId)
-            }
-            activeLessonId={activeLessonId}
-            onLessonClick={onLessonClick}
-          />
-        ))}
-      </ScrollArea>
+    <div className="relative flex h-full">
+      <aside className={cn(
+        "bg-background border-r flex flex-col h-full transition-all duration-300",
+        collapsed ? "w-0 overflow-hidden" : "w-[280px]"
+      )}>
+        <ScrollArea className="flex-1">
+          {journey.chapters.map((chapter, index) => (
+            <ChapterSection
+              key={chapter.id}
+              title={chapter.title}
+              lessons={chapter.lessons}
+              isPurchased={journey.isPurchased}
+              defaultOpen={
+                index === 0 ||
+                chapter.lessons.some((l) => l.id === activeLessonId)
+              }
+              activeLessonId={activeLessonId}
+              onLessonClick={onLessonClick}
+            />
+          ))}
+        </ScrollArea>
+      </aside>
       
-      <button
-        onClick={onToggleCollapse}
-        className={cn(
-          "absolute top-1/2 -translate-y-1/2 h-12 w-5 bg-muted border border-border rounded-r-md flex items-center justify-center hover:bg-muted/80 transition-colors z-10",
-          collapsed ? "left-0" : "-right-5"
-        )}
-        title={collapsed ? "展開側邊欄" : "收起側邊欄"}
-      >
-        {collapsed ? (
-          <ChevronRight className="h-4 w-4" />
-        ) : (
-          <ChevronLeft className="h-4 w-4" />
-        )}
-      </button>
-    </aside>
+      {onToggleCollapse && (
+        <button
+          onClick={onToggleCollapse}
+          className="h-12 w-5 bg-muted border border-border rounded-r-md flex items-center justify-center hover:bg-muted/80 transition-colors self-center -ml-px"
+          title={collapsed ? "展開側邊欄" : "收起側邊欄"}
+        >
+          {collapsed ? (
+            <ChevronRight className="h-4 w-4" />
+          ) : (
+            <ChevronLeft className="h-4 w-4" />
+          )}
+        </button>
+      )}
+    </div>
   );
 }
