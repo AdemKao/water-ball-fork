@@ -1,81 +1,68 @@
 "use client";
 
 import Link from "next/link";
+import { useMemo } from "react";
 import { ArrowRight, MonitorPlay, BookText, Users, Award } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { WBCourseCard, WBCourseCardSkeleton } from "@/components/course";
+import { useJourneyList } from "@/hooks/useJourneyList";
+import { useAuth } from "@/hooks/useAuth";
+import { usePurchaseHistory } from "@/hooks/usePurchaseHistory";
+import { CourseCardData } from "@/types/course-card";
+import { Journey } from "@/types";
+
+function mapJourneyToCourseCard(journey: Journey, purchasedJourneyIds: Set<string>): CourseCardData {
+  return {
+    id: journey.id,
+    title: journey.title,
+    instructor: '水球潘',
+    description: journey.description || '',
+    isOwned: purchasedJourneyIds.has(journey.id),
+    isPaidOnly: journey.price > 0,
+    price: journey.price,
+    originalPrice: journey.originalPrice,
+    thumbnailUrl: journey.thumbnailUrl || undefined,
+  };
+}
 
 function HeroSection() {
+  const { journeys, isLoading } = useJourneyList();
+  const { user } = useAuth();
+  const { purchases: allPurchases } = usePurchaseHistory(!!user);
+
+  const purchasedJourneyIds = useMemo(() => {
+    return new Set(allPurchases.filter((p) => p.status === 'COMPLETED').map((p) => p.journeyId));
+  }, [allPurchases]);
+
+  const courses = useMemo(() => {
+    return journeys.map((j) => mapJourneyToCourseCard(j, purchasedJourneyIds));
+  }, [journeys, purchasedJourneyIds]);
+
   return (
     <section className="py-8">
-      <div className="border-t-4 border-primary bg-[#1B1B1F] rounded-lg p-8">
-        <h1 className="text-3xl md:text-4xl font-bold text-white mb-4">
+      <div className="border border-border border-t-4 border-t-primary bg-card rounded-lg p-8">
+        <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
           歡迎來到水球軟體學院
         </h1>
-        <p className="text-[#9CA3AF] text-lg mb-8 max-w-4xl">
+        <p className="text-muted-foreground text-lg mb-8 max-w-4xl">
           水球軟體學院提供最先進的軟體設計思路教材，並透過線上 Code Review 來帶你掌握進階軟體架構能力。
           只要每週投資 5 小時，就能打造不平等的優勢，成為硬核的 Coding 實戰高手。
         </p>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <CourseCard
-            title="軟體設計模式精通之旅"
-            author="水球潘"
-            description="用一趟旅程的時間，成為硬核的 Coding 實戰高手"
-            discount="看完課程介紹，立刻折價 3,000 元"
-            primaryAction={{ label: "立刻體驗", href: "/courses" }}
-          />
-          <CourseCard
-            title="AI x BDD：規格驅動全自動開發術"
-            author="水球潘"
-            description="AI Top 1% 工程師必修課，掌握規格驅動的全自動化開發"
-            primaryAction={{ label: "立刻購買", href: "/courses" }}
-          />
+          {isLoading ? (
+            <>
+              <WBCourseCardSkeleton />
+              <WBCourseCardSkeleton />
+            </>
+          ) : (
+            courses.slice(0, 2).map((course) => (
+              <WBCourseCard key={course.id} course={course} />
+            ))
+          )}
         </div>
       </div>
     </section>
-  );
-}
-
-interface CourseCardProps {
-  title: string;
-  author: string;
-  description: string;
-  discount?: string;
-  primaryAction: { label: string; href: string };
-}
-
-function CourseCard({
-  title,
-  author,
-  description,
-  discount,
-  primaryAction,
-}: CourseCardProps) {
-  return (
-    <div className="rounded-lg overflow-hidden">
-      <div className="relative h-48 bg-gradient-to-br from-[#1a1a2e] to-[#16213e] flex items-center justify-center">
-        <div className="text-center p-4">
-          <div className="w-16 h-16 mx-auto mb-4 bg-blue-500/20 rounded-lg flex items-center justify-center">
-            <MonitorPlay className="w-8 h-8 text-blue-400" />
-          </div>
-          <h3 className="text-lg font-bold text-white">{title}</h3>
-          <p className="text-sm text-primary mt-1">精通一套能落地的高效率設計思路</p>
-        </div>
-      </div>
-      <div className="bg-[#27272A] p-4">
-        <h4 className="text-lg font-semibold text-white">{title}</h4>
-        <p className="text-primary font-medium mt-1">{author}</p>
-        <p className="text-[#9CA3AF] text-sm mt-2">{description}</p>
-        {discount && (
-          <p className="text-primary text-sm mt-3">{discount}</p>
-        )}
-        <Button variant="outline" asChild className="w-full mt-4 border-2 border-[#FACC15] text-[#FACC15] hover:bg-[#FACC15] hover:text-[#1B1B1F]">
-          <Link href={primaryAction.href}>
-            {primaryAction.label}
-          </Link>
-        </Button>
-      </div>
-    </div>
   );
 }
 
@@ -131,15 +118,15 @@ interface FeatureCardProps {
 
 function FeatureCard({ icon: Icon, title, description, action }: FeatureCardProps) {
   return (
-    <div className="bg-[#27272A] rounded-lg p-6">
+    <div className="bg-card rounded-lg p-6 border border-border">
       <div className="flex items-start gap-4">
         <div className="flex-shrink-0">
-          <Icon className="w-6 h-6 text-white" />
+          <Icon className="w-6 h-6 text-foreground" />
         </div>
         <div className="flex-1">
-          <h3 className="text-xl font-semibold text-white mb-3">{title}</h3>
-          <p className="text-[#9CA3AF] mb-4">{description}</p>
-          <Button variant="outline" asChild className="border-white/30 text-white hover:bg-white/10 group">
+          <h3 className="text-xl font-semibold text-foreground mb-3">{title}</h3>
+          <p className="text-muted-foreground mb-4">{description}</p>
+          <Button variant="outline" asChild className="group">
             <Link href={action.href}>
               {action.label}
               <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
@@ -173,17 +160,17 @@ function InstructorSection() {
 
   return (
     <section className="py-8">
-      <div className="bg-[#27272A] rounded-lg p-8">
+      <div className="bg-card rounded-lg p-8 border border-border">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
           <div className="flex justify-center">
             <div className="w-64 h-64 rounded-full bg-gradient-to-br from-blue-500 to-cyan-400 flex items-center justify-center">
-              <div className="w-60 h-60 rounded-full bg-[#1B1B1F] flex items-center justify-center">
+              <div className="w-60 h-60 rounded-full bg-background flex items-center justify-center">
                 <span className="text-6xl">👨‍💻</span>
               </div>
             </div>
           </div>
           <div>
-            <h2 className="text-2xl font-bold text-white mb-2">講師介紹</h2>
+            <h2 className="text-2xl font-bold text-foreground mb-2">講師介紹</h2>
             <h3 className="text-3xl font-bold text-primary mb-6">水球潘</h3>
             <div className="space-y-4">
               {highlights.map((item, index) => (
@@ -191,7 +178,7 @@ function InstructorSection() {
                   <span className="inline-flex items-center justify-center px-3 py-1 text-sm font-medium bg-primary text-primary-foreground rounded">
                     {item.badge}
                   </span>
-                  <p className="text-[#9CA3AF]">{item.text}</p>
+                  <p className="text-muted-foreground">{item.text}</p>
                 </div>
               ))}
             </div>
@@ -205,20 +192,20 @@ function InstructorSection() {
 function FooterCTASection() {
   return (
     <section className="py-8">
-      <div className="bg-gradient-to-r from-primary to-primary/80 rounded-lg p-8 text-center">
-        <h2 className="text-2xl md:text-3xl font-bold text-white mb-4">
+      <div className="border border-border border-t-4 border-t-primary bg-card rounded-lg p-8 text-center">
+        <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-4">
           準備好開始你的軟體設計之旅了嗎？
         </h2>
-        <p className="text-white/90 mb-6 max-w-2xl mx-auto">
+        <p className="text-muted-foreground mb-6 max-w-2xl mx-auto">
           立即加入水球軟體學院，與數千名工程師一起成長，掌握業界最需要的軟體設計能力。
         </p>
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          <Button asChild className="bg-white text-primary hover:bg-white/90 px-8 py-3 h-auto text-lg font-semibold">
+          <Button asChild className="bg-primary text-primary-foreground hover:bg-primary/90 px-8 py-3 h-auto text-lg font-semibold">
             <Link href="/courses">
               瀏覽課程
             </Link>
           </Button>
-          <Button variant="outline" asChild className="border-2 border-white text-white hover:bg-white/10 px-8 py-3 h-auto text-lg font-semibold bg-transparent">
+          <Button variant="outline" asChild className="border-2 border-primary text-primary hover:bg-primary/10 px-8 py-3 h-auto text-lg font-semibold bg-transparent">
             <Link href="#">
               加入 Discord 社群
             </Link>
@@ -231,62 +218,62 @@ function FooterCTASection() {
 
 function Footer() {
   return (
-    <footer className="py-8 border-t border-[#27272A]">
+    <footer className="py-8 border-t border-border">
       <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
         <div>
-          <h4 className="font-bold text-white mb-4">水球軟體學院</h4>
-          <p className="text-[#9CA3AF] text-sm">
+          <h4 className="font-bold text-foreground mb-4">水球軟體學院</h4>
+          <p className="text-muted-foreground text-sm">
             提供最先進的軟體設計思路教材，培養硬核的 Coding 實戰高手。
           </p>
         </div>
         <div>
-          <h4 className="font-semibold text-white mb-4">課程</h4>
+          <h4 className="font-semibold text-foreground mb-4">課程</h4>
           <ul className="space-y-2">
             <li>
-              <Link href="/courses" className="text-[#9CA3AF] hover:text-white text-sm">
+              <Link href="/courses" className="text-muted-foreground hover:text-foreground text-sm">
                 軟體設計模式之旅
               </Link>
             </li>
             <li>
-              <Link href="/courses" className="text-[#9CA3AF] hover:text-white text-sm">
+              <Link href="/courses" className="text-muted-foreground hover:text-foreground text-sm">
                 AI x BDD 開發術
               </Link>
             </li>
           </ul>
         </div>
         <div>
-          <h4 className="font-semibold text-white mb-4">資源</h4>
+          <h4 className="font-semibold text-foreground mb-4">資源</h4>
           <ul className="space-y-2">
             <li>
-              <Link href="#" className="text-[#9CA3AF] hover:text-white text-sm">
+              <Link href="#" className="text-muted-foreground hover:text-foreground text-sm">
                 部落格
               </Link>
             </li>
             <li>
-              <Link href="#" className="text-[#9CA3AF] hover:text-white text-sm">
+              <Link href="#" className="text-muted-foreground hover:text-foreground text-sm">
                 Discord 社群
               </Link>
             </li>
           </ul>
         </div>
         <div>
-          <h4 className="font-semibold text-white mb-4">關於</h4>
+          <h4 className="font-semibold text-foreground mb-4">關於</h4>
           <ul className="space-y-2">
             <li>
-              <Link href="#" className="text-[#9CA3AF] hover:text-white text-sm">
+              <Link href="#" className="text-muted-foreground hover:text-foreground text-sm">
                 隱私政策
               </Link>
             </li>
             <li>
-              <Link href="#" className="text-[#9CA3AF] hover:text-white text-sm">
+              <Link href="#" className="text-muted-foreground hover:text-foreground text-sm">
                 服務條款
               </Link>
             </li>
           </ul>
         </div>
       </div>
-      <div className="mt-8 pt-8 border-t border-[#27272A] text-center">
-        <p className="text-[#9CA3AF] text-sm">
+      <div className="mt-8 pt-8 border-t border-border text-center">
+        <p className="text-muted-foreground text-sm">
           © 2024 水球軟體學院 WATERBALLSA.TW. All rights reserved.
         </p>
       </div>
