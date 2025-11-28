@@ -23,7 +23,13 @@ export function OrderStepper({ currentStep, steps = defaultSteps }: OrderStepper
     <div className="w-full bg-[#2563EB] rounded-t-xl py-6 px-4 md:px-12">
       <div className="flex items-center justify-between max-w-3xl mx-auto">
         {steps.map((step, index) => (
-          <div key={step.number} className="flex items-center flex-1">
+          <div
+            key={step.number}
+            className={cn(
+              'flex items-center',
+              index < steps.length - 1 ? 'flex-1' : ''
+            )}
+          >
             <div className="flex flex-col items-center">
               <div
                 className={cn(

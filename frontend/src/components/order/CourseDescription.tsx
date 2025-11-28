@@ -5,8 +5,8 @@ import { AlertCircle } from 'lucide-react';
 interface CourseDescriptionProps {
   title: string;
   description: string[];
-  guarantee: string;
-  notice: string;
+  guarantee?: string;
+  notice?: string;
 }
 
 export function CourseDescription({
@@ -24,12 +24,14 @@ export function CourseDescription({
             <p key={index}>{paragraph}</p>
           ))}
         </div>
-        <p className="text-white/90 leading-relaxed">{guarantee}</p>
+        {guarantee && <p className="text-white/90 leading-relaxed">{guarantee}</p>}
       </div>
-      <div className="bg-[#FEF3C7] text-[#92400E] p-4 mx-4 mb-4 rounded-lg flex gap-3">
-        <AlertCircle className="h-5 w-5 flex-shrink-0 mt-0.5" />
-        <p className="text-sm">{notice}</p>
-      </div>
+      {notice && (
+        <div className="bg-[#FEF3C7] text-[#92400E] p-4 mx-4 mb-4 rounded-lg flex gap-3">
+          <AlertCircle className="h-5 w-5 flex-shrink-0 mt-0.5" />
+          <p className="text-sm">{notice}</p>
+        </div>
+      )}
     </div>
   );
 }
