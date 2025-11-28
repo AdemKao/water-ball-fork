@@ -41,14 +41,19 @@ export function GoogleLoginButton({ redirectUrl = '/', onSuccess, onError }: Goo
   };
 
   return (
-    <div className="flex flex-col items-center gap-2">
+    <div 
+      className="flex w-full flex-col items-center gap-2 [&_.nsm7Bb-HzV7m-LgbsSe]:!w-full [&_.nsm7Bb-HzV7m-LgbsSe]:!max-w-full [&_.nsm7Bb-HzV7m-LgbsSe]:!rounded-lg [&_.nsm7Bb-HzV7m-LgbsSe]:!py-3.5 [&_.nsm7Bb-HzV7m-LgbsSe]:!h-auto [&_.S9gUrf-YoZ4jf]:!w-full [&>div]:!w-full [&>div>div]:!h-auto" 
+      data-slot="google-login"
+    >
       <GoogleLogin
         onSuccess={handleSuccess}
         onError={handleError}
         useOneTap
-        theme="outline"
         size="large"
-        width="300"
+        width="400"
+        text="signin_with"
+        shape="rectangular"
+        logo_alignment="center"
       />
       {error && (
         <p className="text-sm text-red-500">{error}</p>
