@@ -1,29 +1,16 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import {
-  JourneyPricing,
   PaymentMethod,
   CreatePurchaseResponse,
 } from '@/types';
 import { purchaseService } from '@/services/purchase.service';
 
 export function usePurchase(journeyId: string) {
-  const [pricing, setPricing] = useState<JourneyPricing | null>(null);
-  const [isLoadingPricing, setIsLoadingPricing] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
   const [error, setError] = useState<Error | null>(null);
-
-  useEffect(() => {
-    if (!journeyId) return;
-    setIsLoadingPricing(true);
-    purchaseService
-      .getJourneyPricing(journeyId)
-      .then(setPricing)
-      .catch(setError)
-      .finally(() => setIsLoadingPricing(false));
-  }, [journeyId]);
 
   const createPurchase = useCallback(
     async (paymentMethod: PaymentMethod): Promise<CreatePurchaseResponse> => {
@@ -49,8 +36,6 @@ export function usePurchase(journeyId: string) {
   }, []);
 
   return {
-    pricing,
-    isLoadingPricing,
     createPurchase,
     cancelPurchase,
     isCreating,

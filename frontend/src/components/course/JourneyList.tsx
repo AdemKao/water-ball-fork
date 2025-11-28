@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Journey, JourneyPricing } from '@/types';
+import { Journey } from '@/types';
 import { JourneyCard } from './JourneyCard';
 import { purchaseService } from '@/services/purchase.service';
 import { useAuth } from '@/hooks/useAuth';
@@ -12,47 +12,30 @@ interface JourneyListProps {
 
 export function JourneyList({ journeys }: JourneyListProps) {
   const { isAuthenticated } = useAuth();
-  const [pricingMap, setPricingMap] = useState<Record<string, JourneyPricing>>({});
   const [purchasedMap, setPurchasedMap] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
-    const fetchPricingAndPurchaseStatus = async () => {
-      const pricings: Record<string, JourneyPricing> = {};
-      const purchased: Record<string, boolean> = {};
-
-      await Promise.all(
-        journeys.map(async (journey) => {
-          try {
-            const pricing = await purchaseService.getJourneyPricing(journey.id);
-            pricings[journey.id] = pricing;
-          } catch {
-            pricings[journey.id] = {
-              journeyId: journey.id,
-              price: 0,
-              currency: 'TWD',
-            };
-          }
-
-          if (isAuthenticated) {
-            try {
-              const result = await purchaseService.getUserPurchases();
-              const isPurchased = result.content.some(
-                (p) => p.journeyId === journey.id && p.status === 'COMPLETED'
-              );
-              purchased[journey.id] = isPurchased;
-            } catch {
-              purchased[journey.id] = false;
-            }
-          }
-        })
-      );
-
-      setPricingMap(pricings);
-      setPurchasedMap(purchased);
+    const fetchPurchaseStatus = async () => {
+      if (!isAuthenticated) return;
+      
+      try {
+        const result = await purchaseService.getUserPurchases();
+        const purchased: Record<string, boolean> = {};
+        journeys.forEach((journey) => {
+          purchased[journey.id] = result.content.some(
+            (p) => p.journeyId === journey.id && p.status === 'COMPLETED'
+          );
+        });
+        setPurchasedMap(purchased);
+      } catch {
+        journeys.forEach((journey) => {
+          setPurchasedMap((prev) => ({ ...prev, [journey.id]: false }));
+        });
+      }
     };
 
     if (journeys.length > 0) {
-      fetchPricingAndPurchaseStatus();
+      fetchPurchaseStatus();
     }
   }, [journeys, isAuthenticated]);
 
@@ -71,7 +54,6 @@ export function JourneyList({ journeys }: JourneyListProps) {
           key={journey.id}
           journey={journey}
           isPurchased={purchasedMap[journey.id] || false}
-          pricing={pricingMap[journey.id]}
         />
       ))}
     </div>

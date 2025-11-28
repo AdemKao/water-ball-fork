@@ -17,7 +17,7 @@ export default function CourseJourneyPage({ params }: PageProps) {
   const { courseId } = use(params);
   const router = useRouter();
   const { journey, isLoading, error } = useJourney(courseId);
-  const { pricing, cancelPurchase, isCancelling } = usePurchase(courseId);
+  const { cancelPurchase, isCancelling } = usePurchase(courseId);
   const { pendingPurchaseForJourney, refetch } = usePendingPurchases(courseId);
 
   const handleLessonClick = (lessonId: string) => {
@@ -101,7 +101,7 @@ export default function CourseJourneyPage({ params }: PageProps) {
             )}
           </div>
 
-          {!journey.isPurchased && pricing && (
+          {!journey.isPurchased && (
             <div className="flex items-center gap-4 rounded-lg border bg-card p-4">
               <div className="flex-1">
                 <p className="font-medium">購買此課程以解鎖所有內容</p>
@@ -111,8 +111,8 @@ export default function CourseJourneyPage({ params }: PageProps) {
               </div>
               <PurchaseButton
                 journeyId={courseId}
-                price={pricing.price}
-                currency={pricing.currency}
+                price={journey.price}
+                currency={journey.currency}
               />
             </div>
           )}

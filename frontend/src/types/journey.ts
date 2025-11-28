@@ -8,6 +8,10 @@ export interface Journey {
   chapterCount: number;
   lessonCount: number;
   totalDurationSeconds: number;
+  price: number;
+  currency: string;
+  originalPrice?: number;
+  discountPercentage?: number;
 }
 
 export interface JourneyDetail extends Journey {

@@ -1,7 +1,14 @@
 'use client';
 
 import Image from 'next/image';
-import { JourneyPricing, PaymentMethod } from '@/types';
+import { PaymentMethod } from '@/types';
+
+interface PricingInfo {
+  price: number;
+  currency: string;
+  originalPrice?: number;
+  discountPercentage?: number;
+}
 
 interface PurchaseSummaryProps {
   journey: {
@@ -11,7 +18,7 @@ interface PurchaseSummaryProps {
     chapterCount: number;
     lessonCount: number;
   };
-  pricing: JourneyPricing;
+  pricing: PricingInfo;
   paymentMethod?: PaymentMethod;
 }
 

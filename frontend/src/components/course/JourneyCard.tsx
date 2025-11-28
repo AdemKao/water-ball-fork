@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import Image from 'next/image';
-import { Journey, JourneyProgress, JourneyPricing } from '@/types';
+import { Journey, JourneyProgress } from '@/types';
 import { ProgressBar } from './ProgressBar';
 import { PurchaseButton } from '@/components/purchase';
 import { Button } from '@/components/ui/button';
@@ -9,7 +9,6 @@ interface JourneyCardProps {
   journey: Journey;
   progress?: JourneyProgress;
   isPurchased?: boolean;
-  pricing?: JourneyPricing;
 }
 
 function formatDuration(seconds: number): string {
@@ -21,7 +20,7 @@ function formatDuration(seconds: number): string {
   return `${mins}m`;
 }
 
-export function JourneyCard({ journey, progress, isPurchased = false, pricing }: JourneyCardProps) {
+export function JourneyCard({ journey, progress, isPurchased = false }: JourneyCardProps) {
   const hasStarted = progress && progress.completedLessons > 0;
 
   return (
@@ -68,14 +67,14 @@ export function JourneyCard({ journey, progress, isPurchased = false, pricing }:
                 {hasStarted ? '繼續學習' : '開始學習'}
               </Button>
             </Link>
-          ) : pricing ? (
+          ) : (
             <PurchaseButton
               journeyId={journey.id}
-              price={pricing.price}
-              currency={pricing.currency}
+              price={journey.price}
+              currency={journey.currency}
               className="w-full"
             />
-          ) : null}
+          )}
         </div>
       </div>
     </div>

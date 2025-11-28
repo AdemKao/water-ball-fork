@@ -6,11 +6,12 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 interface GoogleLoginButtonProps {
+  redirectUrl?: string;
   onSuccess?: () => void;
   onError?: (error: Error) => void;
 }
 
-export function GoogleLoginButton({ onSuccess, onError }: GoogleLoginButtonProps) {
+export function GoogleLoginButton({ redirectUrl = '/', onSuccess, onError }: GoogleLoginButtonProps) {
   const { loginWithGoogle } = useAuth();
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
@@ -25,7 +26,7 @@ export function GoogleLoginButton({ onSuccess, onError }: GoogleLoginButtonProps
     try {
       await loginWithGoogle(response.credential);
       onSuccess?.();
-      router.push('/');
+      router.push(redirectUrl);
     } catch (err) {
       const error = err as Error;
       setError(error.message);

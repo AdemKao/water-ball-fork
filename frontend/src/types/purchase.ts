@@ -59,14 +59,6 @@ export interface PaymentMethodOption {
   icon: React.ComponentType;
 }
 
-export interface JourneyPricing {
-  journeyId: string;
-  price: number;
-  currency: string;
-  originalPrice?: number;
-  discountPercentage?: number;
-}
-
 export interface PurchaseCallbackParams {
   purchaseId: string;
   status: 'success' | 'cancel';

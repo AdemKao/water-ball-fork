@@ -22,7 +22,7 @@ export default function PurchasePage({
   const [error, setError] = useState<string | null>(null);
 
   const { journey, isLoading: isLoadingJourney, error: journeyError } = useJourney(courseId);
-  const { pricing, isLoadingPricing, createPurchase, cancelPurchase, isCreating, isCancelling } =
+  const { createPurchase, cancelPurchase, isCreating, isCancelling } =
     usePurchase(courseId);
   const { pendingPurchaseForJourney, isLoading: isLoadingPending, refetch } = usePendingPurchases(courseId);
 
@@ -32,7 +32,7 @@ export default function PurchasePage({
     }
   }, [journey?.isPurchased, courseId, router]);
 
-  if (isLoadingJourney || isLoadingPricing || isLoadingPending) {
+  if (isLoadingJourney || isLoadingPending) {
     return (
       <ProtectedRoute>
         <div className="flex min-h-screen items-center justify-center">
@@ -42,7 +42,7 @@ export default function PurchasePage({
     );
   }
 
-  if (journeyError || !journey || !pricing) {
+  if (journeyError || !journey) {
     return (
       <ProtectedRoute>
         <div className="flex min-h-screen items-center justify-center">
@@ -67,6 +67,13 @@ export default function PurchasePage({
     thumbnailUrl: journey.thumbnailUrl,
     chapterCount: journey.chapters?.length || 0,
     lessonCount: journey.chapters?.reduce((acc, ch) => acc + (ch.lessons?.length || 0), 0) || 0,
+  };
+
+  const pricing = {
+    price: journey.price,
+    currency: journey.currency,
+    originalPrice: journey.originalPrice,
+    discountPercentage: journey.discountPercentage,
   };
 
   const handleProceedToPayment = async () => {

@@ -1,5 +1,4 @@
 import {
-  JourneyPricing,
   CreatePurchaseRequest,
   CreatePurchaseResponse,
   Purchase,
@@ -10,14 +9,6 @@ import {
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export const purchaseService = {
-  async getJourneyPricing(journeyId: string): Promise<JourneyPricing> {
-    const response = await fetch(`${API_URL}/api/journeys/${journeyId}/pricing`, {
-      credentials: 'include',
-    });
-    if (!response.ok) throw new Error('Failed to fetch pricing');
-    return response.json();
-  },
-
   async createPurchase(data: CreatePurchaseRequest): Promise<CreatePurchaseResponse> {
     const response = await fetch(`${API_URL}/api/purchases`, {
       method: 'POST',
@@ -30,8 +21,8 @@ export const purchaseService = {
   },
 
   async cancelPurchase(purchaseId: string): Promise<void> {
-    const response = await fetch(`${API_URL}/api/purchases/${purchaseId}/cancel`, {
-      method: 'POST',
+    const response = await fetch(`${API_URL}/api/purchases/${purchaseId}`, {
+      method: 'DELETE',
       credentials: 'include',
     });
     if (!response.ok) throw new Error('Failed to cancel purchase');
