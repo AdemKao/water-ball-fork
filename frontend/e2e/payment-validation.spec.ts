@@ -16,12 +16,6 @@ const mockJourneyDetail = {
   currency: 'TWD',
 };
 
-const mockCreatePurchaseResponse = {
-  purchaseId: 'purchase-001',
-  amount: 1990,
-  currency: 'TWD',
-};
-
 async function setupMockAuth(page: Page): Promise<void> {
   await page.context().addCookies([
     {
@@ -55,16 +49,16 @@ async function setupApiMocks(page: Page): Promise<void> {
     });
   });
 
-  await page.route('**/api/purchases', (route) => {
-    if (route.request().method() === 'POST') {
-      route.fulfill({
-        status: 201,
-        contentType: 'application/json',
-        body: JSON.stringify(mockCreatePurchaseResponse),
-      });
-    } else {
-      route.continue();
-    }
+  await page.route(`**/api/journeys/${TEST_COURSE_ID}/pricing`, (route) => {
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        journeyId: TEST_COURSE_ID,
+        price: 1990,
+        currency: 'TWD',
+      }),
+    });
   });
 
   await page.route(`**/api/purchases/pending/journey/${TEST_COURSE_ID}`, (route) => {
@@ -76,54 +70,54 @@ async function setupApiMocks(page: Page): Promise<void> {
   });
 }
 
-async function navigateToPaymentForm(page: Page): Promise<void> {
-  await page.goto(`/courses/${TEST_COURSE_ID}`);
-  await page.getByTestId('purchase-button').click();
-  await page.getByTestId('payment-method-CREDIT_CARD').click();
-  await page.getByTestId('next-step-button').click();
-  await expect(page.getByTestId('card-number')).toBeVisible();
-}
-
-test.describe('Payment Form Validation', () => {
+test.describe('Payment Method Selection Validation', () => {
   test.beforeEach(async ({ page }) => {
     await setupMockAuth(page);
     await setupApiMocks(page);
   });
 
-  test('should show error message for invalid credit card number', async ({ page }) => {
-    await navigateToPaymentForm(page);
+  test('should show both payment method options', async ({ page }) => {
+    await page.goto(`/courses/${TEST_COURSE_ID}/purchase`);
 
-    await page.getByTestId('card-number').fill('1234567890123456');
-    await page.getByTestId('expiry-date').fill('12/25');
-    await page.getByTestId('cvv').fill('123');
-    await page.getByTestId('cardholder-name').fill('Test User');
+    await expect(page.getByTestId('payment-method-CREDIT_CARD')).toBeVisible();
+    await expect(page.getByTestId('payment-method-BANK_TRANSFER')).toBeVisible();
 
-    await page.getByTestId('confirm-purchase-button').click();
-
-    await expect(page.getByTestId('card-number-error')).toBeVisible();
+    await expect(page.getByText(/支援 Visa/)).toBeVisible();
+    await expect(page.getByText(/ATM 轉帳/)).toBeVisible();
   });
 
-  test('should show error message for expired date', async ({ page }) => {
-    await navigateToPaymentForm(page);
+  test('should disable proceed button when no payment method selected', async ({ page }) => {
+    await page.goto(`/courses/${TEST_COURSE_ID}/purchase`);
 
-    await page.getByTestId('card-number').fill('4111111111111111');
-    await page.getByTestId('expiry-date').fill('01/20');
-    await page.getByTestId('cvv').fill('123');
-    await page.getByTestId('cardholder-name').fill('Test User');
-
-    await page.getByTestId('confirm-purchase-button').click();
-
-    await expect(page.getByTestId('expiry-date-error')).toBeVisible();
+    const proceedButton = page.getByTestId('proceed-to-payment-button');
+    await expect(proceedButton).toBeDisabled();
   });
 
-  test('should enable submit button when all fields are valid', async ({ page }) => {
-    await navigateToPaymentForm(page);
+  test('should enable proceed button after selecting payment method', async ({ page }) => {
+    await page.goto(`/courses/${TEST_COURSE_ID}/purchase`);
 
-    await page.getByTestId('card-number').fill('4111111111111111');
-    await page.getByTestId('expiry-date').fill('12/25');
-    await page.getByTestId('cvv').fill('123');
-    await page.getByTestId('cardholder-name').fill('Test User');
+    await page.getByTestId('payment-method-CREDIT_CARD').click();
 
-    await expect(page.getByTestId('confirm-purchase-button')).toBeEnabled();
+    await expect(page.getByTestId('proceed-to-payment-button')).toBeEnabled();
+  });
+
+  test('should highlight selected payment method', async ({ page }) => {
+    await page.goto(`/courses/${TEST_COURSE_ID}/purchase`);
+
+    await page.getByTestId('payment-method-CREDIT_CARD').click();
+    await expect(page.getByTestId('payment-method-CREDIT_CARD')).toHaveAttribute(
+      'data-selected',
+      'true'
+    );
+
+    await page.getByTestId('payment-method-BANK_TRANSFER').click();
+    await expect(page.getByTestId('payment-method-BANK_TRANSFER')).toHaveAttribute(
+      'data-selected',
+      'true'
+    );
+    await expect(page.getByTestId('payment-method-CREDIT_CARD')).toHaveAttribute(
+      'data-selected',
+      'false'
+    );
   });
 });

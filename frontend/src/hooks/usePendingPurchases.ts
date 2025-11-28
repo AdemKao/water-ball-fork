@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { PendingPurchase } from '@/types';
 import { purchaseService } from '@/services/purchase.service';
 
@@ -31,5 +31,16 @@ export function usePendingPurchases(journeyId?: string) {
     fetchPending();
   }, [fetchPending]);
 
-  return { pendingPurchases, isLoading, error, refetch: fetchPending };
+  const pendingPurchaseForJourney = useMemo(() => {
+    if (!journeyId) return null;
+    return pendingPurchases.find(p => p.journeyId === journeyId) || null;
+  }, [pendingPurchases, journeyId]);
+
+  return { 
+    pendingPurchases, 
+    pendingPurchaseForJourney,
+    isLoading, 
+    error, 
+    refetch: fetchPending 
+  };
 }

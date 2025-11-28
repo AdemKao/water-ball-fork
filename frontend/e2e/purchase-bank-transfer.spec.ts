@@ -1,11 +1,11 @@
-import { test, expect, Page } from '@playwright/test'
+import { test, expect, Page } from '@playwright/test';
 
 const MOCK_USER = {
   id: 'user-123',
   email: 'test@example.com',
   name: 'Test User',
   avatarUrl: null,
-}
+};
 
 const MOCK_JOURNEY = {
   id: 'journey-1',
@@ -16,18 +16,26 @@ const MOCK_JOURNEY = {
   currency: 'TWD',
   isPurchased: false,
   chapters: [],
-}
+};
 
-const MOCK_PURCHASE_RESPONSE = {
-  purchaseId: 'purchase-123',
-  amount: 1990,
-  currency: 'TWD',
-}
-
-const MOCK_PURCHASE_FULL = {
+const mockCreatePurchaseResponse = {
   id: 'purchase-123',
   journeyId: 'journey-1',
-  userId: 'user-123',
+  journeyTitle: 'Test Journey',
+  amount: 1990,
+  currency: 'TWD',
+  paymentMethod: 'BANK_TRANSFER',
+  status: 'PENDING',
+  checkoutUrl: 'https://mock-gateway.example.com/checkout/session-456',
+  expiresAt: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
+  createdAt: new Date().toISOString(),
+};
+
+const MOCK_PURCHASE_COMPLETED = {
+  id: 'purchase-123',
+  journeyId: 'journey-1',
+  journeyTitle: 'Test Journey',
+  journeyThumbnailUrl: null,
   amount: 1990,
   currency: 'TWD',
   paymentMethod: 'BANK_TRANSFER',
@@ -36,7 +44,7 @@ const MOCK_PURCHASE_FULL = {
   completedAt: new Date().toISOString(),
   expiresAt: null,
   failureReason: null,
-}
+};
 
 async function setupAuthenticatedUser(page: Page): Promise<void> {
   await page.context().addCookies([
@@ -46,7 +54,7 @@ async function setupAuthenticatedUser(page: Page): Promise<void> {
       domain: 'localhost',
       path: '/',
     },
-  ])
+  ]);
 }
 
 async function setupApiMocks(page: Page): Promise<void> {
@@ -55,109 +63,101 @@ async function setupApiMocks(page: Page): Promise<void> {
       status: 200,
       contentType: 'application/json',
       body: JSON.stringify(MOCK_USER),
-    })
-  })
+    });
+  });
 
   await page.route('**/api/journeys/journey-1', async (route) => {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
       body: JSON.stringify(MOCK_JOURNEY),
-    })
-  })
+    });
+  });
+
+  await page.route('**/api/journeys/journey-1/pricing', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        journeyId: 'journey-1',
+        price: 1990,
+        currency: 'TWD',
+      }),
+    });
+  });
 
   await page.route('**/api/purchases', async (route) => {
     if (route.request().method() === 'POST') {
       await route.fulfill({
         status: 201,
         contentType: 'application/json',
-        body: JSON.stringify(MOCK_PURCHASE_RESPONSE),
-      })
+        body: JSON.stringify(mockCreatePurchaseResponse),
+      });
     } else {
-      await route.continue()
+      await route.continue();
     }
-  })
-
-  await page.route('**/api/purchases/purchase-123/pay', async (route) => {
-    await route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({
-        purchaseId: 'purchase-123',
-        status: 'COMPLETED',
-        message: 'Bank transfer completed',
-        completedAt: new Date().toISOString(),
-        failureReason: null,
-      }),
-    })
-  })
+  });
 
   await page.route('**/api/purchases/pending/journey/journey-1', async (route) => {
     await route.fulfill({
       status: 404,
       contentType: 'application/json',
       body: JSON.stringify({ message: 'No pending purchase' }),
-    })
-  })
+    });
+  });
 
   await page.route('**/api/purchases/purchase-123', async (route) => {
     if (route.request().method() === 'GET') {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify(MOCK_PURCHASE_FULL),
-      })
+        body: JSON.stringify(MOCK_PURCHASE_COMPLETED),
+      });
     } else {
-      await route.continue()
+      await route.continue();
     }
-  })
+  });
 }
 
-test.describe('Purchase Flow - Bank Transfer', () => {
+test.describe('Purchase Flow - Bank Transfer (Redirect)', () => {
   test.beforeEach(async ({ page }) => {
-    await setupAuthenticatedUser(page)
-    await setupApiMocks(page)
-  })
+    await setupAuthenticatedUser(page);
+    await setupApiMocks(page);
+  });
 
-  test('should complete purchase with bank transfer payment method', async ({ page }) => {
-    await page.goto('/courses/journey-1')
+  test('should navigate to purchase page and select bank transfer', async ({ page }) => {
+    await page.goto('/courses/journey-1');
 
-    await page.getByTestId('purchase-button').click()
+    await page.getByTestId('purchase-button').click();
 
-    await page.getByTestId('payment-method-BANK_TRANSFER').click()
+    await expect(page).toHaveURL(/\/courses\/journey-1\/purchase/);
 
-    await page.getByTestId('next-step-button').click()
+    await page.getByTestId('payment-method-BANK_TRANSFER').click();
 
-    await page.getByTestId('bank-code').fill('012')
-    await page.getByTestId('account-number').fill('1234567890123')
-    await page.getByTestId('account-name').fill('Test User')
+    await expect(page.getByTestId('proceed-to-payment-button')).toBeEnabled();
+  });
 
-    await page.getByTestId('confirm-purchase-button').click()
+  test('should allow user to switch between payment methods', async ({ page }) => {
+    await page.goto('/courses/journey-1/purchase');
 
-    await expect(page.getByTestId('purchase-success')).toBeVisible()
-  })
+    await page.getByTestId('payment-method-BANK_TRANSFER').click();
+    await expect(page.getByTestId('payment-method-BANK_TRANSFER')).toHaveAttribute(
+      'data-selected',
+      'true'
+    );
 
-  test('should display validation errors for empty bank transfer fields', async ({ page }) => {
-    await page.goto('/courses/journey-1')
+    await page.getByTestId('payment-method-CREDIT_CARD').click();
+    await expect(page.getByTestId('payment-method-CREDIT_CARD')).toHaveAttribute(
+      'data-selected',
+      'true'
+    );
+  });
 
-    await page.getByTestId('purchase-button').click()
-    await page.getByTestId('payment-method-BANK_TRANSFER').click()
-    await page.getByTestId('next-step-button').click()
+  test('should handle callback with success status for bank transfer', async ({ page }) => {
+    await page.goto(
+      '/courses/journey-1/purchase/callback?purchaseId=purchase-123&status=success'
+    );
 
-    await page.getByTestId('confirm-purchase-button').click()
-
-    await expect(page.getByTestId('bank-code-error')).toBeVisible()
-  })
-
-  test('should allow user to go back and change payment method', async ({ page }) => {
-    await page.goto('/courses/journey-1')
-
-    await page.getByTestId('purchase-button').click()
-    await page.getByTestId('payment-method-BANK_TRANSFER').click()
-    await page.getByTestId('next-step-button').click()
-
-    await page.getByRole('button', { name: /返回/ }).click()
-
-    await expect(page.getByTestId('payment-method-BANK_TRANSFER')).toBeVisible()
-  })
-})
+    await expect(page.getByTestId('purchase-success')).toBeVisible({ timeout: 15000 });
+  });
+});

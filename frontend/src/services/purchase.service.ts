@@ -4,27 +4,18 @@ import {
   CreatePurchaseResponse,
   Purchase,
   PendingPurchase,
-  CreditCardPaymentDetails,
-  BankTransferPaymentDetails,
-  PaymentResultResponse,
+  PurchaseStatus,
 } from '@/types';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export const purchaseService = {
   async getJourneyPricing(journeyId: string): Promise<JourneyPricing> {
-    const response = await fetch(`${API_URL}/api/journeys/${journeyId}`, {
+    const response = await fetch(`${API_URL}/api/journeys/${journeyId}/pricing`, {
       credentials: 'include',
     });
     if (!response.ok) throw new Error('Failed to fetch pricing');
-    const journey = await response.json();
-    return {
-      journeyId: journey.id,
-      price: journey.price,
-      currency: journey.currency || 'TWD',
-      originalPrice: journey.originalPrice,
-      discountPercentage: journey.discountPercentage,
-    };
+    return response.json();
   },
 
   async createPurchase(data: CreatePurchaseRequest): Promise<CreatePurchaseResponse> {
@@ -38,23 +29,9 @@ export const purchaseService = {
     return response.json();
   },
 
-  async processPayment(
-    purchaseId: string,
-    paymentDetails: CreditCardPaymentDetails | BankTransferPaymentDetails
-  ): Promise<PaymentResultResponse> {
-    const response = await fetch(`${API_URL}/api/purchases/${purchaseId}/pay`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify(paymentDetails),
-    });
-    if (!response.ok) throw new Error('Failed to process payment');
-    return response.json();
-  },
-
   async cancelPurchase(purchaseId: string): Promise<void> {
-    const response = await fetch(`${API_URL}/api/purchases/${purchaseId}`, {
-      method: 'DELETE',
+    const response = await fetch(`${API_URL}/api/purchases/${purchaseId}/cancel`, {
+      method: 'POST',
       credentials: 'include',
     });
     if (!response.ok) throw new Error('Failed to cancel purchase');
@@ -85,12 +62,26 @@ export const purchaseService = {
     return response.json();
   },
 
-  async getUserPurchases(): Promise<Purchase[]> {
-    const response = await fetch(`${API_URL}/api/purchases`, {
+  async getUserPurchases(params?: { 
+    status?: PurchaseStatus; 
+    page?: number; 
+    size?: number 
+  }): Promise<{
+    content: Purchase[];
+    totalElements: number;
+    totalPages: number;
+    number: number;
+    size: number;
+  }> {
+    const searchParams = new URLSearchParams();
+    if (params?.status) searchParams.set('status', params.status);
+    if (params?.page) searchParams.set('page', params.page.toString());
+    if (params?.size) searchParams.set('size', params.size.toString());
+    const query = searchParams.toString();
+    const response = await fetch(`${API_URL}/api/purchases${query ? `?${query}` : ''}`, {
       credentials: 'include',
     });
     if (!response.ok) throw new Error('Failed to fetch purchases');
-    const data = await response.json();
-    return data.content || data;
+    return response.json();
   },
 };

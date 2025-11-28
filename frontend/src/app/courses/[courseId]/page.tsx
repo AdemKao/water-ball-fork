@@ -17,26 +17,23 @@ export default function CourseJourneyPage({ params }: PageProps) {
   const { courseId } = use(params);
   const router = useRouter();
   const { journey, isLoading, error } = useJourney(courseId);
-  const { pricing } = usePurchase(courseId);
-  const { pendingPurchases, refetch } = usePendingPurchases(courseId);
-
-  const pendingPurchase = pendingPurchases[0] || null;
+  const { pricing, cancelPurchase, isCancelling } = usePurchase(courseId);
+  const { pendingPurchaseForJourney, refetch } = usePendingPurchases(courseId);
 
   const handleLessonClick = (lessonId: string) => {
     router.push(`/courses/${courseId}/lessons/${lessonId}`);
   };
 
   const handleContinuePurchase = () => {
-    if (pendingPurchase) {
-      router.push(`/courses/${courseId}/purchase/confirm?purchaseId=${pendingPurchase.id}`);
+    if (pendingPurchaseForJourney?.checkoutUrl) {
+      window.location.href = pendingPurchaseForJourney.checkoutUrl;
     }
   };
 
   const handleCancelPurchase = async () => {
-    if (pendingPurchase) {
+    if (pendingPurchaseForJourney) {
       try {
-        const { purchaseService } = await import('@/services/purchase.service');
-        await purchaseService.cancelPurchase(pendingPurchase.id);
+        await cancelPurchase(pendingPurchaseForJourney.id);
         refetch();
       } catch {
       }
@@ -156,11 +153,12 @@ export default function CourseJourneyPage({ params }: PageProps) {
         </div>
       </div>
 
-      {pendingPurchase && (
+      {pendingPurchaseForJourney && (
         <PendingPurchaseBanner
-          purchase={pendingPurchase}
+          purchase={pendingPurchaseForJourney}
           onContinue={handleContinuePurchase}
           onCancel={handleCancelPurchase}
+          isCancelling={isCancelling}
         />
       )}
     </>

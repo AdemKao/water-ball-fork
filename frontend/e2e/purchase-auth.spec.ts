@@ -24,7 +24,21 @@ test.describe('Unauthenticated user purchase redirect', () => {
           isPurchased: false,
           price: 1990,
           currency: 'TWD',
+          chapterCount: 2,
+          lessonCount: 5,
           chapters: [],
+        }),
+      });
+    });
+
+    await page.route(`**/api/journeys/${courseId}/pricing`, (route) => {
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          journeyId: courseId,
+          price: 1990,
+          currency: 'TWD',
         }),
       });
     });

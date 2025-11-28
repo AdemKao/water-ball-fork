@@ -1,16 +1,22 @@
 export type PaymentMethod = 'CREDIT_CARD' | 'BANK_TRANSFER';
-export type PurchaseStatus = 'PENDING' | 'COMPLETED' | 'FAILED' | 'CANCELLED';
+
+export type PurchaseStatus = 'PENDING' | 'COMPLETED' | 'FAILED' | 'CANCELLED' | 'EXPIRED';
 
 export interface Purchase {
   id: string;
   journeyId: string;
   journeyTitle: string;
   journeyThumbnailUrl: string | null;
+  journeyDescription?: string | null;
   amount: number;
   currency: string;
   paymentMethod: PaymentMethod;
   status: PurchaseStatus;
+  checkoutUrl?: string | null;
+  failureReason?: string | null;
   createdAt: string;
+  updatedAt?: string;
+  expiresAt?: string | null;
   completedAt: string | null;
 }
 
@@ -22,8 +28,10 @@ export interface PendingPurchase {
   amount: number;
   currency: string;
   paymentMethod: PaymentMethod;
-  createdAt: string;
+  status: 'PENDING';
+  checkoutUrl: string;
   expiresAt: string;
+  createdAt: string;
 }
 
 export interface CreatePurchaseRequest {
@@ -32,25 +40,23 @@ export interface CreatePurchaseRequest {
 }
 
 export interface CreatePurchaseResponse {
-  purchaseId: string;
+  id: string;
+  journeyId: string;
+  journeyTitle: string;
   amount: number;
   currency: string;
+  paymentMethod: PaymentMethod;
+  status: PurchaseStatus;
+  checkoutUrl: string;
+  expiresAt: string;
+  createdAt: string;
 }
 
-export interface CreditCardPaymentDetails {
-  type: 'CREDIT_CARD';
-  cardNumber: string;
-  expiryMonth: string;
-  expiryYear: string;
-  cvv: string;
-  cardholderName: string;
-}
-
-export interface BankTransferPaymentDetails {
-  type: 'BANK_TRANSFER';
-  accountNumber: string;
-  accountName: string;
-  bankCode: string;
+export interface PaymentMethodOption {
+  value: PaymentMethod;
+  label: string;
+  description: string;
+  icon: React.ComponentType;
 }
 
 export interface JourneyPricing {
@@ -61,17 +67,8 @@ export interface JourneyPricing {
   discountPercentage?: number;
 }
 
-export interface PaymentMethodOption {
-  value: PaymentMethod;
-  label: string;
-  description: string;
-  icon: string;
-}
-
-export interface PaymentResultResponse {
+export interface PurchaseCallbackParams {
   purchaseId: string;
-  status: PurchaseStatus;
-  message: string;
-  completedAt: string | null;
-  failureReason: string | null;
+  status: 'success' | 'cancel';
+  error?: string;
 }

@@ -8,6 +8,8 @@ interface PendingPurchaseResponse {
   amount: number;
   currency: string;
   paymentMethod: 'CREDIT_CARD' | 'BANK_TRANSFER';
+  status: 'PENDING';
+  checkoutUrl: string;
   createdAt: string;
   expiresAt: string;
 }
@@ -76,17 +78,17 @@ function createPendingPurchase(journeyId: string): PendingPurchaseResponse {
     amount: 1990,
     currency: 'TWD',
     paymentMethod: 'CREDIT_CARD',
+    status: 'PENDING',
+    checkoutUrl: 'https://mock-gateway.example.com/checkout/session-123',
     createdAt: now.toISOString(),
     expiresAt: expiresAt.toISOString(),
   };
 }
 
-test.describe('Pending Purchase Banner', () => {
+test.describe('Pending Purchase Banner (Redirect Flow)', () => {
   const journeyId = 'journey-1';
 
-  test('displays pending purchase banner and navigates to confirm page on continue', async ({
-    page,
-  }) => {
+  test('displays pending purchase banner with checkout URL', async ({ page }) => {
     await mockAuthenticatedUser(page);
     await mockJourneyDetail(page, journeyId);
 
@@ -111,11 +113,55 @@ test.describe('Pending Purchase Banner', () => {
     const continueButton = page.getByTestId('continue-purchase-button');
     await expect(continueButton).toBeVisible();
     await expect(continueButton).toHaveText('繼續購買');
+  });
 
-    await continueButton.click();
+  test('shows expiration countdown in banner', async ({ page }) => {
+    await mockAuthenticatedUser(page);
+    await mockJourneyDetail(page, journeyId);
 
-    await expect(page).toHaveURL(
-      `/courses/${journeyId}/purchase/confirm?purchaseId=${pendingPurchase.id}`
-    );
+    const pendingPurchase = createPendingPurchase(journeyId);
+    await page.route(`**/api/purchases/pending/journey/${journeyId}`, (route) => {
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(pendingPurchase),
+      });
+    });
+
+    await page.goto(`/courses/${journeyId}`);
+
+    const banner = page.getByTestId('pending-purchase-banner');
+    await expect(banner).toContainText(/\d+:\d+|剩餘/);
+  });
+
+  test('shows pending purchase banner on purchase page', async ({ page }) => {
+    await mockAuthenticatedUser(page);
+    await mockJourneyDetail(page, journeyId);
+
+    const pendingPurchase = createPendingPurchase(journeyId);
+    await page.route(`**/api/purchases/pending/journey/${journeyId}`, (route) => {
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(pendingPurchase),
+      });
+    });
+
+    await page.route(`**/api/journeys/${journeyId}/pricing`, (route) => {
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          journeyId,
+          price: 1990,
+          currency: 'TWD',
+        }),
+      });
+    });
+
+    await page.goto(`/courses/${journeyId}/purchase`);
+
+    const banner = page.getByTestId('pending-purchase-banner');
+    await expect(banner).toBeVisible();
   });
 });

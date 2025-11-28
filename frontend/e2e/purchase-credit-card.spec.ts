@@ -17,23 +17,23 @@ const mockJourneyDetail = {
 };
 
 const mockCreatePurchaseResponse = {
-  purchaseId: 'purchase-001',
-  amount: 1990,
-  currency: 'TWD',
-};
-
-const mockPaymentResultResponse = {
-  purchaseId: 'purchase-001',
-  status: 'COMPLETED',
-  message: 'Payment successful',
-  completedAt: new Date().toISOString(),
-  failureReason: null,
-};
-
-const mockPurchaseResponse = {
   id: 'purchase-001',
   journeyId: TEST_COURSE_ID,
-  userId: 'user-001',
+  journeyTitle: 'Test Course',
+  amount: 1990,
+  currency: 'TWD',
+  paymentMethod: 'CREDIT_CARD',
+  status: 'PENDING',
+  checkoutUrl: 'https://mock-gateway.example.com/checkout/session-123',
+  expiresAt: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
+  createdAt: new Date().toISOString(),
+};
+
+const mockPurchaseCompleted = {
+  id: 'purchase-001',
+  journeyId: TEST_COURSE_ID,
+  journeyTitle: 'Test Course',
+  journeyThumbnailUrl: null,
   amount: 1990,
   currency: 'TWD',
   paymentMethod: 'CREDIT_CARD',
@@ -77,6 +77,18 @@ async function setupApiMocks(page: Page): Promise<void> {
     });
   });
 
+  await page.route(`**/api/journeys/${TEST_COURSE_ID}/pricing`, (route) => {
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        journeyId: TEST_COURSE_ID,
+        price: 1990,
+        currency: 'TWD',
+      }),
+    });
+  });
+
   await page.route('**/api/purchases', (route) => {
     if (route.request().method() === 'POST') {
       route.fulfill({
@@ -87,14 +99,6 @@ async function setupApiMocks(page: Page): Promise<void> {
     } else {
       route.continue();
     }
-  });
-
-  await page.route('**/api/purchases/*/pay', (route) => {
-    route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify(mockPaymentResultResponse),
-    });
   });
 
   await page.route(`**/api/purchases/pending/journey/${TEST_COURSE_ID}`, (route) => {
@@ -110,7 +114,7 @@ async function setupApiMocks(page: Page): Promise<void> {
       route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify(mockPurchaseResponse),
+        body: JSON.stringify(mockPurchaseCompleted),
       });
     } else {
       route.continue();
@@ -118,55 +122,41 @@ async function setupApiMocks(page: Page): Promise<void> {
   });
 }
 
-test.describe('Purchase Flow - Credit Card', () => {
+test.describe('Purchase Flow - Credit Card (Redirect)', () => {
   test.beforeEach(async ({ page }) => {
     await setupMockAuth(page);
     await setupApiMocks(page);
   });
 
-  test('should complete purchase with credit card', async ({ page }) => {
+  test('should navigate to purchase page and select credit card', async ({ page }) => {
     await page.goto(`/courses/${TEST_COURSE_ID}`);
 
     await page.getByTestId('purchase-button').click();
 
-    await page.getByTestId('payment-method-CREDIT_CARD').click();
-    await page.getByTestId('next-step-button').click();
-
-    await page.getByTestId('card-number').fill('4111111111111111');
-    await page.getByTestId('expiry-date').fill('12/25');
-    await page.getByTestId('cvv').fill('123');
-    await page.getByTestId('cardholder-name').fill('Test User');
-
-    await page.getByTestId('confirm-purchase-button').click();
-
-    await expect(page.getByTestId('purchase-success')).toBeVisible();
-  });
-
-  test('should show validation errors for empty credit card fields', async ({ page }) => {
-    await page.goto(`/courses/${TEST_COURSE_ID}`);
-
-    await page.getByTestId('purchase-button').click();
-
-    await page.getByTestId('payment-method-CREDIT_CARD').click();
-    await page.getByTestId('next-step-button').click();
-
-    await page.getByTestId('confirm-purchase-button').click();
-
-    await expect(page.getByTestId('card-number-error')).toBeVisible();
-  });
-
-  test('should allow going back to payment method selection', async ({ page }) => {
-    await page.goto(`/courses/${TEST_COURSE_ID}`);
-
-    await page.getByTestId('purchase-button').click();
-
-    await page.getByTestId('payment-method-CREDIT_CARD').click();
-    await page.getByTestId('next-step-button').click();
-
-    await expect(page.getByTestId('card-number')).toBeVisible();
-
-    await page.getByRole('button', { name: /返回/ }).click();
+    await expect(page).toHaveURL(new RegExp(`/courses/${TEST_COURSE_ID}/purchase`));
 
     await expect(page.getByTestId('payment-method-CREDIT_CARD')).toBeVisible();
+    await expect(page.getByTestId('payment-method-BANK_TRANSFER')).toBeVisible();
+
+    await page.getByTestId('payment-method-CREDIT_CARD').click();
+
+    await expect(page.getByTestId('proceed-to-payment-button')).toBeEnabled();
+  });
+
+  test('should display course summary on purchase page', async ({ page }) => {
+    await page.goto(`/courses/${TEST_COURSE_ID}/purchase`);
+
+    await expect(page.getByText('Test Course')).toBeVisible();
+    await expect(page.getByText(/1,990|NT\$1,990/)).toBeVisible();
+  });
+
+  test('should handle callback with success status and redirect to success page', async ({
+    page,
+  }) => {
+    await page.goto(
+      `/courses/${TEST_COURSE_ID}/purchase/callback?purchaseId=purchase-001&status=success`
+    );
+
+    await expect(page.getByTestId('purchase-success')).toBeVisible({ timeout: 15000 });
   });
 });

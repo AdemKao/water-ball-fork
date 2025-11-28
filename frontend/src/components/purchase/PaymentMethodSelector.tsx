@@ -41,6 +41,7 @@ export function PaymentMethodSelector({
             onClick={() => onSelect(value)}
             disabled={disabled}
             data-testid={`payment-method-${value}`}
+            data-selected={selectedMethod === value ? 'true' : 'false'}
             className={cn(
               'flex items-center gap-4 rounded-lg border p-4 text-left transition-colors',
               'hover:bg-accent/50 disabled:cursor-not-allowed disabled:opacity-50',

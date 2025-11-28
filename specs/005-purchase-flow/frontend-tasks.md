@@ -1333,12 +1333,12 @@ test.describe('Gateway Cancel', () => {
 
 ### Types (2 tasks)
 
-- [ ] 1.1 purchase.ts (含 PurchaseCallbackParams, checkoutUrl, EXPIRED 狀態)
-- [ ] 1.2 types/index.ts
+- [x] 1.1 purchase.ts (含 PurchaseCallbackParams, checkoutUrl, EXPIRED 狀態)
+- [x] 1.2 types/index.ts
 
 ### Services (1 task)
 
-- [ ] 2.1 purchase.service.ts (移除 confirmPurchase，新增分頁支援)
+- [x] 2.1 purchase.service.ts (移除 confirmPurchase，新增分頁支援)
 
 ### Hooks (3 tasks)
 

@@ -3,18 +3,20 @@
 import { useEffect, useState } from 'react';
 import { PendingPurchase } from '@/types';
 import { Button } from '@/components/ui/button';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, Loader2 } from 'lucide-react';
 
 interface PendingPurchaseBannerProps {
   purchase: PendingPurchase;
   onContinue: () => void;
   onCancel: () => void;
+  isCancelling?: boolean;
 }
 
 export function PendingPurchaseBanner({
   purchase,
   onContinue,
   onCancel,
+  isCancelling = false,
 }: PendingPurchaseBannerProps) {
   const [timeLeft, setTimeLeft] = useState('');
 
@@ -62,8 +64,21 @@ export function PendingPurchaseBanner({
           </div>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={onCancel} data-testid="cancel-purchase-button">
-            取消
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={onCancel} 
+            disabled={isCancelling}
+            data-testid="cancel-purchase-button"
+          >
+            {isCancelling ? (
+              <>
+                <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                取消中...
+              </>
+            ) : (
+              '取消'
+            )}
           </Button>
           <Button data-testid="continue-purchase-button" size="sm" onClick={onContinue}>
             繼續購買

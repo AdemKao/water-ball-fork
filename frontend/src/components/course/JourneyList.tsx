@@ -35,8 +35,8 @@ export function JourneyList({ journeys }: JourneyListProps) {
 
           if (isAuthenticated) {
             try {
-              const userPurchases = await purchaseService.getUserPurchases();
-              const isPurchased = userPurchases.some(
+              const result = await purchaseService.getUserPurchases();
+              const isPurchased = result.content.some(
                 (p) => p.journeyId === journey.id && p.status === 'COMPLETED'
               );
               purchased[journey.id] = isPurchased;

@@ -1546,12 +1546,12 @@ UPDATE journeys SET price = 0.00 WHERE price IS NULL;
 
 ### Phase 1: Database & Entity (11 tasks)
 
-- [ ] Task 1.1: Flyway Migration - purchase_orders
-- [ ] Task 1.2: Flyway Migration - checkout_sessions
-- [ ] Task 1.3: Flyway Migration - add price to journeys
-- [ ] Task 1.4: PurchaseStatus Enum (含 EXPIRED)
-- [ ] Task 1.5: PaymentMethod Enum
-- [ ] Task 1.6: CheckoutSessionStatus Enum
+- [x] Task 1.1: Flyway Migration - purchase_orders
+- [x] Task 1.2: Flyway Migration - checkout_sessions
+- [x] Task 1.3: Flyway Migration - add price to journeys
+- [x] Task 1.4: PurchaseStatus Enum (含 EXPIRED)
+- [x] Task 1.5: PaymentMethod Enum
+- [x] Task 1.6: CheckoutSessionStatus Enum
 - [ ] Task 1.7: PurchaseOrder Entity (含 checkoutSessionId, expiresAt)
 - [ ] Task 1.8: CheckoutSession Entity
 - [ ] Task 1.9: Update Journey Entity
