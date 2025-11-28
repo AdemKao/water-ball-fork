@@ -17,6 +17,8 @@ import java.util.UUID;
 public interface PurchaseOrderRepository extends JpaRepository<PurchaseOrder, UUID> {
     Optional<PurchaseOrder> findByUserIdAndJourneyIdAndStatus(UUID userId, UUID journeyId, PurchaseStatus status);
 
+    Optional<PurchaseOrder> findByCheckoutSessionId(String checkoutSessionId);
+
     List<PurchaseOrder> findByUserIdAndStatus(UUID userId, PurchaseStatus status);
 
     Page<PurchaseOrder> findByUserIdAndStatus(UUID userId, PurchaseStatus status, Pageable pageable);
@@ -25,4 +27,7 @@ public interface PurchaseOrderRepository extends JpaRepository<PurchaseOrder, UU
 
     @Query("SELECT po FROM PurchaseOrder po WHERE po.user.id = :userId AND po.status = 'PENDING'")
     List<PurchaseOrder> findPendingByUserId(@Param("userId") UUID userId);
+
+    @Query("SELECT po FROM PurchaseOrder po WHERE po.user.id = :userId AND po.journey.id = :journeyId AND po.status = 'PENDING'")
+    Optional<PurchaseOrder> findPendingByUserIdAndJourneyId(@Param("userId") UUID userId, @Param("journeyId") UUID journeyId);
 }

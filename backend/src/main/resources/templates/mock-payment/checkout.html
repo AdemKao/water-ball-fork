@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mock Payment Gateway</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 480px;
+            width: 100%;
+            overflow: hidden;
+        }
+        .header {
+            background: #1a1a2e;
+            color: white;
+            padding: 24px;
+            text-align: center;
+        }
+        .header h1 {
+            font-size: 1.5rem;
+            margin-bottom: 8px;
+        }
+        .header .amount {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #00d9ff;
+        }
+        .header .currency {
+            font-size: 1rem;
+            color: #888;
+        }
+        .content {
+            padding: 32px;
+        }
+        .payment-method-badge {
+            display: inline-block;
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            margin-bottom: 24px;
+        }
+        .credit-card {
+            background: #e3f2fd;
+            color: #1565c0;
+        }
+        .bank-transfer {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #333;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 14px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.2s;
+        }
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        .form-row {
+            display: flex;
+            gap: 16px;
+        }
+        .form-row .form-group {
+            flex: 1;
+        }
+        .test-hint {
+            background: #fff3e0;
+            border: 1px solid #ffcc80;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 24px;
+            font-size: 0.875rem;
+        }
+        .test-hint h4 {
+            color: #e65100;
+            margin-bottom: 8px;
+        }
+        .test-hint ul {
+            margin-left: 20px;
+            color: #666;
+        }
+        .test-hint li {
+            margin-bottom: 4px;
+        }
+        .buttons {
+            display: flex;
+            gap: 12px;
+            margin-top: 24px;
+        }
+        .btn {
+            flex: 1;
+            padding: 16px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+        .btn-secondary {
+            background: #f5f5f5;
+            color: #666;
+        }
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+        .mock-badge {
+            text-align: center;
+            padding: 12px;
+            background: #fafafa;
+            color: #999;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Mock Payment Gateway</h1>
+            <div class="amount" th:text="${#numbers.formatDecimal(session.amount, 1, 'COMMA', 0, 'POINT')}">1,999</div>
+            <div class="currency" th:text="${session.currency}">TWD</div>
+        </div>
+        
+        <div class="content">
+            <span class="payment-method-badge" 
+                  th:classappend="${isCreditCard} ? 'credit-card' : 'bank-transfer'"
+                  th:text="${isCreditCard} ? 'Credit Card' : 'Bank Transfer'">
+                Credit Card
+            </span>
+
+            <div class="test-hint">
+                <h4>Test Mode</h4>
+                <ul th:if="${isCreditCard}">
+                    <li>Card ending in <strong>0000</strong> = Insufficient funds</li>
+                    <li>Card ending in <strong>1111</strong> = Card declined</li>
+                    <li>Any other card = Success</li>
+                </ul>
+                <ul th:unless="${isCreditCard}">
+                    <li>Bank code <strong>999</strong> = Invalid bank</li>
+                    <li>Any other code = Success</li>
+                </ul>
+            </div>
+
+            <form th:action="@{/mock-payment/checkout/{id}/submit(id=${session.id})}" method="post">
+                <div th:if="${isCreditCard}">
+                    <div class="form-group">
+                        <label for="cardholderName">Cardholder Name</label>
+                        <input type="text" id="cardholderName" name="cardholderName" 
+                               placeholder="JOHN DOE" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="cardNumber">Card Number</label>
+                        <input type="text" id="cardNumber" name="cardNumber" 
+                               placeholder="4242 4242 4242 4242" 
+                               maxlength="19" required>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="expiryMonth">Expiry Month</label>
+                            <input type="text" id="expiryMonth" name="expiryMonth" 
+                                   placeholder="12" maxlength="2" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="expiryYear">Expiry Year</label>
+                            <input type="text" id="expiryYear" name="expiryYear" 
+                                   placeholder="2025" maxlength="4" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="cvv">CVV</label>
+                            <input type="text" id="cvv" name="cvv" 
+                                   placeholder="123" maxlength="4" required>
+                        </div>
+                    </div>
+                </div>
+
+                <div th:unless="${isCreditCard}">
+                    <div class="form-group">
+                        <label for="bankCode">Bank Code</label>
+                        <input type="text" id="bankCode" name="bankCode" 
+                               placeholder="012" maxlength="3" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="accountNumber">Account Number</label>
+                        <input type="text" id="accountNumber" name="accountNumber" 
+                               placeholder="1234567890" maxlength="14" required>
+                    </div>
+                </div>
+
+                <div class="buttons">
+                    <a th:href="@{/mock-payment/checkout/{id}/cancel(id=${session.id})}" class="btn btn-secondary">
+                        Cancel
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        Pay Now
+                    </button>
+                </div>
+            </form>
+        </div>
+        
+        <div class="mock-badge">
+            This is a mock payment gateway for testing purposes only
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('cardNumber')?.addEventListener('input', function(e) {
+            let value = e.target.value.replace(/\s/g, '').replace(/\D/g, '');
+            let formatted = value.match(/.{1,4}/g)?.join(' ') || '';
+            e.target.value = formatted;
+        });
+    </script>
+</body>
+</html>

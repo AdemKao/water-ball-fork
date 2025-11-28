@@ -52,6 +52,16 @@ storage:
     key: ${SUPABASE_KEY:}
     bucket: course-videos
 
+app:
+  payment:
+    webhook-secret: ${PAYMENT_WEBHOOK_SECRET:mock-webhook-secret-12345}
+    checkout-expiration-minutes: 60
+    mock-gateway:
+      enabled: true
+      base-url: ${MOCK_GATEWAY_BASE_URL:http://localhost:8888}
+  frontend:
+    base-url: ${FRONTEND_BASE_URL:http://localhost:3388}
+
 ---
 spring:
   config:

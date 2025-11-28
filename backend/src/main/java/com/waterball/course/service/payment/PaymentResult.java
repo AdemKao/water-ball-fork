@@ -1,10 +1,10 @@
 package com.waterball.course.service.payment;
 
 public record PaymentResult(
-    boolean isSuccess,
+    boolean success,
     String failureReason
 ) {
-    public static PaymentResult success() {
+    public static PaymentResult successful() {
         return new PaymentResult(true, null);
     }
 

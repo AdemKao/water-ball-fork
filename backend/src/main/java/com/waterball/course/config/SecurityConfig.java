@@ -41,6 +41,8 @@ public class SecurityConfig {
                 .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/journeys").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/journeys/{journeyId}").permitAll()
+                .requestMatchers("/api/webhooks/payment").permitAll()
+                .requestMatchers("/mock-payment/**").permitAll()
                 .requestMatchers("/api/purchases/**").authenticated()
                 .anyRequest().authenticated()
             )

@@ -22,6 +22,6 @@ public class MockPaymentService {
             }
         }
 
-        return PaymentResult.success();
+        return PaymentResult.successful();
     }
 }

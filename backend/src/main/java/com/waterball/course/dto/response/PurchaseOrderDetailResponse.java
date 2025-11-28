@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.UUID;
 
 @Getter @Setter
@@ -23,10 +23,13 @@ public class PurchaseOrderDetailResponse {
     private String journeyThumbnailUrl;
     private String journeyDescription;
     private BigDecimal amount;
+    private String currency;
     private PaymentMethod paymentMethod;
     private PurchaseStatus status;
+    private String checkoutUrl;
     private String failureReason;
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
-    private LocalDateTime completedAt;
+    private Instant createdAt;
+    private Instant updatedAt;
+    private Instant expiresAt;
+    private Instant completedAt;
 }

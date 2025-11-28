@@ -107,6 +107,42 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
     }
 
+    @ExceptionHandler(CheckoutSessionNotFoundException.class)
+    public ResponseEntity<DetailedErrorResponse> handleCheckoutSessionNotFound(CheckoutSessionNotFoundException ex, HttpServletRequest request) {
+        DetailedErrorResponse error = new DetailedErrorResponse(
+                LocalDateTime.now(),
+                HttpStatus.NOT_FOUND.value(),
+                "Not Found",
+                ex.getMessage(),
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+    }
+
+    @ExceptionHandler(SessionExpiredException.class)
+    public ResponseEntity<DetailedErrorResponse> handleSessionExpired(SessionExpiredException ex, HttpServletRequest request) {
+        DetailedErrorResponse error = new DetailedErrorResponse(
+                LocalDateTime.now(),
+                HttpStatus.BAD_REQUEST.value(),
+                "Bad Request",
+                ex.getMessage(),
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+    }
+
+    @ExceptionHandler(InvalidWebhookSecretException.class)
+    public ResponseEntity<DetailedErrorResponse> handleInvalidWebhookSecret(InvalidWebhookSecretException ex, HttpServletRequest request) {
+        DetailedErrorResponse error = new DetailedErrorResponse(
+                LocalDateTime.now(),
+                HttpStatus.UNAUTHORIZED.value(),
+                "Unauthorized",
+                ex.getMessage(),
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleValidationException(MethodArgumentNotValidException ex) {
         String message = ex.getBindingResult().getFieldErrors().stream()

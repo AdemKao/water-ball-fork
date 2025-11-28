@@ -1,7 +1,6 @@
 package com.waterball.course.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.waterball.course.entity.PaymentMethod;
 import com.waterball.course.entity.User;
 import com.waterball.course.repository.UserRepository;
 import com.waterball.course.service.auth.JwtService;
@@ -11,6 +10,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.jdbc.Sql;
@@ -48,6 +48,9 @@ class PurchaseControllerTest extends BaseIntegrationTest {
     @Autowired
     private ObjectMapper objectMapper;
 
+    @Value("${app.payment.webhook-secret:mock-webhook-secret-12345}")
+    private String webhookSecret;
+
     private String accessToken;
     private String otherUserToken;
     private User testUser;
@@ -79,7 +82,8 @@ class PurchaseControllerTest extends BaseIntegrationTest {
                     .andExpect(jsonPath("$.id").isNotEmpty())
                     .andExpect(jsonPath("$.journeyId").value(PUBLISHED_JOURNEY_ID.toString()))
                     .andExpect(jsonPath("$.status").value("PENDING"))
-                    .andExpect(jsonPath("$.paymentMethod").value("CREDIT_CARD"));
+                    .andExpect(jsonPath("$.paymentMethod").value("CREDIT_CARD"))
+                    .andExpect(jsonPath("$.checkoutUrl").isNotEmpty());
         }
 
         @Test
@@ -89,18 +93,28 @@ class PurchaseControllerTest extends BaseIntegrationTest {
             request.put("journeyId", PUBLISHED_JOURNEY_ID.toString());
             request.put("paymentMethod", "CREDIT_CARD");
 
-            mockMvc.perform(post("/api/purchases")
+            MvcResult firstResult = mockMvc.perform(post("/api/purchases")
                             .cookie(new Cookie("access_token", accessToken))
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
-                    .andExpect(status().isCreated());
+                    .andExpect(status().isCreated())
+                    .andReturn();
 
-            mockMvc.perform(post("/api/purchases")
+            String firstId = objectMapper.readTree(firstResult.getResponse().getContentAsString())
+                    .get("id").asText();
+
+            MvcResult secondResult = mockMvc.perform(post("/api/purchases")
                             .cookie(new Cookie("access_token", accessToken))
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.status").value("PENDING"));
+                    .andExpect(jsonPath("$.status").value("PENDING"))
+                    .andReturn();
+
+            String secondId = objectMapper.readTree(secondResult.getResponse().getContentAsString())
+                    .get("id").asText();
+
+            org.junit.jupiter.api.Assertions.assertEquals(firstId, secondId);
         }
 
         @Test
@@ -252,106 +266,51 @@ class PurchaseControllerTest extends BaseIntegrationTest {
     }
 
     @Nested
-    @DisplayName("POST /api/purchases/{purchaseId}/pay")
-    class ProcessPayment {
+    @DisplayName("Payment via Webhook")
+    class PaymentViaWebhook {
 
         @Test
-        @DisplayName("should return 200 with successful credit card payment")
-        void processPayment_withCreditCard_success_shouldReturn200() throws Exception {
+        @DisplayName("should complete order when webhook receives success")
+        void webhook_withSuccess_shouldCompleteOrder() throws Exception {
             String purchaseId = createPurchaseOrder(PUBLISHED_JOURNEY_ID);
+            String sessionId = getCheckoutSessionId(purchaseId);
 
-            Map<String, Object> paymentRequest = new HashMap<>();
-            paymentRequest.put("cardNumber", "4111111111111234");
-            paymentRequest.put("expiryMonth", "12");
-            paymentRequest.put("expiryYear", "2025");
-            paymentRequest.put("cvv", "123");
-            paymentRequest.put("cardholderName", "John Doe");
+            Map<String, Object> webhookRequest = new HashMap<>();
+            webhookRequest.put("sessionId", sessionId);
+            webhookRequest.put("status", "SUCCESS");
 
-            mockMvc.perform(post("/api/purchases/{purchaseId}/pay", purchaseId)
-                            .cookie(new Cookie("access_token", accessToken))
+            mockMvc.perform(post("/api/webhooks/payment")
+                            .header("X-Webhook-Secret", webhookSecret)
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(paymentRequest)))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.purchaseId").value(purchaseId))
-                    .andExpect(jsonPath("$.status").value("COMPLETED"))
-                    .andExpect(jsonPath("$.message").value("Payment successful"));
-        }
+                            .content(objectMapper.writeValueAsString(webhookRequest)))
+                    .andExpect(status().isOk());
 
-        @Test
-        @DisplayName("should return failed status for declined card")
-        void processPayment_withCreditCard_declined_shouldReturnFailed() throws Exception {
-            String purchaseId = createPurchaseOrder(PUBLISHED_JOURNEY_ID);
-
-            Map<String, Object> paymentRequest = new HashMap<>();
-            paymentRequest.put("cardNumber", "4111111111110000");
-            paymentRequest.put("expiryMonth", "12");
-            paymentRequest.put("expiryYear", "2025");
-            paymentRequest.put("cvv", "123");
-            paymentRequest.put("cardholderName", "John Doe");
-
-            mockMvc.perform(post("/api/purchases/{purchaseId}/pay", purchaseId)
-                            .cookie(new Cookie("access_token", accessToken))
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(paymentRequest)))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.status").value("FAILED"))
-                    .andExpect(jsonPath("$.failureReason").value("Insufficient funds"));
-        }
-
-        @Test
-        @DisplayName("should return 200 with successful bank transfer")
-        void processPayment_withBankTransfer_success_shouldReturn200() throws Exception {
-            String purchaseId = createPurchaseOrderWithBankTransfer(PUBLISHED_JOURNEY_ID);
-
-            Map<String, Object> paymentRequest = new HashMap<>();
-            paymentRequest.put("accountNumber", "1234567890");
-            paymentRequest.put("bankCode", "123");
-
-            mockMvc.perform(post("/api/purchases/{purchaseId}/pay", purchaseId)
-                            .cookie(new Cookie("access_token", accessToken))
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(paymentRequest)))
-                    .andExpect(status().isOk())
+            mockMvc.perform(get("/api/purchases/{purchaseId}", purchaseId)
+                            .cookie(new Cookie("access_token", accessToken)))
                     .andExpect(jsonPath("$.status").value("COMPLETED"));
         }
 
         @Test
-        @DisplayName("should return 400 for non-pending order")
-        void processPayment_withNonPendingOrder_shouldReturn400() throws Exception {
+        @DisplayName("should fail order when webhook receives failure")
+        void webhook_withFailure_shouldFailOrder() throws Exception {
             String purchaseId = createPurchaseOrder(PUBLISHED_JOURNEY_ID);
-            cancelPurchase(purchaseId);
+            String sessionId = getCheckoutSessionId(purchaseId);
 
-            Map<String, Object> paymentRequest = new HashMap<>();
-            paymentRequest.put("cardNumber", "4111111111111234");
-            paymentRequest.put("expiryMonth", "12");
-            paymentRequest.put("expiryYear", "2025");
-            paymentRequest.put("cvv", "123");
-            paymentRequest.put("cardholderName", "John Doe");
+            Map<String, Object> webhookRequest = new HashMap<>();
+            webhookRequest.put("sessionId", sessionId);
+            webhookRequest.put("status", "FAILED");
+            webhookRequest.put("failureReason", "Insufficient funds");
 
-            mockMvc.perform(post("/api/purchases/{purchaseId}/pay", purchaseId)
-                            .cookie(new Cookie("access_token", accessToken))
+            mockMvc.perform(post("/api/webhooks/payment")
+                            .header("X-Webhook-Secret", webhookSecret)
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(paymentRequest)))
-                    .andExpect(status().isBadRequest());
-        }
+                            .content(objectMapper.writeValueAsString(webhookRequest)))
+                    .andExpect(status().isOk());
 
-        @Test
-        @DisplayName("should return 400 for invalid card number format")
-        void processPayment_withInvalidCardNumber_shouldReturn400() throws Exception {
-            String purchaseId = createPurchaseOrder(PUBLISHED_JOURNEY_ID);
-
-            Map<String, Object> paymentRequest = new HashMap<>();
-            paymentRequest.put("cardNumber", "1234");
-            paymentRequest.put("expiryMonth", "12");
-            paymentRequest.put("expiryYear", "2025");
-            paymentRequest.put("cvv", "123");
-            paymentRequest.put("cardholderName", "John Doe");
-
-            mockMvc.perform(post("/api/purchases/{purchaseId}/pay", purchaseId)
-                            .cookie(new Cookie("access_token", accessToken))
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(paymentRequest)))
-                    .andExpect(status().isBadRequest());
+            mockMvc.perform(get("/api/purchases/{purchaseId}", purchaseId)
+                            .cookie(new Cookie("access_token", accessToken)))
+                    .andExpect(jsonPath("$.status").value("FAILED"))
+                    .andExpect(jsonPath("$.failureReason").value("Insufficient funds"));
         }
     }
 
@@ -377,7 +336,7 @@ class PurchaseControllerTest extends BaseIntegrationTest {
         @DisplayName("should return 400 for completed order")
         void cancelPurchase_withCompletedOrder_shouldReturn400() throws Exception {
             String purchaseId = createPurchaseOrder(PUBLISHED_JOURNEY_ID);
-            completePayment(purchaseId);
+            completePaymentViaWebhook(purchaseId);
 
             mockMvc.perform(delete("/api/purchases/{purchaseId}", purchaseId)
                             .cookie(new Cookie("access_token", accessToken)))
@@ -410,19 +369,15 @@ class PurchaseControllerTest extends BaseIntegrationTest {
                 .get("id").asText();
     }
 
-    private String createPurchaseOrderWithBankTransfer(UUID journeyId) throws Exception {
-        Map<String, Object> request = new HashMap<>();
-        request.put("journeyId", journeyId.toString());
-        request.put("paymentMethod", "BANK_TRANSFER");
-
-        MvcResult result = mockMvc.perform(post("/api/purchases")
-                        .cookie(new Cookie("access_token", accessToken))
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+    private String getCheckoutSessionId(String purchaseId) throws Exception {
+        MvcResult result = mockMvc.perform(get("/api/purchases/{purchaseId}", purchaseId)
+                        .cookie(new Cookie("access_token", accessToken)))
                 .andReturn();
 
-        return objectMapper.readTree(result.getResponse().getContentAsString())
-                .get("id").asText();
+        String checkoutUrl = objectMapper.readTree(result.getResponse().getContentAsString())
+                .get("checkoutUrl").asText();
+
+        return checkoutUrl.substring(checkoutUrl.lastIndexOf("/") + 1);
     }
 
     private void cancelPurchase(String purchaseId) throws Exception {
@@ -431,18 +386,17 @@ class PurchaseControllerTest extends BaseIntegrationTest {
                 .andExpect(status().isNoContent());
     }
 
-    private void completePayment(String purchaseId) throws Exception {
-        Map<String, Object> paymentRequest = new HashMap<>();
-        paymentRequest.put("cardNumber", "4111111111111234");
-        paymentRequest.put("expiryMonth", "12");
-        paymentRequest.put("expiryYear", "2025");
-        paymentRequest.put("cvv", "123");
-        paymentRequest.put("cardholderName", "John Doe");
+    private void completePaymentViaWebhook(String purchaseId) throws Exception {
+        String sessionId = getCheckoutSessionId(purchaseId);
 
-        mockMvc.perform(post("/api/purchases/{purchaseId}/pay", purchaseId)
-                        .cookie(new Cookie("access_token", accessToken))
+        Map<String, Object> webhookRequest = new HashMap<>();
+        webhookRequest.put("sessionId", sessionId);
+        webhookRequest.put("status", "SUCCESS");
+
+        mockMvc.perform(post("/api/webhooks/payment")
+                        .header("X-Webhook-Secret", webhookSecret)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(paymentRequest)))
+                        .content(objectMapper.writeValueAsString(webhookRequest)))
                 .andExpect(status().isOk());
     }
 }

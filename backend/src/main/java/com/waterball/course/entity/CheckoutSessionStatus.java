@@ -1,9 +1,8 @@
 package com.waterball.course.entity;
 
-public enum PurchaseStatus {
+public enum CheckoutSessionStatus {
     PENDING,
-    COMPLETED,
+    SUCCESS,
     FAILED,
-    CANCELLED,
     EXPIRED
 }

@@ -1,7 +1,7 @@
 package com.waterball.course.service.purchase;
 
+import com.waterball.course.dto.request.CreateCheckoutRequest;
 import com.waterball.course.dto.request.CreatePurchaseRequest;
-import com.waterball.course.dto.response.PaymentResultResponse;
 import com.waterball.course.dto.response.PurchaseOrderDetailResponse;
 import com.waterball.course.dto.response.PurchaseOrderResponse;
 import com.waterball.course.entity.*;
@@ -14,48 +14,60 @@ import com.waterball.course.repository.JourneyRepository;
 import com.waterball.course.repository.PurchaseOrderRepository;
 import com.waterball.course.repository.UserPurchaseRepository;
 import com.waterball.course.repository.UserRepository;
-import com.waterball.course.service.payment.MockPaymentService;
-import com.waterball.course.service.payment.PaymentDetails;
-import com.waterball.course.service.payment.PaymentResult;
-import jakarta.persistence.EntityNotFoundException;
+import com.waterball.course.service.payment.MockPaymentGatewayService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
-@Transactional(readOnly = true)
+@Transactional
 public class PurchaseService {
     private final PurchaseOrderRepository purchaseOrderRepository;
-    private final UserPurchaseRepository userPurchaseRepository;
     private final JourneyRepository journeyRepository;
+    private final UserPurchaseRepository userPurchaseRepository;
     private final UserRepository userRepository;
-    private final MockPaymentService mockPaymentService;
+    private final MockPaymentGatewayService mockPaymentGatewayService;
 
-    @Transactional
+    @Value("${app.payment.checkout-expiration-minutes:60}")
+    private int checkoutExpirationMinutes;
+
+    @Value("${app.frontend.base-url:http://localhost:3000}")
+    private String frontendBaseUrl;
+
     public PurchaseOrderResponse createPurchaseOrder(UUID userId, CreatePurchaseRequest request) {
         Journey journey = journeyRepository.findByIdAndIsPublishedTrue(request.getJourneyId())
                 .orElseThrow(() -> new JourneyNotFoundException("Journey not found"));
 
-        if (userPurchaseRepository.existsByUserIdAndJourneyId(userId, request.getJourneyId())) {
+        if (userPurchaseRepository.existsByUserIdAndJourneyId(userId, journey.getId())) {
             throw new AlreadyPurchasedException("You have already purchased this course");
         }
 
-        var existingPending = purchaseOrderRepository.findByUserIdAndJourneyIdAndStatus(
-                userId, request.getJourneyId(), PurchaseStatus.PENDING);
+        Optional<PurchaseOrder> existingPending = purchaseOrderRepository
+                .findPendingByUserIdAndJourneyId(userId, journey.getId());
+
         if (existingPending.isPresent()) {
-            return toResponse(existingPending.get(), false);
+            PurchaseOrder existing = existingPending.get();
+            if (existing.getExpiresAt() != null && existing.getExpiresAt().isAfter(Instant.now())) {
+                String checkoutUrl = mockPaymentGatewayService.getCheckoutUrl(existing.getCheckoutSessionId());
+                return toResponseWithCheckoutUrl(existing, checkoutUrl, true);
+            }
+            existing.setStatus(PurchaseStatus.EXPIRED);
+            purchaseOrderRepository.save(existing);
         }
 
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new EntityNotFoundException("User not found"));
+                .orElseThrow(() -> new PurchaseOrderNotFoundException("User not found"));
 
         PurchaseOrder order = new PurchaseOrder();
         order.setUser(user);
@@ -63,47 +75,28 @@ public class PurchaseService {
         order.setAmount(journey.getPrice());
         order.setPaymentMethod(request.getPaymentMethod());
         order.setStatus(PurchaseStatus.PENDING);
+        order.setExpiresAt(Instant.now().plus(checkoutExpirationMinutes, ChronoUnit.MINUTES));
 
-        order = purchaseOrderRepository.save(order);
-        return toResponse(order, true);
+        purchaseOrderRepository.save(order);
+
+        CreateCheckoutRequest checkoutRequest = CreateCheckoutRequest.builder()
+                .purchaseOrderId(order.getId())
+                .paymentMethod(request.getPaymentMethod())
+                .amount(journey.getPrice())
+                .currency("TWD")
+                .successUrl(frontendBaseUrl + "/purchase/callback?status=success&orderId=" + order.getId())
+                .cancelUrl(frontendBaseUrl + "/purchase/callback?status=cancelled&orderId=" + order.getId())
+                .build();
+
+        CheckoutSession session = mockPaymentGatewayService.createCheckoutSession(checkoutRequest);
+
+        order.setCheckoutSessionId(session.getId());
+        purchaseOrderRepository.save(order);
+
+        String checkoutUrl = mockPaymentGatewayService.getCheckoutUrl(session.getId());
+        return toResponseWithCheckoutUrl(order, checkoutUrl);
     }
 
-    @Transactional
-    public PaymentResultResponse processPayment(UUID userId, UUID purchaseId, PaymentDetails paymentDetails) {
-        PurchaseOrder order = purchaseOrderRepository.findById(purchaseId)
-                .orElseThrow(() -> new PurchaseOrderNotFoundException("Purchase order not found"));
-
-        if (!order.getUser().getId().equals(userId)) {
-            throw new AccessDeniedException("Access denied");
-        }
-
-        if (order.getStatus() != PurchaseStatus.PENDING) {
-            throw new InvalidOrderStatusException("Order is not in pending status");
-        }
-
-        PaymentResult result = mockPaymentService.processPayment(order, paymentDetails);
-
-        if (result.isSuccess()) {
-            order.setStatus(PurchaseStatus.COMPLETED);
-            order.setCompletedAt(LocalDateTime.now());
-            purchaseOrderRepository.save(order);
-
-            UserPurchase userPurchase = new UserPurchase();
-            userPurchase.setUser(order.getUser());
-            userPurchase.setJourney(order.getJourney());
-            userPurchaseRepository.save(userPurchase);
-
-            return PaymentResultResponse.success(purchaseId, order.getCompletedAt());
-        } else {
-            order.setStatus(PurchaseStatus.FAILED);
-            order.setFailureReason(result.failureReason());
-            purchaseOrderRepository.save(order);
-
-            return PaymentResultResponse.failed(purchaseId, result.failureReason());
-        }
-    }
-
-    @Transactional
     public void cancelPurchase(UUID userId, UUID purchaseId) {
         PurchaseOrder order = purchaseOrderRepository.findById(purchaseId)
                 .orElseThrow(() -> new PurchaseOrderNotFoundException("Purchase order not found"));
@@ -120,6 +113,7 @@ public class PurchaseService {
         purchaseOrderRepository.save(order);
     }
 
+    @Transactional(readOnly = true)
     public PurchaseOrderDetailResponse getPurchaseOrder(UUID userId, UUID purchaseId) {
         PurchaseOrder order = purchaseOrderRepository.findById(purchaseId)
                 .orElseThrow(() -> new PurchaseOrderNotFoundException("Purchase order not found"));
@@ -128,64 +122,91 @@ public class PurchaseService {
             throw new AccessDeniedException("Access denied");
         }
 
-        return toDetailResponse(order);
-    }
-
-    public Page<PurchaseOrderResponse> getPurchaseHistory(UUID userId, PurchaseStatus status, Pageable pageable) {
-        if (status != null) {
-            return purchaseOrderRepository.findByUserIdAndStatus(userId, status, pageable)
-                    .map(this::toResponse);
+        String checkoutUrl = null;
+        if (order.getStatus() == PurchaseStatus.PENDING && order.getCheckoutSessionId() != null) {
+            checkoutUrl = mockPaymentGatewayService.getCheckoutUrl(order.getCheckoutSessionId());
         }
-        return purchaseOrderRepository.findByUserId(userId, pageable)
-                .map(this::toResponse);
+
+        return toDetailResponse(order, checkoutUrl);
     }
 
+    @Transactional(readOnly = true)
+    public Page<PurchaseOrderResponse> getPurchaseHistory(UUID userId, PurchaseStatus status, Pageable pageable) {
+        Page<PurchaseOrder> orders = status != null
+                ? purchaseOrderRepository.findByUserIdAndStatus(userId, status, pageable)
+                : purchaseOrderRepository.findByUserId(userId, pageable);
+
+        return orders.map(this::toResponse);
+    }
+
+    @Transactional(readOnly = true)
     public List<PurchaseOrderResponse> getPendingPurchases(UUID userId) {
         return purchaseOrderRepository.findPendingByUserId(userId).stream()
-                .map(this::toResponse)
-                .toList();
+                .map(order -> {
+                    String checkoutUrl = null;
+                    if (order.getCheckoutSessionId() != null) {
+                        checkoutUrl = mockPaymentGatewayService.getCheckoutUrl(order.getCheckoutSessionId());
+                    }
+                    return toResponseWithCheckoutUrl(order, checkoutUrl);
+                })
+                .collect(Collectors.toList());
     }
 
-    public Optional<PurchaseOrderResponse> getPendingPurchaseByJourney(UUID userId, UUID journeyId) {
-        return purchaseOrderRepository.findByUserIdAndJourneyIdAndStatus(userId, journeyId, PurchaseStatus.PENDING)
-                .map(this::toResponse);
+    @Transactional(readOnly = true)
+    public PurchaseOrderResponse getPendingPurchaseByJourney(UUID userId, UUID journeyId) {
+        PurchaseOrder order = purchaseOrderRepository.findPendingByUserIdAndJourneyId(userId, journeyId)
+                .orElseThrow(() -> new PurchaseOrderNotFoundException("No pending order for this journey"));
+
+        String checkoutUrl = null;
+        if (order.getCheckoutSessionId() != null) {
+            checkoutUrl = mockPaymentGatewayService.getCheckoutUrl(order.getCheckoutSessionId());
+        }
+        return toResponseWithCheckoutUrl(order, checkoutUrl);
     }
 
     private PurchaseOrderResponse toResponse(PurchaseOrder order) {
-        return toResponse(order, false);
+        return toResponseWithCheckoutUrl(order, null);
     }
 
-    private PurchaseOrderResponse toResponse(PurchaseOrder order, boolean isNewOrder) {
-        Journey journey = order.getJourney();
+    private PurchaseOrderResponse toResponseWithCheckoutUrl(PurchaseOrder order, String checkoutUrl) {
+        return toResponseWithCheckoutUrl(order, checkoutUrl, false);
+    }
+
+    private PurchaseOrderResponse toResponseWithCheckoutUrl(PurchaseOrder order, String checkoutUrl, boolean resumed) {
         return PurchaseOrderResponse.builder()
                 .id(order.getId())
-                .journeyId(journey.getId())
-                .journeyTitle(journey.getTitle())
-                .journeyThumbnailUrl(journey.getThumbnailUrl())
+                .journeyId(order.getJourney().getId())
+                .journeyTitle(order.getJourney().getTitle())
+                .journeyThumbnailUrl(order.getJourney().getThumbnailUrl())
                 .amount(order.getAmount())
+                .currency("TWD")
                 .paymentMethod(order.getPaymentMethod())
                 .status(order.getStatus())
+                .checkoutUrl(checkoutUrl)
                 .failureReason(order.getFailureReason())
+                .resumed(resumed)
+                .expiresAt(order.getExpiresAt())
                 .createdAt(order.getCreatedAt())
                 .completedAt(order.getCompletedAt())
-                .isNewOrder(isNewOrder)
                 .build();
     }
 
-    private PurchaseOrderDetailResponse toDetailResponse(PurchaseOrder order) {
-        Journey journey = order.getJourney();
+    private PurchaseOrderDetailResponse toDetailResponse(PurchaseOrder order, String checkoutUrl) {
         return PurchaseOrderDetailResponse.builder()
                 .id(order.getId())
-                .journeyId(journey.getId())
-                .journeyTitle(journey.getTitle())
-                .journeyThumbnailUrl(journey.getThumbnailUrl())
-                .journeyDescription(journey.getDescription())
+                .journeyId(order.getJourney().getId())
+                .journeyTitle(order.getJourney().getTitle())
+                .journeyThumbnailUrl(order.getJourney().getThumbnailUrl())
+                .journeyDescription(order.getJourney().getDescription())
                 .amount(order.getAmount())
+                .currency("TWD")
                 .paymentMethod(order.getPaymentMethod())
                 .status(order.getStatus())
+                .checkoutUrl(checkoutUrl)
                 .failureReason(order.getFailureReason())
                 .createdAt(order.getCreatedAt())
                 .updatedAt(order.getUpdatedAt())
+                .expiresAt(order.getExpiresAt())
                 .completedAt(order.getCompletedAt())
                 .build();
     }

@@ -2,13 +2,10 @@ package com.waterball.course.service;
 
 import com.waterball.course.controller.BaseIntegrationTest;
 import com.waterball.course.dto.request.CreatePurchaseRequest;
-import com.waterball.course.dto.response.PaymentResultResponse;
 import com.waterball.course.dto.response.PurchaseOrderResponse;
 import com.waterball.course.entity.PaymentMethod;
 import com.waterball.course.entity.PurchaseStatus;
 import com.waterball.course.exception.*;
-import com.waterball.course.repository.UserPurchaseRepository;
-import com.waterball.course.service.payment.CreditCardDetails;
 import com.waterball.course.service.purchase.PurchaseService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -35,16 +32,13 @@ class PurchaseServiceTest extends BaseIntegrationTest {
     @Autowired
     private PurchaseService purchaseService;
 
-    @Autowired
-    private UserPurchaseRepository userPurchaseRepository;
-
     @Nested
     @DisplayName("createPurchaseOrder")
     class CreatePurchaseOrder {
 
         @Test
-        @DisplayName("should create order with valid request")
-        void createPurchaseOrder_withValidRequest_shouldCreateOrder() {
+        @DisplayName("should create order with valid request and return checkout URL")
+        void createPurchaseOrder_withValidRequest_shouldCreateOrderWithCheckoutUrl() {
             CreatePurchaseRequest request = new CreatePurchaseRequest();
             request.setJourneyId(PUBLISHED_JOURNEY_ID);
             request.setPaymentMethod(PaymentMethod.CREDIT_CARD);
@@ -55,10 +49,13 @@ class PurchaseServiceTest extends BaseIntegrationTest {
             assertThat(response.getJourneyId()).isEqualTo(PUBLISHED_JOURNEY_ID);
             assertThat(response.getStatus()).isEqualTo(PurchaseStatus.PENDING);
             assertThat(response.getPaymentMethod()).isEqualTo(PaymentMethod.CREDIT_CARD);
+            assertThat(response.getCheckoutUrl()).isNotNull();
+            assertThat(response.getCheckoutUrl()).contains("/mock-payment/checkout/");
+            assertThat(response.getExpiresAt()).isNotNull();
         }
 
         @Test
-        @DisplayName("should return existing pending order")
+        @DisplayName("should return existing pending order with same checkout URL")
         void createPurchaseOrder_withExistingPending_shouldReturnExisting() {
             CreatePurchaseRequest request = new CreatePurchaseRequest();
             request.setJourneyId(PUBLISHED_JOURNEY_ID);
@@ -68,6 +65,7 @@ class PurchaseServiceTest extends BaseIntegrationTest {
             PurchaseOrderResponse second = purchaseService.createPurchaseOrder(TEST_USER_ID, request);
 
             assertThat(second.getId()).isEqualTo(first.getId());
+            assertThat(second.getCheckoutUrl()).isEqualTo(first.getCheckoutUrl());
         }
 
         @Test
@@ -95,81 +93,6 @@ class PurchaseServiceTest extends BaseIntegrationTest {
     }
 
     @Nested
-    @DisplayName("processPayment")
-    class ProcessPayment {
-
-        @Test
-        @DisplayName("should create user purchase on success")
-        void processPayment_withSuccess_shouldCreateUserPurchase() {
-            CreatePurchaseRequest request = new CreatePurchaseRequest();
-            request.setJourneyId(PUBLISHED_JOURNEY_ID);
-            request.setPaymentMethod(PaymentMethod.CREDIT_CARD);
-            PurchaseOrderResponse order = purchaseService.createPurchaseOrder(TEST_USER_ID, request);
-
-            CreditCardDetails details = new CreditCardDetails(
-                    "4111111111111234", "12", "2025", "123", "John Doe"
-            );
-
-            PaymentResultResponse result = purchaseService.processPayment(TEST_USER_ID, order.getId(), details);
-
-            assertThat(result.getStatus()).isEqualTo(PurchaseStatus.COMPLETED);
-            assertThat(userPurchaseRepository.existsByUserIdAndJourneyId(TEST_USER_ID, PUBLISHED_JOURNEY_ID)).isTrue();
-        }
-
-        @Test
-        @DisplayName("should update order status on failure")
-        void processPayment_withFailure_shouldUpdateOrderStatus() {
-            CreatePurchaseRequest request = new CreatePurchaseRequest();
-            request.setJourneyId(PUBLISHED_JOURNEY_ID);
-            request.setPaymentMethod(PaymentMethod.CREDIT_CARD);
-            PurchaseOrderResponse order = purchaseService.createPurchaseOrder(TEST_USER_ID, request);
-
-            CreditCardDetails details = new CreditCardDetails(
-                    "4111111111110000", "12", "2025", "123", "John Doe"
-            );
-
-            PaymentResultResponse result = purchaseService.processPayment(TEST_USER_ID, order.getId(), details);
-
-            assertThat(result.getStatus()).isEqualTo(PurchaseStatus.FAILED);
-            assertThat(result.getFailureReason()).isEqualTo("Insufficient funds");
-            assertThat(userPurchaseRepository.existsByUserIdAndJourneyId(TEST_USER_ID, PUBLISHED_JOURNEY_ID)).isFalse();
-        }
-
-        @Test
-        @DisplayName("should throw exception for access denied")
-        void processPayment_withDifferentUser_shouldThrowException() {
-            CreatePurchaseRequest request = new CreatePurchaseRequest();
-            request.setJourneyId(PUBLISHED_JOURNEY_ID);
-            request.setPaymentMethod(PaymentMethod.CREDIT_CARD);
-            PurchaseOrderResponse order = purchaseService.createPurchaseOrder(TEST_USER_ID, request);
-
-            CreditCardDetails details = new CreditCardDetails(
-                    "4111111111111234", "12", "2025", "123", "John Doe"
-            );
-
-            assertThatThrownBy(() -> purchaseService.processPayment(OTHER_USER_ID, order.getId(), details))
-                    .isInstanceOf(AccessDeniedException.class);
-        }
-
-        @Test
-        @DisplayName("should throw exception for non-pending order")
-        void processPayment_withNonPendingOrder_shouldThrowException() {
-            CreatePurchaseRequest request = new CreatePurchaseRequest();
-            request.setJourneyId(PUBLISHED_JOURNEY_ID);
-            request.setPaymentMethod(PaymentMethod.CREDIT_CARD);
-            PurchaseOrderResponse order = purchaseService.createPurchaseOrder(TEST_USER_ID, request);
-            purchaseService.cancelPurchase(TEST_USER_ID, order.getId());
-
-            CreditCardDetails details = new CreditCardDetails(
-                    "4111111111111234", "12", "2025", "123", "John Doe"
-            );
-
-            assertThatThrownBy(() -> purchaseService.processPayment(TEST_USER_ID, order.getId(), details))
-                    .isInstanceOf(InvalidOrderStatusException.class);
-        }
-    }
-
-    @Nested
     @DisplayName("cancelPurchase")
     class CancelPurchase {
 
@@ -188,23 +111,6 @@ class PurchaseServiceTest extends BaseIntegrationTest {
         }
 
         @Test
-        @DisplayName("should throw exception for non-pending order")
-        void cancelPurchase_withNonPending_shouldThrowException() {
-            CreatePurchaseRequest request = new CreatePurchaseRequest();
-            request.setJourneyId(PUBLISHED_JOURNEY_ID);
-            request.setPaymentMethod(PaymentMethod.CREDIT_CARD);
-            PurchaseOrderResponse order = purchaseService.createPurchaseOrder(TEST_USER_ID, request);
-
-            CreditCardDetails details = new CreditCardDetails(
-                    "4111111111111234", "12", "2025", "123", "John Doe"
-            );
-            purchaseService.processPayment(TEST_USER_ID, order.getId(), details);
-
-            assertThatThrownBy(() -> purchaseService.cancelPurchase(TEST_USER_ID, order.getId()))
-                    .isInstanceOf(InvalidOrderStatusException.class);
-        }
-
-        @Test
         @DisplayName("should throw exception for access denied")
         void cancelPurchase_withDifferentUser_shouldThrowException() {
             CreatePurchaseRequest request = new CreatePurchaseRequest();
@@ -214,6 +120,82 @@ class PurchaseServiceTest extends BaseIntegrationTest {
 
             assertThatThrownBy(() -> purchaseService.cancelPurchase(OTHER_USER_ID, order.getId()))
                     .isInstanceOf(AccessDeniedException.class);
+        }
+    }
+
+    @Nested
+    @DisplayName("getPurchaseOrder")
+    class GetPurchaseOrder {
+
+        @Test
+        @DisplayName("should return order with checkout URL for pending status")
+        void getPurchaseOrder_withPending_shouldReturnWithCheckoutUrl() {
+            CreatePurchaseRequest request = new CreatePurchaseRequest();
+            request.setJourneyId(PUBLISHED_JOURNEY_ID);
+            request.setPaymentMethod(PaymentMethod.CREDIT_CARD);
+            PurchaseOrderResponse order = purchaseService.createPurchaseOrder(TEST_USER_ID, request);
+
+            var detail = purchaseService.getPurchaseOrder(TEST_USER_ID, order.getId());
+
+            assertThat(detail.getCheckoutUrl()).isNotNull();
+            assertThat(detail.getCheckoutUrl()).contains("/mock-payment/checkout/");
+        }
+
+        @Test
+        @DisplayName("should throw exception for access denied")
+        void getPurchaseOrder_withDifferentUser_shouldThrowException() {
+            CreatePurchaseRequest request = new CreatePurchaseRequest();
+            request.setJourneyId(PUBLISHED_JOURNEY_ID);
+            request.setPaymentMethod(PaymentMethod.CREDIT_CARD);
+            PurchaseOrderResponse order = purchaseService.createPurchaseOrder(TEST_USER_ID, request);
+
+            assertThatThrownBy(() -> purchaseService.getPurchaseOrder(OTHER_USER_ID, order.getId()))
+                    .isInstanceOf(AccessDeniedException.class);
+        }
+    }
+
+    @Nested
+    @DisplayName("getPendingPurchases")
+    class GetPendingPurchases {
+
+        @Test
+        @DisplayName("should return pending orders with checkout URLs")
+        void getPendingPurchases_shouldReturnWithCheckoutUrls() {
+            CreatePurchaseRequest request = new CreatePurchaseRequest();
+            request.setJourneyId(PUBLISHED_JOURNEY_ID);
+            request.setPaymentMethod(PaymentMethod.CREDIT_CARD);
+            purchaseService.createPurchaseOrder(TEST_USER_ID, request);
+
+            var pendingOrders = purchaseService.getPendingPurchases(TEST_USER_ID);
+
+            assertThat(pendingOrders).hasSize(1);
+            assertThat(pendingOrders.get(0).getCheckoutUrl()).isNotNull();
+        }
+    }
+
+    @Nested
+    @DisplayName("getPendingPurchaseByJourney")
+    class GetPendingPurchaseByJourney {
+
+        @Test
+        @DisplayName("should return pending order for journey")
+        void getPendingPurchaseByJourney_withPending_shouldReturn() {
+            CreatePurchaseRequest request = new CreatePurchaseRequest();
+            request.setJourneyId(PUBLISHED_JOURNEY_ID);
+            request.setPaymentMethod(PaymentMethod.CREDIT_CARD);
+            purchaseService.createPurchaseOrder(TEST_USER_ID, request);
+
+            var order = purchaseService.getPendingPurchaseByJourney(TEST_USER_ID, PUBLISHED_JOURNEY_ID);
+
+            assertThat(order.getJourneyId()).isEqualTo(PUBLISHED_JOURNEY_ID);
+            assertThat(order.getCheckoutUrl()).isNotNull();
+        }
+
+        @Test
+        @DisplayName("should throw exception when no pending order")
+        void getPendingPurchaseByJourney_withNoPending_shouldThrowException() {
+            assertThatThrownBy(() -> purchaseService.getPendingPurchaseByJourney(TEST_USER_ID, PUBLISHED_JOURNEY_ID))
+                    .isInstanceOf(PurchaseOrderNotFoundException.class);
         }
     }
 }

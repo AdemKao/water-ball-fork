@@ -44,7 +44,7 @@ class MockPaymentServiceTest {
 
             PaymentResult result = mockPaymentService.processPayment(order, details);
 
-            assertThat(result.isSuccess()).isTrue();
+            assertThat(result.success()).isTrue();
             assertThat(result.failureReason()).isNull();
         }
 
@@ -61,7 +61,7 @@ class MockPaymentServiceTest {
 
             PaymentResult result = mockPaymentService.processPayment(order, details);
 
-            assertThat(result.isSuccess()).isFalse();
+            assertThat(result.success()).isFalse();
             assertThat(result.failureReason()).isEqualTo("Insufficient funds");
         }
 
@@ -78,7 +78,7 @@ class MockPaymentServiceTest {
 
             PaymentResult result = mockPaymentService.processPayment(order, details);
 
-            assertThat(result.isSuccess()).isFalse();
+            assertThat(result.success()).isFalse();
             assertThat(result.failureReason()).isEqualTo("Card declined");
         }
     }
@@ -97,7 +97,7 @@ class MockPaymentServiceTest {
 
             PaymentResult result = mockPaymentService.processPayment(order, details);
 
-            assertThat(result.isSuccess()).isTrue();
+            assertThat(result.success()).isTrue();
             assertThat(result.failureReason()).isNull();
         }
 
@@ -111,7 +111,7 @@ class MockPaymentServiceTest {
 
             PaymentResult result = mockPaymentService.processPayment(order, details);
 
-            assertThat(result.isSuccess()).isFalse();
+            assertThat(result.success()).isFalse();
             assertThat(result.failureReason()).isEqualTo("Invalid bank");
         }
     }
