@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { ChevronUp, Play, Check, Lock } from 'lucide-react';
+import { ChevronUp, ChevronLeft, ChevronRight, Play, Check, Lock } from 'lucide-react';
 import { JourneyDetail, LessonSummary } from '@/types';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -10,6 +10,8 @@ interface CourseSidebarProps {
   journey: JourneyDetail;
   activeLessonId?: string;
   onLessonClick?: (lessonId: string, isTrial: boolean) => void;
+  collapsed?: boolean;
+  onToggleCollapse?: () => void;
 }
 
 interface ChapterSectionProps {
@@ -110,9 +112,14 @@ export function CourseSidebar({
   journey,
   activeLessonId,
   onLessonClick,
+  collapsed = false,
+  onToggleCollapse,
 }: CourseSidebarProps) {
   return (
-    <aside className="w-[280px] bg-background border-r flex flex-col h-full">
+    <aside className={cn(
+      "bg-background border-r flex flex-col h-full relative transition-all duration-300",
+      collapsed ? "w-0 overflow-hidden" : "w-[280px]"
+    )}>
       <ScrollArea className="flex-1">
         {journey.chapters.map((chapter, index) => (
           <ChapterSection
@@ -129,6 +136,21 @@ export function CourseSidebar({
           />
         ))}
       </ScrollArea>
+      
+      <button
+        onClick={onToggleCollapse}
+        className={cn(
+          "absolute top-1/2 -translate-y-1/2 h-12 w-5 bg-muted border border-border rounded-r-md flex items-center justify-center hover:bg-muted/80 transition-colors z-10",
+          collapsed ? "left-0" : "-right-5"
+        )}
+        title={collapsed ? "展開側邊欄" : "收起側邊欄"}
+      >
+        {collapsed ? (
+          <ChevronRight className="h-4 w-4" />
+        ) : (
+          <ChevronLeft className="h-4 w-4" />
+        )}
+      </button>
     </aside>
   );
 }

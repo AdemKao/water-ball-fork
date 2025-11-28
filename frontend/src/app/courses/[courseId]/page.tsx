@@ -28,13 +28,14 @@ export default function CourseJourneyPage({ params }: PageProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [selectedLessonId, setSelectedLessonId] = useState<string | null>(null);
   const [showLoginModal, setShowLoginModal] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   const activeLessonId = useMemo(() => {
     if (selectedLessonId) return selectedLessonId;
     return journey?.chapters[0]?.lessons[0]?.id || null;
   }, [selectedLessonId, journey]);
 
-  const { lesson, isLoading: isLessonLoading } = useLesson(activeLessonId || '');
+  const { lesson, isLoading: isLessonLoading, isUnauthorized } = useLesson(activeLessonId || '');
   const { progress, markComplete } = useLessonProgress(
     activeLessonId || '',
     lesson?.progress,
@@ -94,13 +95,21 @@ export default function CourseJourneyPage({ params }: PageProps) {
     .find((l) => l.id === activeLessonId);
 
   const isTrialLesson = currentLesson?.accessType === 'TRIAL';
-  const needsLogin = isTrialLesson && !user && !isAuthLoading;
+  const needsLogin = (isTrialLesson && !user && !isAuthLoading) || isUnauthorized;
 
   const renderMainContent = () => {
     if (!activeLessonId || !currentLesson) {
       return (
         <div className="flex items-center justify-center h-full text-muted-foreground">
           請選擇一個課程開始學習
+        </div>
+      );
+    }
+
+    if (isLessonLoading && !isUnauthorized) {
+      return (
+        <div className="max-w-4xl mx-auto">
+          <div className="aspect-video bg-muted animate-pulse rounded-lg" />
         </div>
       );
     }
@@ -121,14 +130,6 @@ export default function CourseJourneyPage({ params }: PageProps) {
       );
     }
 
-    if (isLessonLoading) {
-      return (
-        <div className="max-w-4xl mx-auto">
-          <div className="aspect-video bg-muted animate-pulse rounded-lg" />
-        </div>
-      );
-    }
-
     if (!lesson) {
       return (
         <div className="flex items-center justify-center h-full text-muted-foreground">
@@ -138,7 +139,7 @@ export default function CourseJourneyPage({ params }: PageProps) {
     }
 
     return (
-      <div className="max-w-4xl mx-auto space-y-4">
+      <div className="space-y-4">
         <div className="bg-[#F17500]/10 border border-[#F17500]/30 rounded-lg px-4 py-3 flex items-center justify-between">
           <p className="text-sm">
             將此體驗課程的全部影片看完就可以獲得 3000 元課程折價券！
@@ -186,6 +187,8 @@ export default function CourseJourneyPage({ params }: PageProps) {
               journey={journey}
               activeLessonId={activeLessonId || undefined}
               onLessonClick={handleLessonClick}
+              collapsed={sidebarCollapsed}
+              onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
             />
           </div>
 
@@ -214,9 +217,12 @@ export default function CourseJourneyPage({ params }: PageProps) {
         />
       )}
 
-      {showLoginModal && (
-        <LoginRequiredModal onClose={() => setShowLoginModal(false)} />
-      )}
+      <LoginRequiredModal
+        open={showLoginModal || needsLogin}
+        onOpenChange={(open) => {
+          setShowLoginModal(open);
+        }}
+      />
     </>
   );
 }
