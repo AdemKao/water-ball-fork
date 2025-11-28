@@ -12,6 +12,7 @@ export interface CourseCardData {
 
 export interface OrderRecord {
   id: string;
+  journeyId: string;
   courseTitle: string;
   amount: number;
   status: 'pending' | 'completed' | 'cancelled';

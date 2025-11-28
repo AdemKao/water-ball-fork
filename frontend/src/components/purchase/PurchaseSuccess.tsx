@@ -93,7 +93,7 @@ export function PurchaseSuccess({ purchase, journey }: PurchaseSuccessProps) {
       <div className="flex flex-col gap-3">
         <Button
           onClick={() => router.push(`/courses/${journey.id}`)}
-          className="w-full"
+          className="w-full h-12 text-lg bg-primary hover:bg-primary/90"
           data-testid="start-learning-button"
         >
           開始學習
@@ -101,7 +101,7 @@ export function PurchaseSuccess({ purchase, journey }: PurchaseSuccessProps) {
         <Button
           variant="outline"
           onClick={() => router.push('/courses')}
-          className="w-full"
+          className="w-full h-12 text-lg"
         >
           返回課程列表
         </Button>
