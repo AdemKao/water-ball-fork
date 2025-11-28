@@ -47,7 +47,7 @@ export default function CourseJourneyPage({ params }: PageProps) {
       setShowLoginModal(true);
       return;
     }
-    setActiveLessonId(lessonId);
+    setSelectedLessonId(lessonId);
     setMobileMenuOpen(false);
   };
 
@@ -93,11 +93,30 @@ export default function CourseJourneyPage({ params }: PageProps) {
     .flatMap((c) => c.lessons)
     .find((l) => l.id === activeLessonId);
 
+  const isTrialLesson = currentLesson?.accessType === 'TRIAL';
+  const needsLogin = isTrialLesson && !user && !isAuthLoading;
+
   const renderMainContent = () => {
     if (!activeLessonId || !currentLesson) {
       return (
         <div className="flex items-center justify-center h-full text-muted-foreground">
           請選擇一個課程開始學習
+        </div>
+      );
+    }
+
+    if (needsLogin) {
+      return (
+        <div className="flex items-center justify-center h-full">
+          <div className="text-center space-y-4">
+            <p className="text-muted-foreground">請先登入以觀看試聽課程</p>
+            <button
+              onClick={() => setShowLoginModal(true)}
+              className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
+            >
+              登入
+            </button>
+          </div>
         </div>
       );
     }
