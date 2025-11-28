@@ -51,7 +51,7 @@ export function WBCourseCard({ course, onPurchase, onPreview }: WBCourseCardProp
       <div className="p-4 space-y-3">
         <div className="flex items-center gap-2">
           {!course.isOwned && (
-            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-200 text-gray-700">
+            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-muted text-muted-foreground">
               尚未擁有
             </span>
           )}
@@ -61,26 +61,40 @@ export function WBCourseCard({ course, onPurchase, onPreview }: WBCourseCardProp
             </span>
           )}
         </div>
-        <h3 className="font-semibold text-lg text-[#1B1B1F] line-clamp-2">
+        <h3 className="font-semibold text-lg text-foreground line-clamp-2">
           {course.title}
         </h3>
-        <p className="text-sm text-[#4B5563]">{course.instructor}</p>
+        <p className="text-sm text-muted-foreground">{course.instructor}</p>
         <div className="flex gap-2 pt-2">
-          <Link href={`/courses/${course.id}`} className="flex-1">
-            <Button
-              variant="outline"
-              className="w-full"
-              onClick={() => onPreview?.(course.id)}
-            >
-              試聽課程
-            </Button>
-          </Link>
-          <Button
-            className="flex-1 bg-[#F17500] hover:bg-[#D96800] text-white"
-            onClick={() => onPurchase?.(course.id)}
-          >
-            立刻購買
-          </Button>
+          {course.isOwned ? (
+            <Link href={`/courses/${course.id}`} className="flex-1">
+              <Button
+                className="w-full bg-[#F17500] hover:bg-[#D96800] text-white"
+              >
+                上課去
+              </Button>
+            </Link>
+          ) : (
+            <>
+              <Link href={`/courses/${course.id}`} className="flex-1">
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => onPreview?.(course.id)}
+                >
+                  試聽課程
+                </Button>
+              </Link>
+              <Link href={`/journeys/${course.id}/orders`} className="flex-1">
+                <Button
+                  className="w-full bg-[#F17500] hover:bg-[#D96800] text-white"
+                  onClick={() => onPurchase?.(course.id)}
+                >
+                  立刻購買
+                </Button>
+              </Link>
+            </>
+          )}
         </div>
       </div>
     </div>
