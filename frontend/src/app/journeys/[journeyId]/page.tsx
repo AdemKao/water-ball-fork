@@ -2,71 +2,34 @@
 
 import { useState } from "react";
 import { useParams } from "next/navigation";
-import { ChevronDown, ChevronUp, Play, Award, Smartphone, Globe } from "lucide-react";
+import { ChevronDown, ChevronUp, Play, Award, Smartphone, Globe, FileText, ClipboardList } from "lucide-react";
 import { Navbar } from "@/components/layout/navbar";
 import { Container } from "@/components/shared/Container";
 import { CTAButton } from "@/components/shared/CTAButton";
+import { useJourney } from "@/hooks/useJourney";
+import { ChapterWithLessons, LessonSummary } from "@/types";
 
-interface Section {
-  id: string;
-  title: string;
-  description: string;
-  items?: string[];
+function getLessonIcon(lessonType: string) {
+  switch (lessonType) {
+    case 'VIDEO':
+      return <Play className="w-4 h-4 text-[#F17500]" />;
+    case 'ARTICLE':
+      return <FileText className="w-4 h-4 text-[#F17500]" />;
+    case 'GOOGLE_FORM':
+      return <ClipboardList className="w-4 h-4 text-[#F17500]" />;
+    default:
+      return <Play className="w-4 h-4 text-[#F17500]" />;
+  }
 }
 
-const sections: Section[] = [
-  {
-    id: "intro",
-    title: "副本零：軟體設計模式入門",
-    description: "從基礎開始，了解什麼是設計模式，為什麼需要學習設計模式，以及如何在實際開發中應用。",
-    items: ["設計模式概論", "SOLID 原則", "UML 類別圖基礎"],
-  },
-  {
-    id: "creational",
-    title: "副本一：創建型模式",
-    description: "學習物件創建的最佳實踐，包括單例、工廠、建造者等模式。",
-    items: ["Singleton Pattern", "Factory Pattern", "Builder Pattern", "Prototype Pattern"],
-  },
-  {
-    id: "structural",
-    title: "副本二：結構型模式",
-    description: "掌握如何組合類別和物件，形成更大的結構。",
-    items: ["Adapter Pattern", "Decorator Pattern", "Facade Pattern", "Composite Pattern"],
-  },
-  {
-    id: "behavioral",
-    title: "副本三：行為型模式",
-    description: "了解物件之間的職責分配和演算法封裝。",
-    items: ["Strategy Pattern", "Observer Pattern", "Command Pattern", "State Pattern"],
-  },
-  {
-    id: "framework",
-    title: "副本四：框架開發實戰",
-    description: "將所學模式應用於實際框架開發，包括 Logging Framework、IoC Framework。",
-    items: ["Logging Framework", "IoC Container", "Plugin Architecture"],
-  },
-  {
-    id: "web",
-    title: "副本五：Web Framework 開發",
-    description: "挑戰開發一個完整的 Web Framework，整合所有設計模式知識。",
-    items: ["Routing Engine", "Middleware Pattern", "Request/Response Pipeline"],
-  },
-  {
-    id: "bonus",
-    title: "附加內容：進階主題與實戰題庫",
-    description: "額外的進階內容和大量實戰練習題，幫助你鞏固所學。",
-    items: ["實戰題庫", "Code Review 練習", "架構設計案例"],
-  },
-];
-
-function AccordionSection({ section, isOpen, onToggle }: { section: Section; isOpen: boolean; onToggle: () => void }) {
+function AccordionSection({ chapter, isOpen, onToggle }: { chapter: ChapterWithLessons; isOpen: boolean; onToggle: () => void }) {
   return (
     <div className="border border-white/10 rounded-lg overflow-hidden">
       <button
         onClick={onToggle}
         className="w-full flex items-center justify-between p-5 bg-[#1e293b] hover:bg-[#2d3a4f] transition-colors text-left"
       >
-        <span className="text-lg font-semibold text-white">{section.title}</span>
+        <span className="text-lg font-semibold text-white">{chapter.title}</span>
         {isOpen ? (
           <ChevronUp className="w-5 h-5 text-gray-400" />
         ) : (
@@ -75,13 +38,15 @@ function AccordionSection({ section, isOpen, onToggle }: { section: Section; isO
       </button>
       {isOpen && (
         <div className="p-5 bg-[#0f172a]">
-          <p className="text-gray-300 mb-4">{section.description}</p>
-          {section.items && (
+          {chapter.description && (
+            <p className="text-gray-300 mb-4">{chapter.description}</p>
+          )}
+          {chapter.lessons && chapter.lessons.length > 0 && (
             <ul className="space-y-2">
-              {section.items.map((item, index) => (
-                <li key={index} className="flex items-center gap-2 text-gray-400">
-                  <Play className="w-4 h-4 text-[#F17500]" />
-                  <span>{item}</span>
+              {chapter.lessons.map((lesson: LessonSummary) => (
+                <li key={lesson.id} className="flex items-center gap-2 text-gray-400">
+                  {getLessonIcon(lesson.lessonType)}
+                  <span>{lesson.title}</span>
                 </li>
               ))}
             </ul>
@@ -110,13 +75,40 @@ function StepIndicator({ step, label, active }: { step: number; label: string; a
 export default function JourneyDetailPage() {
   const params = useParams();
   const journeyId = params.journeyId as string;
-  const [openSections, setOpenSections] = useState<string[]>(["intro"]);
+  const { journey, isLoading, error } = useJourney(journeyId);
+  const [openSections, setOpenSections] = useState<string[]>([]);
 
   const toggleSection = (id: string) => {
     setOpenSections((prev) =>
       prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id]
     );
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-[#0f172a]">
+        <Navbar />
+        <div className="flex items-center justify-center h-[50vh]">
+          <div className="text-white text-xl">載入中...</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !journey) {
+    return (
+      <div className="min-h-screen bg-[#0f172a]">
+        <Navbar />
+        <div className="flex items-center justify-center h-[50vh]">
+          <div className="text-red-400 text-xl">
+            {error ? `載入課程時發生錯誤：${error.message}` : '找不到課程'}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const totalLessons = journey.chapters?.reduce((sum, ch) => sum + (ch.lessons?.length || 0), 0) || journey.lessonCount;
 
   return (
     <div className="min-h-screen bg-[#0f172a]">
@@ -134,20 +126,14 @@ export default function JourneyDetailPage() {
             </div>
 
             <h1 className="text-3xl md:text-4xl font-bold text-white mb-6">
-              軟體設計模式精通之旅 (半年特訓)
+              {journey.title}
             </h1>
 
-            <div className="space-y-6 text-white/90 text-lg leading-relaxed">
-              <p>
-                這門課旨在讓你「用一趟旅程的時間，成為硬核的 Coding 高手」，在軟體設計方面「徹底變強、並享受變強後的職涯好處」，上完課後便能游刃有餘地把系統做大做精。
-              </p>
-              <p>
-                在這趟旅程中，你將從小的題目開始練起 OOAD 和設計模式，由淺入深不斷地套用設計模式、到了副本四之後就會鼓勵你將所學落地到規模大一些的框架、如：Logging Framework、IoC Framework 以及 Web Framework。
-              </p>
-              <p>
-                只要你努力學習，我保證你能在半年內學會如何分析、精準套用設計模式和開發出大型系統（如：Web Framework / Engine），開發完之後還能留下模式語言，來佐證你的設計既合理又充分。這是八成的工程師都做不到的事，甚至許多架構師也未有機會能鍛鍊到類似的能力。
-              </p>
-            </div>
+            {journey.description && (
+              <div className="space-y-6 text-white/90 text-lg leading-relaxed">
+                <p>{journey.description}</p>
+              </div>
+            )}
           </Container>
         </section>
 
@@ -168,17 +154,17 @@ export default function JourneyDetailPage() {
           <Container>
             <div className="grid md:grid-cols-2 gap-8 mb-12">
               <div className="bg-[#1e293b] rounded-xl p-8 flex items-center gap-6">
-                <div className="text-5xl font-bold text-[#F17500]">100+</div>
+                <div className="text-5xl font-bold text-[#F17500]">{totalLessons}+</div>
                 <div className="text-gray-300">
-                  <div className="text-xl font-semibold text-white">部影片</div>
-                  <div>完整涵蓋設計模式核心知識</div>
+                  <div className="text-xl font-semibold text-white">堂課程</div>
+                  <div>完整涵蓋核心知識</div>
                 </div>
               </div>
               <div className="bg-[#1e293b] rounded-xl p-8 flex items-center gap-6">
-                <div className="text-5xl font-bold text-[#F17500]">50+</div>
+                <div className="text-5xl font-bold text-[#F17500]">{journey.chapterCount}</div>
                 <div className="text-gray-300">
-                  <div className="text-xl font-semibold text-white">大量實戰題</div>
-                  <div>從練習中深化理解與應用能力</div>
+                  <div className="text-xl font-semibold text-white">個章節</div>
+                  <div>循序漸進的學習路徑</div>
                 </div>
               </div>
             </div>
@@ -198,14 +184,18 @@ export default function JourneyDetailPage() {
           <Container>
             <h2 className="text-2xl font-bold text-white mb-8">課程內容</h2>
             <div className="space-y-4">
-              {sections.map((section) => (
-                <AccordionSection
-                  key={section.id}
-                  section={section}
-                  isOpen={openSections.includes(section.id)}
-                  onToggle={() => toggleSection(section.id)}
-                />
-              ))}
+              {journey.chapters && journey.chapters.length > 0 ? (
+                journey.chapters.map((chapter) => (
+                  <AccordionSection
+                    key={chapter.id}
+                    chapter={chapter}
+                    isOpen={openSections.includes(chapter.id)}
+                    onToggle={() => toggleSection(chapter.id)}
+                  />
+                ))
+              ) : (
+                <p className="text-gray-400">暫無課程內容</p>
+              )}
             </div>
           </Container>
         </section>
@@ -217,7 +207,7 @@ export default function JourneyDetailPage() {
             <div className="max-w-3xl mx-auto mb-12">
               <div className="bg-gradient-to-br from-[#F17500] to-[#d96a00] rounded-xl p-8 text-center">
                 <Award className="w-16 h-16 mx-auto mb-4 text-white" />
-                <h3 className="text-2xl font-bold text-white mb-2">軟體設計模式精通認證</h3>
+                <h3 className="text-2xl font-bold text-white mb-2">{journey.title} 認證</h3>
                 <p className="text-white/80">完成所有課程內容後，獲得專業認證證書</p>
                 <div className="mt-6 bg-white/10 rounded-lg p-4">
                   <p className="text-white/60 text-sm">Sample Certificate</p>
@@ -254,7 +244,7 @@ export default function JourneyDetailPage() {
         <section className="py-16 bg-[#0f172a]">
           <Container>
             <div className="text-center">
-              <h2 className="text-2xl font-bold text-white mb-6">準備好開始你的設計模式之旅了嗎？</h2>
+              <h2 className="text-2xl font-bold text-white mb-6">準備好開始你的 {journey.title} 了嗎？</h2>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <CTAButton href={`/courses/${journeyId}/purchase`} variant="primary" size="lg">
                   立即加入課程
