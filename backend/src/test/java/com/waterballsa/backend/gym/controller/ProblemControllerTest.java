@@ -11,13 +11,14 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.jdbc.Sql;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.UUID;
 
 import static org.hamcrest.Matchers.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @AutoConfigureMockMvc
@@ -33,6 +34,7 @@ class ProblemControllerTest extends BaseIntegrationTest {
     private static final UUID STAGE_ID_SOLID = UUID.fromString("11111111-bbbb-bbbb-bbbb-111111111111");
     private static final UUID PROBLEM_ID_1 = UUID.fromString("aaaa1111-1111-1111-1111-111111111111");
     private static final UUID PROBLEM_ID_2 = UUID.fromString("aaaa2222-2222-2222-2222-222222222222");
+    private static final UUID PROBLEM_ID_LOCKED = UUID.fromString("aaaa4444-4444-4444-4444-444444444444");
     private static final UUID NON_EXISTENT_PROBLEM_ID = UUID.fromString("99999999-9999-9999-9999-999999999999");
 
     @Autowired
@@ -73,11 +75,11 @@ class ProblemControllerTest extends BaseIntegrationTest {
         }
 
         @Test
-        @DisplayName("should return empty problems when not purchased")
-        void getStageDetail_notPurchased_shouldReturnEmptyProblems() throws Exception {
+        @DisplayName("should return problems with isPurchased=false when not authenticated")
+        void getStageDetail_notAuthenticated_shouldReturnProblemsWithPurchasedFalse() throws Exception {
             mockMvc.perform(get("/api/gyms/{gymId}/stages/{stageId}", GYM_ID_1, STAGE_ID_1))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.problems", hasSize(0)))
+                    .andExpect(jsonPath("$.problems", hasSize(2)))
                     .andExpect(jsonPath("$.isPurchased").value(false));
         }
 
@@ -134,6 +136,46 @@ class ProblemControllerTest extends BaseIntegrationTest {
                     .andExpect(jsonPath("$.id").value(PROBLEM_ID_2.toString()))
                     .andExpect(jsonPath("$.title").value("Factory Pattern"))
                     .andExpect(jsonPath("$.difficulty").value(2));
+        }
+
+        @Test
+        @DisplayName("should return 403 when problem is locked")
+        void getProblemDetail_locked_shouldReturn403() throws Exception {
+            mockMvc.perform(get("/api/problems/{problemId}", PROBLEM_ID_LOCKED)
+                            .cookie(new Cookie("access_token", accessToken)))
+                    .andExpect(status().isForbidden());
+        }
+    }
+
+    @Nested
+    @DisplayName("POST /api/problems/{problemId}/submissions")
+    class CreateSubmission {
+
+        @Test
+        @DisplayName("should return 400 when file type is not allowed")
+        void createSubmission_invalidFileType_shouldReturn400() throws Exception {
+            MockMultipartFile file = new MockMultipartFile(
+                    "file", "test.mp4", "video/mp4", "test video content".getBytes());
+            
+            mockMvc.perform(multipart("/api/problems/{problemId}/submissions", PROBLEM_ID_1)
+                            .file(file)
+                            .param("isPublic", "false")
+                            .cookie(new Cookie("access_token", accessToken)))
+                    .andExpect(status().isBadRequest());
+        }
+
+        @Test
+        @DisplayName("should increment version on repeated submission")
+        void createSubmission_repeated_shouldIncrementVersion() throws Exception {
+            MockMultipartFile file = new MockMultipartFile(
+                    "file", "test.pdf", "application/pdf", "test pdf content".getBytes());
+            
+            mockMvc.perform(multipart("/api/problems/{problemId}/submissions", PROBLEM_ID_1)
+                            .file(file)
+                            .param("isPublic", "false")
+                            .cookie(new Cookie("access_token", accessToken)))
+                    .andExpect(status().isCreated())
+                    .andExpect(jsonPath("$.version").value(3));
         }
     }
 }
