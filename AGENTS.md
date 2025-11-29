@@ -3,8 +3,8 @@
 ## Build & Test Commands
 
 - **Frontend (from /frontend):** `npm run dev` (dev), `npm run build` (build), `npm run lint` (lint)
-- **Backend (from /backend):** `./mvnw spring-boot:run` (dev), `./mvnw clean package` (build), `./mvnw test` (all tests)
-- **Single backend test:** `./mvnw test -Dtest=HealthCheckControllerTest`
+- **Backend (from /backend):** `mvnw spring-boot:run` (dev), `mvnw clean package` (build), `mvnw test` (all tests)
+- **Single backend test:** `mvnw test -Dtest=HealthCheckControllerTest`
 - **Docker:** `docker-compose up` from project root
 
 ## Code Style
