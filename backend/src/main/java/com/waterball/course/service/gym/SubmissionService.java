@@ -26,6 +26,11 @@ import java.util.stream.Collectors;
 @Slf4j
 @RequiredArgsConstructor
 public class SubmissionService {
+    private static final long PDF_MAX_SIZE = 50L * 1024 * 1024;      // 50MB
+    private static final long MP4_MAX_SIZE = 500L * 1024 * 1024;     // 500MB
+    private static final long CODE_MAX_SIZE = 10L * 1024 * 1024;     // 10MB
+    private static final long IMAGE_MAX_SIZE = 10L * 1024 * 1024;    // 10MB
+
     private final SubmissionRepository submissionRepository;
     private final ReviewRepository reviewRepository;
     private final ProblemService problemService;
@@ -75,6 +80,7 @@ public class SubmissionService {
         }
         
         SubmissionType fileType = validateAndGetFileType(file, problem);
+        validateFileSize(file, fileType);
         
         String fileKey = generateFileKey(userId, problemId, file.getOriginalFilename());
         String fileUrl = storageService.uploadFile(fileKey, file);
@@ -133,6 +139,22 @@ public class SubmissionService {
         }
         
         return detectedType;
+    }
+
+    private void validateFileSize(MultipartFile file, SubmissionType fileType) {
+        long fileSize = file.getSize();
+        long maxSize = switch (fileType) {
+            case PDF -> PDF_MAX_SIZE;
+            case MP4 -> MP4_MAX_SIZE;
+            case CODE -> CODE_MAX_SIZE;
+            case IMAGE -> IMAGE_MAX_SIZE;
+        };
+        
+        if (fileSize > maxSize) {
+            String maxSizeMB = String.format("%.0f", maxSize / (1024.0 * 1024.0));
+            throw new FileSizeExceededException(
+                    "File size exceeds limit. Maximum allowed: " + maxSizeMB + "MB");
+        }
     }
 
     private SubmissionType detectFileType(String contentType, String fileName) {
