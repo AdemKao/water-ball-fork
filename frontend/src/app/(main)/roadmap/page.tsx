@@ -8,7 +8,11 @@ import {
   SideQuestList,
   type ChallengeSection,
   type SideQuest,
+  type RoadmapTabType,
 } from '@/components/roadmap';
+import { GymList } from '@/components/gym';
+
+const JOURNEY_ID = 'd3eebc99-9c0b-4ef8-bb6d-6bb9bd380a44';
 
 const mainQuestData: ChallengeSection[] = [
   {
@@ -102,7 +106,7 @@ const sideQuestData: SideQuest[] = [
 ];
 
 export default function RoadmapPage() {
-  const [activeTab, setActiveTab] = useState<'main' | 'side'>('side');
+  const [activeTab, setActiveTab] = useState<RoadmapTabType>('side');
 
   const totalChallenges =
     mainQuestData.reduce((acc, section) => acc + section.challenges.length, 0) +
@@ -123,11 +127,9 @@ export default function RoadmapPage() {
       </div>
 
       <div className="mt-8">
-        {activeTab === 'main' ? (
-          <ChallengeList sections={mainQuestData} />
-        ) : (
-          <SideQuestList quests={sideQuestData} />
-        )}
+        {activeTab === 'main' && <ChallengeList sections={mainQuestData} />}
+        {activeTab === 'side' && <SideQuestList quests={sideQuestData} />}
+        {activeTab === 'gym' && <GymList journeyId={JOURNEY_ID} />}
       </div>
     </div>
   );
