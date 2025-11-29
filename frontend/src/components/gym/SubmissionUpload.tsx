@@ -5,6 +5,8 @@ import { useSubmission } from '@/hooks/useSubmission';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 import { Upload, FileUp, Loader2, CheckCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { SubmissionType, SUBMISSION_TYPE_CONFIG } from '@/types/gym';
@@ -19,6 +21,7 @@ export function SubmissionUpload({ problemId, submissionTypes, onSuccess }: Subm
   const [file, setFile] = useState<File | null>(null);
   const [dragActive, setDragActive] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [isPublic, setIsPublic] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const { submit, isSubmitting, error } = useSubmission(problemId);
@@ -55,9 +58,10 @@ export function SubmissionUpload({ problemId, submissionTypes, onSuccess }: Subm
     if (!file) return;
 
     try {
-      await submit(file);
+      await submit(file, isPublic);
       setSuccess(true);
       setFile(null);
+      setIsPublic(false);
       onSuccess?.();
       setTimeout(() => setSuccess(false), 3000);
     } catch {
@@ -121,6 +125,17 @@ export function SubmissionUpload({ problemId, submissionTypes, onSuccess }: Subm
             <span>提交成功！</span>
           </div>
         )}
+
+        <div className="flex items-center space-x-2">
+          <Checkbox
+            id="isPublic"
+            checked={isPublic}
+            onCheckedChange={(checked) => setIsPublic(checked === true)}
+          />
+          <Label htmlFor="isPublic" className="text-sm cursor-pointer">
+            公開我的批改結果給其他學員參考
+          </Label>
+        </div>
 
         <Button
           onClick={handleSubmit}

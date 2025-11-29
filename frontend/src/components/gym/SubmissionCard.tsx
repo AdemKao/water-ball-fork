@@ -1,6 +1,7 @@
 'use client';
 
-import { FileText, Download, Eye, EyeOff, Clock, CheckCircle, AlertCircle } from 'lucide-react';
+import { useState } from 'react';
+import { FileText, Download, Eye, EyeOff, Clock, CheckCircle, AlertCircle, Share2, Check } from 'lucide-react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -31,7 +32,8 @@ function formatDate(dateString: string): string {
   });
 }
 
-function formatFileSize(bytes: number): string {
+function formatFileSize(bytes: number | undefined | null): string {
+  if (bytes == null || isNaN(bytes)) return '';
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
@@ -43,8 +45,16 @@ export function SubmissionCard({
   onDownload,
   showVisibilityToggle = true,
 }: SubmissionCardProps) {
+  const [copied, setCopied] = useState(false);
   const config = statusConfig[submission.status];
   const StatusIcon = config.icon;
+
+  const handleShare = async () => {
+    const shareUrl = `${window.location.origin}/submissions/${submission.id}`;
+    await navigator.clipboard.writeText(shareUrl);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   return (
     <Card>
@@ -65,24 +75,46 @@ export function SubmissionCard({
           </div>
 
           {showVisibilityToggle && submission.status !== 'PENDING' && onVisibilityChange && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onVisibilityChange(!submission.isPublic)}
-              className="gap-2"
-            >
-              {submission.isPublic ? (
-                <>
-                  <Eye className="h-4 w-4" />
-                  公開中
-                </>
-              ) : (
-                <>
-                  <EyeOff className="h-4 w-4" />
-                  設為公開
-                </>
+            <div className="flex items-center gap-2">
+              {submission.isPublic && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleShare}
+                  className="gap-2"
+                >
+                  {copied ? (
+                    <>
+                      <Check className="h-4 w-4" />
+                      已複製
+                    </>
+                  ) : (
+                    <>
+                      <Share2 className="h-4 w-4" />
+                      分享
+                    </>
+                  )}
+                </Button>
               )}
-            </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onVisibilityChange(!submission.isPublic)}
+                className="gap-2"
+              >
+                {submission.isPublic ? (
+                  <>
+                    <Eye className="h-4 w-4" />
+                    公開中
+                  </>
+                ) : (
+                  <>
+                    <EyeOff className="h-4 w-4" />
+                    設為公開
+                  </>
+                )}
+              </Button>
+            </div>
           )}
         </div>
       </CardHeader>
@@ -92,7 +124,9 @@ export function SubmissionCard({
           <div className="flex items-center gap-4">
             <span>{formatDate(submission.submittedAt)}</span>
             <span className="truncate max-w-[200px]">{submission.fileName}</span>
-            <span>{formatFileSize(submission.fileSizeBytes)}</span>
+            {submission.fileSizeBytes != null && submission.fileSizeBytes > 0 && (
+              <span>{formatFileSize(submission.fileSizeBytes)}</span>
+            )}
           </div>
 
           {onDownload && (

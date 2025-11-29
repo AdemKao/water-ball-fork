@@ -32,7 +32,7 @@ const difficultyLabels: Record<number, string> = {
 
 export function ExerciseDetail({ exerciseId, gymId }: ExerciseDetailProps) {
   const { problem, isLoading, error, refetch } = useProblem(exerciseId);
-  const { submissions, refetch: refetchSubmissions } = useSubmissionHistory(exerciseId);
+  const { submissions, refetch: refetchSubmissions, updateVisibility } = useSubmissionHistory(exerciseId);
 
   const handleUploadSuccess = () => {
     refetch();
@@ -44,6 +44,15 @@ export function ExerciseDetail({ exerciseId, gymId }: ExerciseDetailProps) {
       window.open(submission.fileUrl, '_blank');
     } catch (err) {
       console.error('Download failed:', err);
+    }
+  };
+
+  const handleVisibilityChange = async (submissionId: string, isPublic: boolean) => {
+    try {
+      await updateVisibility(submissionId, isPublic);
+      refetchSubmissions();
+    } catch (err) {
+      console.error('Failed to update visibility:', err);
     }
   };
 
@@ -97,7 +106,11 @@ export function ExerciseDetail({ exerciseId, gymId }: ExerciseDetailProps) {
           submissionTypes={problem.submissionTypes}
           onSuccess={handleUploadSuccess}
         />
-        <SubmissionHistory submissions={submissions} onDownload={handleDownload} />
+        <SubmissionHistory
+          submissions={submissions}
+          onDownload={handleDownload}
+          onVisibilityChange={handleVisibilityChange}
+        />
       </div>
     </div>
   );
