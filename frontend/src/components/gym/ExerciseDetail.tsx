@@ -67,10 +67,12 @@ export function ExerciseDetail({ exerciseId, gymId }: ExerciseDetailProps) {
     );
   }
 
+  const actualGymId = gymId || exercise.gymId;
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
-        <Link href={`/gym/${gymId}`}>
+        <Link href={`/gym/${actualGymId}`}>
           <Button variant="ghost" size="sm">
             <ArrowLeft className="h-4 w-4 mr-2" />
             返回

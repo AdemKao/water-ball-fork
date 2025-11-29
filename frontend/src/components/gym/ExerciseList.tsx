@@ -42,7 +42,7 @@ export function ExerciseList({ gymId }: ExerciseListProps) {
   return (
     <div className="space-y-4">
       {exercises.map((exercise) => (
-        <ExerciseCard key={exercise.id} exercise={exercise} />
+        <ExerciseCard key={exercise.id} exercise={exercise} gymId={gymId} />
       ))}
     </div>
   );
@@ -50,13 +50,14 @@ export function ExerciseList({ gymId }: ExerciseListProps) {
 
 interface ExerciseCardProps {
   exercise: GymExercise;
+  gymId: number;
 }
 
-function ExerciseCard({ exercise }: ExerciseCardProps) {
+function ExerciseCard({ exercise, gymId }: ExerciseCardProps) {
   const statusIcon = getStatusIcon(exercise.latestSubmissionStatus);
 
   return (
-    <Link href={`/exercises/${exercise.id}`}>
+    <Link href={`/exercises/${exercise.id}?gymId=${gymId}`}>
       <Card className="hover:shadow-md transition-shadow cursor-pointer">
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center justify-between text-lg">
