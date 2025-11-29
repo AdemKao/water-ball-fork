@@ -6,6 +6,54 @@
 
 ---
 
+## IMPORTANT: Implementation Status Summary
+
+### Architecture Mismatch
+
+**The current frontend implementation does NOT match the spec.** A decision is needed:
+
+| Aspect | Spec (frontend-spec.md) | Current Implementation |
+|--------|------------------------|------------------------|
+| **URL Structure** | `/gyms`, `/gyms/[gymId]`, `/gyms/[gymId]/stages/[stageId]`, `/gyms/[gymId]/problems/[problemId]` | `/gym/[gymId]`, `/exercises/[exerciseId]` |
+| **Data Model** | Gym → Stage → Problem (3 levels) | Gym → Exercise (2 levels, no Stage) |
+| **ID Type** | UUID (string) | number |
+| **Types** | GymType, Stage, Problem, Hint, Prerequisites | Difficulty, Exercise, simpler Submission |
+| **API Endpoints** | `GET /api/gyms`, `GET /api/gyms/{gymId}/stages/{stageId}` | `GET /api/journeys/{journeyId}/gyms`, `GET /api/gyms/{gymId}/exercises` |
+
+### Options
+
+1. **Option A: Rewrite frontend to match spec** - Significant effort, aligns with spec
+2. **Option B: Update spec to match implementation** - Less effort, simpler architecture
+
+### Currently Implemented (using OLD architecture)
+
+| File | Status | Notes |
+|------|--------|-------|
+| `types/gym.ts` | ⚠️ PARTIAL | Different model (Exercise vs Stage/Problem) |
+| `services/gym.service.ts` | ⚠️ PARTIAL | Different API endpoints |
+| `hooks/useGym.ts` | ⚠️ PARTIAL | Has useGyms, useGymExercises, useExerciseDetail, useMySubmissions |
+| `hooks/useGymExercise.ts` | ⚠️ PARTIAL | Duplicate of useGym.ts functions |
+| `components/gym/GymList.tsx` | ✅ EXISTS | Simpler model |
+| `components/gym/ExerciseList.tsx` | ✅ EXISTS | Maps to ProblemList in spec |
+| `components/gym/ExerciseDetail.tsx` | ✅ EXISTS | Maps to ProblemDetail in spec |
+| `components/gym/SubmissionUpload.tsx` | ✅ EXISTS | Maps to FileUploader in spec |
+| `components/gym/SubmissionHistory.tsx` | ✅ EXISTS | Simpler model |
+| `app/gym/[gymId]/page.tsx` | ✅ EXISTS | Wrong URL (should be `/gyms/[gymId]`) |
+| `app/exercises/[exerciseId]/page.tsx` | ✅ EXISTS | Wrong URL (should be `/gyms/[gymId]/problems/[problemId]`) |
+
+### Missing from Spec
+
+- `/gyms` page (gym list)
+- `/gyms/[gymId]/stages/[stageId]` page (stage detail)
+- Stage-related components (StageCard, StageList)
+- DifficultyStars, HintAccordion, PrerequisiteStatus, LockedContent components
+- GymTypeFilter, ReviewDisplay, GymProgress, PublicSubmission components
+- useStage, useProblem, useSubmissionHistory, usePublicSubmissions, useGymProgress, useFileUpload hooks
+- problem.service.ts, submission.service.ts services
+- E2E tests
+
+---
+
 ## Phase 1: Types & Services
 
 ### FE-001: 定義 Gym 相關型別
@@ -14,19 +62,32 @@
 
 **依賴**: 無
 
+**實作狀態**: ⚠️ PARTIAL - Different architecture
+
 **驗收標準**:
 
 - [ ] 定義所有 Enum 型別 (GymType, SubmissionType, SubmissionStatus, ReviewStatus, PrerequisiteType)
+  - ⚠️ Current: Difficulty, SubmissionStatus (different enums)
 - [ ] 定義 Gym, GymDetail, GymSummary 介面
+  - ⚠️ Current: Gym (simpler, number id, no thumbnailUrl, no type)
 - [ ] 定義 StageSummary, StageDetail 介面
+  - ❌ Not implemented (no Stage concept)
 - [ ] 定義 ProblemSummary, ProblemDetail, Hint, ProblemNav 介面
+  - ⚠️ Current: GymExercise, GymExerciseDetail (different model)
 - [ ] 定義 Submission, SubmissionInfo, SubmissionDetail, ReviewInfo 介面
+  - ⚠️ Current: GymSubmission (simpler model)
 - [ ] 定義 PublicSubmission 介面
+  - ❌ Not implemented
 - [ ] 定義 GymProgressSummary, GymProgressItem 介面
+  - ❌ Not implemented
 - [ ] 定義 Request/Response 型別 (CreateSubmissionRequest, UploadUrlRequest, UploadUrlResponse, VisibilityUpdateRequest, PaginatedResponse)
+  - ⚠️ Current: SubmitExerciseRequest, ReviewSubmissionRequest (different model)
 - [ ] 定義 SUBMISSION_TYPE_CONFIG 常數物件
+  - ❌ Not implemented
 - [ ] 定義 PrerequisiteInfo 介面
+  - ❌ Not implemented
 - [ ] TypeScript 編譯通過，無型別錯誤
+  - ✅ Current types compile
 
 **工作量**: M
 
@@ -38,13 +99,20 @@
 
 **依賴**: FE-001
 
+**實作狀態**: ⚠️ PARTIAL - Different API endpoints
+
 **驗收標準**:
 
 - [ ] 實作 `getGyms(params?)` - 取得道館列表，支援 journeyId、type 篩選
+  - ⚠️ Current: getGymsByJourney(journeyId) - different endpoint, no type filter
 - [ ] 實作 `getGym(gymId)` - 取得道館詳情
+  - ❌ Not implemented (current gets exercises, not gym detail)
 - [ ] 實作 `getStage(gymId, stageId)` - 取得關卡詳情
+  - ❌ Not implemented (no Stage concept)
 - [ ] 正確處理 API 錯誤回應
+  - ⚠️ Current: Basic error handling
 - [ ] 使用專案既有的 api-client 進行請求
+  - ❌ Current: Uses fetch directly, not api-client
 
 **工作量**: S
 
@@ -56,12 +124,18 @@
 
 **依賴**: FE-001
 
+**實作狀態**: ❌ NOT IMPLEMENTED
+
 **驗收標準**:
 
 - [ ] 實作 `getProblem(problemId)` - 取得題目詳情
+  - ⚠️ Current: getExerciseDetail in gym.service.ts (different endpoint)
 - [ ] 實作 `getUploadUrl(data)` - 取得檔案上傳的 Signed URL
+  - ❌ Not implemented
 - [ ] 正確處理 401/403/404 錯誤
+  - ❌ Not implemented
 - [ ] 使用專案既有的 api-client 進行請求
+  - ❌ Not implemented
 
 **工作量**: S
 
@@ -73,15 +147,24 @@
 
 **依賴**: FE-001
 
+**實作狀態**: ⚠️ PARTIAL - In gym.service.ts
+
 **驗收標準**:
 
 - [ ] 實作 `createSubmission(problemId, data)` - 提交作答
+  - ⚠️ Current: submitExercise in gym.service.ts (different signature)
 - [ ] 實作 `getSubmissionHistory(problemId)` - 取得提交歷史
+  - ⚠️ Current: getMySubmissions in gym.service.ts
 - [ ] 實作 `getSubmission(submissionId)` - 取得單一提交詳情
+  - ❌ Not implemented
 - [ ] 實作 `updateVisibility(submissionId, isPublic)` - 更新公開設定
+  - ❌ Not implemented
 - [ ] 實作 `getPublicSubmissions(params?)` - 取得公開提交列表 (含分頁)
+  - ❌ Not implemented
 - [ ] 實作 `getGymProgress()` - 取得個人道館進度
+  - ❌ Not implemented
 - [ ] 正確處理各種錯誤狀態
+  - ⚠️ Basic error handling only
 
 **工作量**: M
 
@@ -95,13 +178,20 @@
 
 **依賴**: FE-002
 
+**實作狀態**: ⚠️ PARTIAL - Different signature
+
 **驗收標準**:
 
 - [ ] 回傳 `{ gyms, isLoading, error, refetch }`
+  - ✅ Current: useGyms returns this
 - [ ] 支援 journeyId、type 篩選參數
+  - ⚠️ Current: Only journeyId, no type filter
 - [ ] 處理載入狀態
+  - ✅ Implemented
 - [ ] 處理錯誤狀態
+  - ✅ Implemented
 - [ ] 支援手動重新取得資料
+  - ✅ Implemented
 
 **工作量**: S
 
@@ -112,6 +202,8 @@
 **描述**: 建立道館詳情資料 hook
 
 **依賴**: FE-002
+
+**實作狀態**: ❌ NOT IMPLEMENTED
 
 **驗收標準**:
 
@@ -129,6 +221,8 @@
 
 **依賴**: FE-002
 
+**實作狀態**: ❌ NOT IMPLEMENTED (no Stage concept)
+
 **驗收標準**:
 
 - [ ] 接受 gymId, stageId 參數
@@ -145,11 +239,16 @@
 
 **依賴**: FE-003
 
+**實作狀態**: ⚠️ PARTIAL - Different hook name
+
 **驗收標準**:
 
 - [ ] 接受 problemId 參數
+  - ⚠️ Current: useExerciseDetail/useGymExerciseDetail accepts exerciseId
 - [ ] 回傳 `{ problem, isLoading, error, refetch }`
+  - ⚠️ Current: Returns exercise, not problem
 - [ ] 處理 401/403/404 錯誤
+  - ❌ Not implemented
 
 **工作量**: S
 
@@ -161,12 +260,18 @@
 
 **依賴**: FE-004
 
+**實作狀態**: ⚠️ PARTIAL - Different signature
+
 **驗收標準**:
 
 - [ ] 接受 problemId 參數
+  - ⚠️ Current: useSubmitExercise doesn't take problemId
 - [ ] 回傳 `{ submit, isSubmitting, error }`
+  - ⚠️ Current: Returns submitExercise(exerciseId, file)
 - [ ] submit 函式接受 CreateSubmissionRequest 並回傳 Promise<Submission>
+  - ⚠️ Current: Takes (exerciseId, file)
 - [ ] 處理提交過程中的錯誤
+  - ✅ Implemented
 
 **工作量**: S
 
@@ -178,12 +283,18 @@
 
 **依賴**: FE-004
 
+**實作狀態**: ⚠️ PARTIAL
+
 **驗收標準**:
 
 - [ ] 接受 problemId 參數
+  - ⚠️ Current: useMySubmissions accepts exerciseId
 - [ ] 回傳 `{ submissions, isLoading, error, updateVisibility, refetch }`
+  - ⚠️ Current: No updateVisibility
 - [ ] updateVisibility 可更新單一提交的公開設定
+  - ❌ Not implemented
 - [ ] 更新後自動刷新列表
+  - ❌ Not implemented
 
 **工作量**: S
 
@@ -194,6 +305,8 @@
 **描述**: 建立公開提交列表資料 hook
 
 **依賴**: FE-004
+
+**實作狀態**: ❌ NOT IMPLEMENTED
 
 **驗收標準**:
 
@@ -211,6 +324,8 @@
 
 **依賴**: FE-004
 
+**實作狀態**: ❌ NOT IMPLEMENTED
+
 **驗收標準**:
 
 - [ ] 回傳 `{ progress, isLoading, error, refetch }`
@@ -225,6 +340,8 @@
 **描述**: 建立檔案上傳功能 hook
 
 **依賴**: FE-003
+
+**實作狀態**: ❌ NOT IMPLEMENTED
 
 **驗收標準**:
 
@@ -245,6 +362,8 @@
 
 **依賴**: FE-001
 
+**實作狀態**: ❌ NOT IMPLEMENTED
+
 **驗收標準**:
 
 - [ ] 接受 difficulty (1-5)、maxStars (預設 5)、size ('sm'|'md'|'lg') props
@@ -260,6 +379,8 @@
 **描述**: 提交類型圖示元件
 
 **依賴**: FE-001
+
+**實作狀態**: ❌ NOT IMPLEMENTED
 
 **驗收標準**:
 
@@ -277,6 +398,8 @@
 
 **依賴**: FE-001
 
+**實作狀態**: ❌ NOT IMPLEMENTED
+
 **驗收標準**:
 
 - [ ] 接受 prerequisites、showLinks props
@@ -293,6 +416,8 @@
 
 **依賴**: FE-016
 
+**實作狀態**: ❌ NOT IMPLEMENTED
+
 **驗收標準**:
 
 - [ ] 接受 type ('purchase'|'prerequisite')、prerequisites、journeyId、message props
@@ -308,6 +433,8 @@
 **描述**: 提示摺疊面板元件
 
 **依賴**: FE-001
+
+**實作狀態**: ❌ NOT IMPLEMENTED
 
 **驗收標準**:
 
@@ -326,6 +453,8 @@
 
 **依賴**: FE-001
 
+**實作狀態**: ❌ NOT IMPLEMENTED
+
 **驗收標準**:
 
 - [ ] 接受 review: ReviewInfo、showReviewer props
@@ -343,12 +472,18 @@
 
 **依賴**: FE-014
 
+**實作狀態**: ⚠️ PARTIAL - In GymList component
+
 **驗收標準**:
 
 - [ ] 接受 gym: Gym、onClick props
+  - ⚠️ Current: GymList renders cards inline
 - [ ] 顯示縮圖、標題、類型標籤、所屬課程
+  - ⚠️ Current: Simpler display (title, progress only)
 - [ ] 顯示進度 (x/y 題完成) 與進度條
+  - ✅ Implemented
 - [ ] 未購買時顯示鎖定狀態
+  - ❌ Not implemented
 
 **工作量**: M
 
@@ -360,11 +495,16 @@
 
 **依賴**: FE-020
 
+**實作狀態**: ⚠️ PARTIAL
+
 **驗收標準**:
 
 - [ ] 接受 gyms: Gym[] prop
+  - ✅ Implemented
 - [ ] 依 journeyTitle 分組顯示
+  - ❌ Not implemented
 - [ ] 響應式網格佈局 (Desktop 4欄、Tablet 2-3欄、Mobile 1欄)
+  - ⚠️ Has grid but not 4-column
 
 **工作量**: S
 
@@ -375,6 +515,8 @@
 **描述**: 道館類型篩選元件
 
 **依賴**: FE-001
+
+**實作狀態**: ❌ NOT IMPLEMENTED
 
 **驗收標準**:
 
@@ -391,6 +533,8 @@
 **描述**: 關卡卡片元件
 
 **依賴**: FE-014, FE-016
+
+**實作狀態**: ❌ NOT IMPLEMENTED (no Stage concept)
 
 **驗收標準**:
 
@@ -409,6 +553,8 @@
 
 **依賴**: FE-023
 
+**實作狀態**: ❌ NOT IMPLEMENTED (no Stage concept)
+
 **驗收標準**:
 
 - [ ] 接受 stages: StageSummary[]、gymId、isPurchased props
@@ -425,13 +571,20 @@
 
 **依賴**: FE-014, FE-015
 
+**實作狀態**: ⚠️ PARTIAL - ExerciseList renders cards inline
+
 **驗收標準**:
 
 - [ ] 接受 problem: ProblemSummary、gymId、onClick props
+  - ⚠️ Current: ExerciseList has inline cards
 - [ ] 顯示標題、難度星星、提交類型圖示
+  - ⚠️ Current: Shows difficulty as badge, not stars
 - [ ] 顯示完成狀態圖示
+  - ✅ Shows submission status
 - [ ] 顯示最新提交狀態標籤 (PENDING/REVIEWED/NEEDS_REVISION)
+  - ⚠️ Current: Shows PENDING/APPROVED/REJECTED
 - [ ] 未解鎖時顯示鎖定樣式
+  - ❌ Not implemented
 
 **工作量**: M
 
@@ -443,11 +596,16 @@
 
 **依賴**: FE-025
 
+**實作狀態**: ⚠️ PARTIAL - Named ExerciseList
+
 **驗收標準**:
 
 - [ ] 接受 problems: ProblemSummary[]、gymId props
+  - ⚠️ Current: ExerciseList accepts exercises, gymId
 - [ ] 垂直列表佈局
+  - ✅ Implemented
 - [ ] 點擊可導航至題目詳情頁
+  - ✅ Implemented
 
 **工作量**: S
 
@@ -458,6 +616,8 @@
 **描述**: 題目描述元件 (Markdown 渲染)
 
 **依賴**: 無
+
+**實作狀態**: ❌ NOT IMPLEMENTED
 
 **驗收標準**:
 
@@ -475,12 +635,18 @@
 
 **依賴**: FE-019
 
+**實作狀態**: ⚠️ PARTIAL - In SubmissionHistory
+
 **驗收標準**:
 
 - [ ] 接受 submission: Submission、onVisibilityChange props
+  - ⚠️ Current: SubmissionHistory renders inline
 - [ ] 顯示版本號、提交時間、檔案名稱、狀態
+  - ⚠️ Current: No version number
 - [ ] 有批改結果時顯示 ReviewDisplay
+  - ⚠️ Current: Shows feedback inline
 - [ ] 公開設定開關
+  - ❌ Not implemented
 
 **工作量**: M
 
@@ -492,11 +658,16 @@
 
 **依賴**: FE-028
 
+**實作狀態**: ⚠️ PARTIAL
+
 **驗收標準**:
 
 - [ ] 接受 submissions: Submission[]、onVisibilityChange props
+  - ⚠️ Current: No onVisibilityChange
 - [ ] 依版本號降序排列
+  - ⚠️ Current: No version concept
 - [ ] 空狀態顯示「尚無提交記錄」
+  - ✅ Implemented
 
 **工作量**: S
 
@@ -507,6 +678,8 @@
 **描述**: 道館進度卡片元件
 
 **依賴**: FE-001
+
+**實作狀態**: ❌ NOT IMPLEMENTED
 
 **驗收標準**:
 
@@ -525,6 +698,8 @@
 
 **依賴**: FE-030
 
+**實作狀態**: ❌ NOT IMPLEMENTED
+
 **驗收標準**:
 
 - [ ] 接受 progress: GymProgressSummary prop
@@ -540,6 +715,8 @@
 **描述**: 公開提交卡片元件
 
 **依賴**: FE-019
+
+**實作狀態**: ❌ NOT IMPLEMENTED
 
 **驗收標準**:
 
@@ -557,6 +734,8 @@
 **描述**: 公開提交列表元件
 
 **依賴**: FE-032, FE-011
+
+**實作狀態**: ❌ NOT IMPLEMENTED
 
 **驗收標準**:
 
@@ -577,6 +756,8 @@
 
 **依賴**: FE-005, FE-021, FE-022
 
+**實作狀態**: ❌ NOT IMPLEMENTED
+
 **驗收標準**:
 
 - [ ] 使用 useGymList hook 取得資料
@@ -595,14 +776,22 @@
 
 **依賴**: FE-006, FE-024, FE-017
 
+**實作狀態**: ⚠️ PARTIAL - Wrong URL (/gym/[gymId])
+
 **驗收標準**:
 
 - [ ] 使用 useGym hook 取得資料
+  - ⚠️ Current: Uses useGymExercises (different data)
 - [ ] 顯示道館資訊 (標題、描述、類型、進度)
+  - ⚠️ Current: Shows exercise list, not gym info
 - [ ] 整合 StageList 顯示關卡列表
+  - ❌ Current: Shows ExerciseList (no Stage concept)
 - [ ] 未購買時顯示 LockedContent
+  - ❌ Not implemented
 - [ ] 顯示同課程其他道館
+  - ❌ Not implemented
 - [ ] 返回道館列表連結
+  - ❌ Not implemented
 
 **工作量**: M
 
@@ -613,6 +802,8 @@
 **描述**: 關卡詳情頁面
 
 **依賴**: FE-007, FE-026, FE-017
+
+**實作狀態**: ❌ NOT IMPLEMENTED (no Stage concept)
 
 **驗收標準**:
 
@@ -632,18 +823,30 @@
 
 **依賴**: FE-008, FE-010, FE-018, FE-027, FE-029, FE-038, FE-017
 
+**實作狀態**: ⚠️ PARTIAL - Wrong URL (/exercises/[exerciseId])
+
 **驗收標準**:
 
 - [ ] 使用 useProblem 和 useSubmissionHistory hooks
+  - ⚠️ Current: Uses useGymExerciseDetail
 - [ ] Tab 切換「題目描述」與「提交歷史」
+  - ⚠️ Current: Shows both in single view
 - [ ] 顯示題目資訊 (標題、難度、經驗值)
+  - ⚠️ Current: No experience points
 - [ ] 整合 ProblemDescription 渲染題目內容
+  - ⚠️ Current: Plain text description
 - [ ] 整合 HintAccordion 顯示提示
+  - ❌ Not implemented
 - [ ] 整合 SubmissionForm 提交作答
+  - ⚠️ Current: Has SubmissionUpload (simpler)
 - [ ] 整合 SubmissionHistory 顯示提交記錄
+  - ✅ Implemented
 - [ ] 上一題/下一題導航
+  - ❌ Not implemented
 - [ ] 題目未解鎖時顯示 LockedContent
+  - ❌ Not implemented
 - [ ] 響應式設計 (Desktop 雙欄、Mobile 單欄 Tab)
+  - ⚠️ Current: Single column only
 
 **工作量**: L
 
@@ -655,15 +858,24 @@
 
 **依賴**: FE-009, FE-039
 
+**實作狀態**: ⚠️ PARTIAL - Named SubmissionUpload
+
 **驗收標準**:
 
 - [ ] 接受 problemId、allowedTypes、onSubmitSuccess props
+  - ⚠️ Current: Different props
 - [ ] 整合 FileUploader 元件
+  - ⚠️ Current: Has file input
 - [ ] 檔案類型驗證
+  - ❌ Not implemented
 - [ ] 檔案大小驗證
+  - ❌ Not implemented
 - [ ] 公開設定選項 (checkbox)
+  - ❌ Not implemented
 - [ ] 提交按鈕與載入狀態
+  - ✅ Implemented
 - [ ] 成功時呼叫 onSubmitSuccess 並顯示 Toast
+  - ⚠️ Partial
 
 **工作量**: M
 
@@ -675,14 +887,22 @@
 
 **依賴**: FE-013
 
+**實作狀態**: ⚠️ PARTIAL - In SubmissionUpload
+
 **驗收標準**:
 
 - [ ] 接受 allowedTypes、onFileSelect、isUploading、uploadProgress、error props
+  - ⚠️ Current: Simpler props
 - [ ] 拖放區域支援
+  - ❌ Not implemented
 - [ ] 點擊選擇檔案
+  - ✅ Implemented
 - [ ] 顯示允許的檔案類型與大小限制
+  - ❌ Not implemented
 - [ ] 上傳進度條
+  - ❌ Not implemented
 - [ ] 錯誤訊息顯示
+  - ⚠️ Basic only
 
 **工作量**: M
 
@@ -694,12 +914,18 @@
 
 **依賴**: FE-027, FE-014, FE-018
 
+**實作狀態**: ⚠️ PARTIAL - Named ExerciseDetail
+
 **驗收標準**:
 
 - [ ] 接受 problem: ProblemDetail prop
+  - ⚠️ Current: Takes exercise
 - [ ] 組合顯示標題、難度、經驗值
+  - ⚠️ Current: No experience points
 - [ ] 整合 ProblemDescription
+  - ⚠️ Current: Plain text
 - [ ] 整合 HintAccordion
+  - ❌ Not implemented
 
 **工作量**: S
 
@@ -710,6 +936,8 @@
 **描述**: 個人道館進度頁面
 
 **依賴**: FE-012, FE-031
+
+**實作狀態**: ❌ NOT IMPLEMENTED
 
 **驗收標準**:
 
@@ -728,10 +956,14 @@
 
 **依賴**: FE-014 ~ FE-033, FE-038 ~ FE-040
 
+**實作狀態**: ✅ EXISTS (for current components)
+
 **驗收標準**:
 
 - [ ] 匯出所有 gym 相關元件
+  - ⚠️ Current: Exports existing components only
 - [ ] 可透過 `@/components/gym` 引入
+  - ✅ Implemented
 
 **工作量**: S
 
@@ -744,6 +976,8 @@
 **描述**: 完整實作使用 Signed URL 的檔案上傳流程
 
 **依賴**: FE-013, FE-038, FE-039
+
+**實作狀態**: ❌ NOT IMPLEMENTED
 
 **驗收標準**:
 
@@ -764,11 +998,16 @@
 
 **依賴**: FE-004, FE-038
 
+**實作狀態**: ✅ IMPLEMENTED (current approach)
+
 **驗收標準**:
 
-- [ ] 當 Signed URL 方式失敗時自動切換
-- [ ] 直接使用 multipart/form-data 上傳
-- [ ] 維持相同的使用者體驗
+- [x] 當 Signed URL 方式失敗時自動切換
+  - ⚠️ Current: Only multipart is implemented
+- [x] 直接使用 multipart/form-data 上傳
+  - ✅ Implemented
+- [x] 維持相同的使用者體驗
+  - ✅ Works
 
 **工作量**: S
 
@@ -781,6 +1020,8 @@
 **描述**: 測試案例 1 - 已登入用戶瀏覽道館列表
 
 **依賴**: FE-034
+
+**實作狀態**: ❌ NOT IMPLEMENTED
 
 **驗收標準**:
 
@@ -799,6 +1040,8 @@
 
 **依賴**: FE-035, FE-036
 
+**實作狀態**: ❌ NOT IMPLEMENTED
+
 **驗收標準**:
 
 - [ ] 用戶已登入並購買課程
@@ -816,6 +1059,8 @@
 **描述**: 測試案例 3 - 用戶提交 PDF 作答
 
 **依賴**: FE-037, FE-043
+
+**實作狀態**: ❌ NOT IMPLEMENTED
 
 **驗收標準**:
 
@@ -837,6 +1082,8 @@
 
 **依賴**: FE-037
 
+**實作狀態**: ❌ NOT IMPLEMENTED
+
 **驗收標準**:
 
 - [ ] 用戶有一筆已批改的提交
@@ -854,6 +1101,8 @@
 **描述**: 測試案例 5 - 題目因前置條件未完成而鎖定
 
 **依賴**: FE-037
+
+**實作狀態**: ❌ NOT IMPLEMENTED
 
 **驗收標準**:
 
@@ -874,6 +1123,8 @@
 
 **依賴**: FE-037
 
+**實作狀態**: ❌ NOT IMPLEMENTED
+
 **驗收標準**:
 
 - [ ] 用戶未購買課程
@@ -890,6 +1141,8 @@
 **描述**: 測試案例 7 - 用戶重新提交需修改的作答
 
 **依賴**: FE-037, FE-043
+
+**實作狀態**: ❌ NOT IMPLEMENTED
 
 **驗收標準**:
 
@@ -909,6 +1162,8 @@
 
 **依賴**: FE-037
 
+**實作狀態**: ❌ NOT IMPLEMENTED
+
 **驗收標準**:
 
 - [ ] 用戶有一筆已批改的提交
@@ -924,6 +1179,8 @@
 **描述**: 測試案例 9 - 用戶查看其他學員的公開提交
 
 **依賴**: FE-033
+
+**實作狀態**: ❌ NOT IMPLEMENTED
 
 **驗收標準**:
 
@@ -941,6 +1198,8 @@
 
 **依賴**: FE-037, FE-039
 
+**實作狀態**: ❌ NOT IMPLEMENTED
+
 **驗收標準**:
 
 - [ ] 題目只允許 PDF 格式
@@ -954,15 +1213,36 @@
 
 ## Task Summary
 
-| Phase | Task Count | Estimated Effort |
-|-------|------------|------------------|
-| Phase 1: Types & Services | 4 | 1S + 2M + 1S = 4 |
-| Phase 2: Hooks | 9 | 8S + 1M = 9 |
-| Phase 3: Basic Components | 20 | 14S + 6M = 20 |
-| Phase 4: Page Components | 9 | 2S + 6M + 1L = 9 |
-| Phase 5: File Upload | 2 | 1S + 1M = 2 |
-| Phase 6: E2E Tests | 10 | 9S + 1M = 10 |
-| **Total** | **54** | **34S + 17M + 1L** |
+| Phase | Task Count | Spec Status | Implementation Status |
+|-------|------------|-------------|----------------------|
+| Phase 1: Types & Services | 4 | Defined | ⚠️ PARTIAL (wrong model) |
+| Phase 2: Hooks | 9 | Defined | ⚠️ PARTIAL (4/9 exist with different signatures) |
+| Phase 3: Basic Components | 20 | Defined | ⚠️ PARTIAL (5/20 exist with different model) |
+| Phase 4: Page Components | 9 | Defined | ⚠️ PARTIAL (2/9 exist with wrong URLs) |
+| Phase 5: File Upload | 2 | Defined | ⚠️ PARTIAL (multipart only) |
+| Phase 6: E2E Tests | 10 | Defined | ❌ NOT STARTED |
+| **Total** | **54** | - | **~20% complete (wrong architecture)** |
+
+## Implementation Decision Required
+
+Before proceeding, a decision must be made:
+
+### Option A: Rewrite Frontend to Match Spec
+- **Effort**: HIGH (essentially rewrite most frontend code)
+- **Pros**: Matches spec exactly, 3-level hierarchy (Gym→Stage→Problem), more features
+- **Cons**: Significant effort, may require backend API changes
+
+### Option B: Update Spec to Match Implementation  
+- **Effort**: LOW (update documentation only)
+- **Pros**: Quick, uses existing working code
+- **Cons**: Simpler 2-level hierarchy (Gym→Exercise), fewer features
+
+### Option C: Incremental Migration
+- **Effort**: MEDIUM
+- **Steps**:
+  1. Fix URL structure (`/gym/` → `/gyms/`)
+  2. Add missing features incrementally
+  3. Keep 2-level model but add spec features (hints, prerequisites, etc.)
 
 ## Dependency Graph
 
