@@ -50,6 +50,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/exercises/{exerciseId}").permitAll()
                 .requestMatchers("/api/webhooks/payment").permitAll()
                 .requestMatchers("/mock-payment/**").permitAll()
+                .requestMatchers("/uploads/**").permitAll()
                 .requestMatchers("/api/purchases/**").authenticated()
                 .anyRequest().authenticated()
             )
