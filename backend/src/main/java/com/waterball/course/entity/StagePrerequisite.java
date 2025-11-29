@@ -1,0 +1,46 @@
+package com.waterball.course.entity;
+
+import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+import java.time.LocalDateTime;
+import java.util.UUID;
+
+@Entity
+@Table(name = "stage_prerequisites")
+@Getter @Setter
+@NoArgsConstructor
+public class StagePrerequisite {
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "stage_id", nullable = false)
+    private Stage stage;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "prerequisite_lesson_id")
+    private Lesson prerequisiteLesson;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "prerequisite_problem_id")
+    private Problem prerequisiteProblem;
+
+    @Column(name = "created_at")
+    private LocalDateTime createdAt;
+
+    @PrePersist
+    protected void onCreate() {
+        createdAt = LocalDateTime.now();
+    }
+
+    public PrerequisiteType getType() {
+        if (prerequisiteLesson != null) {
+            return PrerequisiteType.LESSON;
+        }
+        return PrerequisiteType.PROBLEM;
+    }
+}
