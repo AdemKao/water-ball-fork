@@ -14,6 +14,124 @@
 - JPA / Hibernate
 - File Storage (支援多 Provider: Local / Supabase / S3)
 
+## Entity Relationship Diagram
+
+```mermaid
+erDiagram
+    journeys ||--o{ gyms : "has many"
+    gyms ||--o{ stages : "has many"
+    stages ||--o{ problems : "has many"
+    
+    stages ||--o{ stage_prerequisites : "has many"
+    lessons ||--o{ stage_prerequisites : "is prerequisite for"
+    problems ||--o{ stage_prerequisites : "is prerequisite for"
+    
+    problems ||--o{ problem_prerequisites : "has many"
+    lessons ||--o{ problem_prerequisites : "is prerequisite for"
+    problems ||--o{ problem_prerequisites : "is prerequisite for"
+    
+    users ||--o{ submissions : "submits"
+    problems ||--o{ submissions : "receives"
+    
+    submissions ||--o{ reviews : "has"
+    users ||--o{ reviews : "reviews"
+
+    journeys {
+        UUID id PK
+        string title
+        decimal price
+    }
+
+    gyms {
+        UUID id PK
+        UUID journey_id FK
+        string title
+        string description
+        string thumbnail_url
+        enum gym_type "MAIN_QUEST | SIDE_QUEST"
+        int sort_order
+        boolean is_published
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    stages {
+        UUID id PK
+        UUID gym_id FK
+        string title
+        string description
+        int difficulty "1-5"
+        int sort_order
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    problems {
+        UUID id PK
+        UUID stage_id FK
+        string title
+        text description
+        int difficulty "1-5"
+        array submission_types "PDF, MP4, CODE, IMAGE"
+        jsonb hints
+        int exp_reward
+        int sort_order
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    stage_prerequisites {
+        UUID id PK
+        UUID stage_id FK
+        UUID prerequisite_lesson_id FK "nullable"
+        UUID prerequisite_problem_id FK "nullable"
+        timestamp created_at
+    }
+
+    problem_prerequisites {
+        UUID id PK
+        UUID problem_id FK
+        UUID prerequisite_lesson_id FK "nullable"
+        UUID prerequisite_problem_id FK "nullable"
+        timestamp created_at
+    }
+
+    submissions {
+        UUID id PK
+        UUID user_id FK
+        UUID problem_id FK
+        string file_url
+        enum file_type "PDF, MP4, CODE, IMAGE"
+        string file_name
+        bigint file_size_bytes
+        enum status "PENDING, REVIEWED, NEEDS_REVISION"
+        boolean is_public
+        int version
+        timestamp submitted_at
+        timestamp updated_at
+    }
+
+    reviews {
+        UUID id PK
+        UUID submission_id FK
+        UUID reviewer_id FK
+        text content
+        enum status "APPROVED, NEEDS_REVISION"
+        timestamp reviewed_at
+    }
+
+    users {
+        UUID id PK
+        string email
+        string name
+    }
+
+    lessons {
+        UUID id PK
+        string title
+    }
+```
+
 ## Database Schema
 
 ### gyms table (道館)
@@ -866,13 +984,15 @@ Authorization: Bearer <access_token>
 
 ---
 
-### File Upload API
+### File Upload API (Future - Not Implemented)
+
+> **Note**: This section describes a planned feature for Signed URL uploads. Currently, file uploads are handled directly via `POST /api/problems/{problemId}/submissions` using `multipart/form-data`.
 
 ---
 
 #### POST /api/upload/submission
 
-取得檔案上傳的 Signed URL
+取得檔案上傳的 Signed URL (Not yet implemented)
 
 **Authentication:** 必要
 
@@ -993,100 +1113,46 @@ public enum PrerequisiteType {
 
 ## File Storage Architecture
 
-### Multi-Provider Support
+### Current Implementation
 
-系統支援多種檔案儲存 Provider，透過 Strategy Pattern 實作：
+檔案儲存透過 `StorageService` 介面實作，位於 `service/` 層：
 
 ```java
-public interface FileStorageService {
-    UploadUrlResult generateUploadUrl(String fileKey, String contentType, long fileSizeBytes);
-    String getDownloadUrl(String fileKey);
-    void deleteFile(String fileKey);
+public interface StorageService {
+    String uploadFile(String path, MultipartFile file);
+    InputStream downloadFile(String path);
+    void deleteFile(String path);
+    String getFileUrl(String path);
+    String generateSignedUrl(String path, int expirationSeconds);
 }
 ```
 
 ### Implementations
 
-Storage 放置於 `infrastructure/` 層，與業務邏輯分離：
+```
+service/
+├── StorageService.java           # Interface
+├── MockStorageService.java       # Development: Mock implementation
+└── SupabaseStorageService.java   # Production: Supabase Storage
+```
+
+### Current Flow
+
+目前檔案上傳透過 `POST /api/problems/{problemId}/submissions` 使用 `multipart/form-data` 直接上傳，由 `SubmissionController` 處理。
+
+### Future Enhancement (Not Implemented)
+
+未來可新增 Signed URL 上傳機制：
 
 ```
 infrastructure/
 └── storage/
-    ├── FileStorageService.java           # Interface (Port)
-    ├── StorageConfig.java                # Provider 選擇配置
-    ├── LocalFileStorage.java             # Adapter: Local filesystem (development default)
-    ├── SupabaseStorage.java              # Adapter: Supabase Storage
-    └── S3Storage.java                    # Adapter: AWS S3
+    ├── FileStorageService.java    # Interface (Port)
+    ├── StorageConfig.java
+    ├── LocalFileStorage.java      # Adapter
+    ├── SupabaseStorage.java       # Adapter
+    └── S3Storage.java             # Adapter
 ```
-
-### Configuration
-
-```yaml
-# application.yml
-app:
-  storage:
-    provider: local  # local | supabase | s3
-    
-    local:
-      base-path: ./uploads
-      base-url: http://localhost:8080/files
-    
-    supabase:
-      url: ${SUPABASE_URL}
-      key: ${SUPABASE_KEY}
-      bucket: submissions
-    
-    s3:
-      region: ${AWS_REGION}
-      bucket: ${S3_BUCKET}
-      access-key: ${AWS_ACCESS_KEY}
-      secret-key: ${AWS_SECRET_KEY}
-```
-
-### Provider Selection
-
-```java
-@Configuration
-public class StorageConfig {
-    
-    @Bean
-    @ConditionalOnProperty(name = "app.storage.provider", havingValue = "local", matchIfMissing = true)
-    public FileStorageService localFileStorage(LocalStorageProperties props) {
-        return new LocalFileStorage(props);
-    }
-    
-    @Bean
-    @ConditionalOnProperty(name = "app.storage.provider", havingValue = "supabase")
-    public FileStorageService supabaseStorage(SupabaseProperties props) {
-        return new SupabaseStorage(props);
-    }
-    
-    @Bean
-    @ConditionalOnProperty(name = "app.storage.provider", havingValue = "s3")
-    public FileStorageService s3Storage(S3Properties props) {
-        return new S3Storage(props);
-    }
-}
-```
-
-### UploadUrlResult
-
-```java
-public record UploadUrlResult(
-    String uploadUrl,
-    String fileKey,
-    Instant expiresAt,
-    Map<String, String> headers  // Required headers for upload (e.g., Content-Type)
-) {}
-```
-
-### Local Storage Behavior
-
-For local storage, `generateUploadUrl` returns a direct upload endpoint:
-
-- `uploadUrl`: `/api/files/upload/{fileKey}`
-- Frontend uploads directly to this endpoint via multipart/form-data
-- `getDownloadUrl` returns `/files/{fileKey}` (served as static files)
 
 ---
 
@@ -1102,11 +1168,13 @@ com.waterball.course/
 │   ├── ... (現有)
 │   ├── GymController.java
 │   ├── ProblemController.java
-│   ├── SubmissionController.java
-│   └── FileUploadController.java
+│   └── SubmissionController.java
 │
 ├── service/
 │   ├── ... (現有)
+│   ├── StorageService.java          # Interface for file storage
+│   ├── MockStorageService.java      # Mock implementation for dev/test
+│   ├── SupabaseStorageService.java  # Production implementation
 │   └── gym/
 │       ├── GymService.java
 │       ├── StageService.java
@@ -1144,7 +1212,6 @@ com.waterball.course/
 │   ├── request/
 │   │   ├── ... (現有)
 │   │   ├── SubmissionRequest.java
-│   │   ├── UploadUrlRequest.java
 │   │   └── VisibilityUpdateRequest.java
 │   └── response/
 │       ├── ... (現有)
@@ -1157,17 +1224,7 @@ com.waterball.course/
 │       ├── SubmissionResponse.java
 │       ├── ReviewResponse.java
 │       ├── PrerequisiteInfoResponse.java
-│       ├── UploadUrlResponse.java
 │       └── GymProgressResponse.java
-│
-└── infrastructure/                    # 新增：技術基礎設施層
-    └── storage/
-        ├── FileStorageService.java    # Interface (Port)
-        ├── StorageConfig.java
-        ├── StorageProperties.java
-        ├── LocalFileStorage.java      # Adapter
-        ├── SupabaseStorage.java       # Adapter
-        └── S3Storage.java             # Adapter
 ```
 
 ### Architecture Evolution Path

@@ -479,11 +479,13 @@ interface GymProgressItem {
 
 ---
 
-### 5. File Upload API
+### 5. File Upload API (Future - Not Implemented)
+
+> **Note**: This section describes a planned feature for Signed URL uploads. Currently, file uploads are handled directly via `POST /api/problems/{problemId}/submissions` using `multipart/form-data`.
 
 #### POST /api/upload/submission
 
-取得檔案上傳的 Signed URL
+取得檔案上傳的 Signed URL (Not yet implemented)
 
 **Auth**: Required
 
@@ -540,15 +542,15 @@ Authorization: Bearer <access_token>
 
 ### 2. File Upload Flow
 
-**使用 Signed URL 上傳 (推薦)**:
+**直接上傳 (目前實作)**:
+
+1. 直接呼叫 `POST /api/problems/{problemId}/submissions` 使用 `multipart/form-data`
+
+**使用 Signed URL 上傳 (未來規劃)**:
 
 1. 呼叫 `POST /api/upload/submission` 取得 `uploadUrl` 和 `fileKey`
 2. 使用取得的 `uploadUrl` 直接上傳檔案到 storage
 3. 呼叫 `POST /api/problems/{problemId}/submissions` 並帶上 `fileKey`
-
-**直接上傳 (簡易模式)**:
-
-1. 直接呼叫 `POST /api/problems/{problemId}/submissions` 使用 `multipart/form-data`
 
 ### 3. Prerequisite Display
 
