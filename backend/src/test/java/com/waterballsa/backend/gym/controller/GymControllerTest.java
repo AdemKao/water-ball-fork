@@ -67,7 +67,7 @@ class GymControllerTest extends BaseIntegrationTest {
                     .andExpect(jsonPath("$", hasSize(2)))
                     .andExpect(jsonPath("$[0].id").value(GYM_ID_1.toString()))
                     .andExpect(jsonPath("$[0].title").value("Design Patterns Gym"))
-                    .andExpect(jsonPath("$[0].problemCount").value(3))
+                    .andExpect(jsonPath("$[0].problemCount").value(4))
                     .andExpect(jsonPath("$[1].id").value(GYM_ID_2.toString()))
                     .andExpect(jsonPath("$[1].title").value("SOLID Principles Gym"));
         }

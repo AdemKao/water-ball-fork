@@ -26,6 +26,7 @@ VALUES
     ('aaaa1111-1111-1111-1111-111111111111', '11111111-aaaa-aaaa-aaaa-111111111111', 'Singleton Pattern', 'Implement singleton pattern', 1, ARRAY['PDF'], '[]', 10, 0, NOW(), NOW()),
     ('aaaa2222-2222-2222-2222-222222222222', '11111111-aaaa-aaaa-aaaa-111111111111', 'Factory Pattern', 'Implement factory pattern', 2, ARRAY['PDF', 'CODE'], '[{"order": 1, "content": "Consider using abstract factory"}]', 20, 1, NOW(), NOW()),
     ('aaaa3333-3333-3333-3333-333333333333', '22222222-aaaa-aaaa-aaaa-222222222222', 'Observer Pattern', 'Implement observer pattern', 3, ARRAY['PDF'], '[]', 30, 0, NOW(), NOW()),
+    ('aaaa4444-4444-4444-4444-444444444444', '22222222-aaaa-aaaa-aaaa-222222222222', 'Locked Problem', 'This problem requires Observer Pattern', 3, ARRAY['PDF'], '[]', 30, 1, NOW(), NOW()),
     ('bbbb1111-1111-1111-1111-111111111111', '11111111-bbbb-bbbb-bbbb-111111111111', 'Single Responsibility', 'Apply SRP to refactor code', 2, ARRAY['PDF'], '[]', 20, 0, NOW(), NOW()),
     ('eeee1111-1111-1111-1111-111111111111', '11111111-eeee-eeee-eeee-111111111111', 'Unpublished Exercise', 'Exercise in unpublished journey', 1, ARRAY['PDF'], '[]', 10, 0, NOW(), NOW());
 
@@ -40,3 +41,7 @@ INSERT INTO reviews (id, submission_id, reviewer_id, content, status, reviewed_a
 VALUES
     ('aa000001-0001-0001-0001-000000000001', '00000001-0001-0001-0001-000000000001', '22222222-2222-2222-2222-222222222222', 'Great implementation!', 'APPROVED', NOW()),
     ('aa000001-0001-0001-0001-000000000003', '00000001-0001-0001-0001-000000000003', '22222222-2222-2222-2222-222222222222', 'Missing abstract factory', 'NEEDS_REVISION', NOW() - INTERVAL '2 days');
+
+INSERT INTO problem_prerequisites (id, problem_id, prerequisite_problem_id, created_at)
+VALUES
+    ('00000001-0001-0001-0001-000000000001', 'aaaa4444-4444-4444-4444-444444444444', 'aaaa3333-3333-3333-3333-333333333333', NOW());
