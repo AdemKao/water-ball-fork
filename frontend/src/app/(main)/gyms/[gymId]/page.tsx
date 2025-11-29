@@ -1,6 +1,8 @@
 'use client';
 
 import { use, useState } from 'react';
+import Link from 'next/link';
+import { ChevronLeft } from 'lucide-react';
 import { useGym } from '@/hooks/useGym';
 import { useStage } from '@/hooks/useStage';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -45,6 +47,14 @@ export default function GymPage({ params }: GymPageProps) {
 
   return (
     <div className="container mx-auto py-8 px-4 space-y-6">
+      <Link
+        href="/roadmap"
+        className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground transition-colors"
+      >
+        <ChevronLeft className="h-4 w-4 mr-1" />
+        返回挑戰地圖
+      </Link>
+
       <div>
         <div className="flex items-center gap-2 mb-2">
           <h1 className="text-2xl font-bold">{gym.title}</h1>

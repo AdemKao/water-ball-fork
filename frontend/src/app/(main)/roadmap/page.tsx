@@ -9,22 +9,21 @@ import {
   type RoadmapTabType,
 } from '@/components/roadmap';
 import { useJourneyList } from '@/hooks/useJourneyList';
-import { useGyms } from '@/hooks/useGym';
-import { Gym } from '@/types/gym';
+import { useRoadmapData, RoadmapGym } from '@/hooks/useRoadmapData';
 
 const DEFAULT_JOURNEY_ID = 'd3eebc99-9c0b-4ef8-bb6d-6bb9bd380a44';
 
-function gymsToSections(gyms: Gym[]): ChallengeSection[] {
-  return gyms.map((gym, gymIndex) => ({
+function gymsToSections(gyms: RoadmapGym[]): ChallengeSection[] {
+  return gyms.map((gym) => ({
     title: gym.title,
-    challenges: [{
-      id: gym.id,
-      number: `${gymIndex + 1}`,
-      title: `${gym.problemCount} 題 (${gym.completedCount} 完成)`,
-      stars: 1,
-      isLocked: !gym.isPurchased,
-      href: `/gym/${gym.id}`,
-    }],
+    challenges: gym.problems.map((problem, index) => ({
+      id: problem.id,
+      number: `${index + 1}`,
+      title: problem.title,
+      stars: problem.difficulty,
+      isLocked: !gym.isPurchased || !problem.isUnlocked,
+      href: `/gyms/${gym.id}/problems/${problem.id}`,
+    })),
   }));
 }
 
@@ -45,7 +44,7 @@ export default function RoadmapPage() {
     return journeys[0]?.id ?? DEFAULT_JOURNEY_ID;
   }, [journeys, selectedJourneyIdOverride]);
 
-  const { gyms, isLoading: isLoadingGyms } = useGyms(selectedJourneyId);
+  const { gyms, isLoading: isLoadingGyms } = useRoadmapData(selectedJourneyId);
 
   const mainQuestGyms = gyms.filter(g => g.type === 'MAIN_QUEST');
   const sideQuestGyms = gyms.filter(g => g.type === 'SIDE_QUEST');
@@ -53,11 +52,9 @@ export default function RoadmapPage() {
   const mainQuestData = gymsToSections(mainQuestGyms);
   const sideQuestData = gymsToSections(sideQuestGyms);
 
-  const mainChallengeCount = mainQuestGyms.reduce((acc, gym) => acc + gym.problemCount, 0);
-  const sideChallengeCount = sideQuestGyms.reduce((acc, gym) => acc + gym.problemCount, 0);
-  const totalChallenges = mainChallengeCount + sideChallengeCount;
-
-  const clearedCount = gyms.reduce((acc, gym) => acc + gym.completedCount, 0);
+  const totalProblems = gyms.reduce((acc, gym) => acc + gym.problems.length, 0);
+  const completedCount = gyms.reduce((acc, gym) => 
+    acc + gym.problems.filter(p => p.isCompleted).length, 0);
 
   const selectedJourney = journeys.find(j => j.id === selectedJourneyId);
   const title = selectedJourney?.title ?? '挑戰地圖';
@@ -80,8 +77,8 @@ export default function RoadmapPage() {
       <RoadmapHeader
         title={title}
         daysLeft={0}
-        cleared={clearedCount}
-        total={totalChallenges}
+        cleared={completedCount}
+        total={totalProblems}
         xp={0}
         journeys={journeys}
         selectedJourneyId={selectedJourneyId}

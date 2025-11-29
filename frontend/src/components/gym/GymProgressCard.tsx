@@ -15,7 +15,7 @@ export function GymProgressCard({ progress }: GymProgressCardProps) {
   const isMainQuest = progress.type === 'MAIN_QUEST';
 
   return (
-    <Link href={`/gym/${progress.gymId}`}>
+    <Link href={`/gyms/${progress.gymId}`}>
       <Card className="hover:shadow-md transition-shadow cursor-pointer">
         <CardHeader className="pb-2">
           <div className="flex items-start justify-between">

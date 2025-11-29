@@ -1,6 +1,5 @@
 import { apiClient } from '@/lib/api-client';
 import {
-  CreateSubmissionRequest,
   GymProgressSummary,
   PaginatedResponse,
   PublicSubmission,
@@ -8,15 +7,30 @@ import {
   SubmissionDetail,
 } from '@/types/gym';
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8888';
+
 export const submissionService = {
   async createSubmission(
     problemId: string,
-    data: CreateSubmissionRequest
+    file: File,
+    isPublic: boolean = false
   ): Promise<Submission> {
-    return apiClient<Submission>(`/api/problems/${problemId}/submissions`, {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('isPublic', String(isPublic));
+
+    const response = await fetch(`${API_BASE_URL}/api/problems/${problemId}/submissions`, {
       method: 'POST',
-      body: JSON.stringify(data),
+      body: formData,
+      credentials: 'include',
     });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ message: 'Upload failed' }));
+      throw new Error(error.message || `Upload failed with status ${response.status}`);
+    }
+
+    return response.json();
   },
 
   async getSubmissionHistory(problemId: string): Promise<Submission[]> {

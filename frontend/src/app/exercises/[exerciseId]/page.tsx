@@ -10,13 +10,12 @@ interface ExercisePageProps {
 
 export default function ExercisePage({ params }: ExercisePageProps) {
   const { exerciseId } = use(params);
-  const exerciseIdNumber = parseInt(exerciseId, 10);
   const searchParams = useSearchParams();
-  const gymId = parseInt(searchParams.get('gymId') || '0', 10);
+  const gymId = searchParams.get('gymId') || '0';
 
   return (
     <div className="container mx-auto py-8 px-4">
-      <ExerciseDetail exerciseId={exerciseIdNumber} gymId={gymId} />
+      <ExerciseDetail exerciseId={exerciseId} gymId={gymId} />
     </div>
   );
 }

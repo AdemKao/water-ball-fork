@@ -65,6 +65,7 @@ export interface ProblemSummary {
   isCompleted: boolean;
   isUnlocked: boolean;
   submissionStatus: SubmissionStatus | null;
+  prerequisites: PrerequisiteInfo[];
 }
 
 export interface ProblemDetail {
@@ -172,27 +173,6 @@ export interface GymProgressItem {
   progressPercentage: number;
 }
 
-export interface CreateSubmissionRequest {
-  fileKey: string;
-  fileName: string;
-  fileType: string;
-  fileSizeBytes: number;
-  isPublic?: boolean;
-}
-
-export interface UploadUrlRequest {
-  problemId: string;
-  fileName: string;
-  fileType: string;
-  fileSizeBytes: number;
-}
-
-export interface UploadUrlResponse {
-  uploadUrl: string;
-  fileKey: string;
-  expiresAt: string;
-}
-
 export interface VisibilityUpdateRequest {
   isPublic: boolean;
 }
@@ -231,7 +211,7 @@ export const SUBMISSION_TYPE_CONFIG: Record<SubmissionType, {
   },
   IMAGE: {
     label: '圖片',
-    accept: ['image/png', 'image/jpeg'],
+    accept: ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/svg+xml', 'image/webp'],
     maxSizeMB: 10,
     icon: 'Image',
   },

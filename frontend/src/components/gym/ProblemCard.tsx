@@ -8,10 +8,12 @@ import { cn } from '@/lib/utils';
 import { ProblemSummary, SubmissionStatus } from '@/types/gym';
 import { DifficultyStars } from './DifficultyStars';
 import { SubmissionTypeIcon } from './SubmissionTypeIcon';
+import { PrerequisiteStatus } from './PrerequisiteStatus';
 
 interface ProblemCardProps {
   problem: ProblemSummary;
   gymId: string;
+  isPurchased?: boolean;
   onClick?: () => void;
 }
 
@@ -21,7 +23,7 @@ const statusConfig: Record<SubmissionStatus, { icon: typeof Clock; color: string
   NEEDS_REVISION: { icon: AlertCircle, color: 'text-orange-500', label: '需修改' },
 };
 
-export function ProblemCard({ problem, gymId, onClick }: ProblemCardProps) {
+export function ProblemCard({ problem, gymId, isPurchased = false, onClick }: ProblemCardProps) {
   const isAccessible = problem.isUnlocked;
 
   const content = (
@@ -82,6 +84,12 @@ export function ProblemCard({ problem, gymId, onClick }: ProblemCardProps) {
                 <span className="text-xs text-muted-foreground">尚未提交</span>
               )}
             </div>
+
+            {!problem.isUnlocked && isPurchased && problem.prerequisites && problem.prerequisites.length > 0 && (
+              <div className="mt-3">
+                <PrerequisiteStatus prerequisites={problem.prerequisites} showLinks={true} />
+              </div>
+            )}
           </div>
         </div>
       </CardContent>

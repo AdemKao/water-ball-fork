@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { CreateSubmissionRequest, Submission } from '@/types/gym';
+import { Submission } from '@/types/gym';
 import { submissionService } from '@/services/submission.service';
 
 export function useSubmission(problemId: string) {
@@ -9,11 +9,11 @@ export function useSubmission(problemId: string) {
   const [error, setError] = useState<Error | null>(null);
 
   const submit = useCallback(
-    async (data: CreateSubmissionRequest): Promise<Submission> => {
+    async (file: File, isPublic: boolean = false): Promise<Submission> => {
       setIsSubmitting(true);
       setError(null);
       try {
-        const result = await submissionService.createSubmission(problemId, data);
+        const result = await submissionService.createSubmission(problemId, file, isPublic);
         return result;
       } catch (err) {
         const error = err instanceof Error ? err : new Error('Failed to submit');

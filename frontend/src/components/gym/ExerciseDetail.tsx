@@ -1,6 +1,7 @@
 'use client';
 
-import { useExerciseDetail, useMySubmissions } from '@/hooks/useGym';
+import { useProblem } from '@/hooks/useProblem';
+import { useSubmissionHistory } from '@/hooks/useSubmissionHistory';
 import { SubmissionUpload } from './SubmissionUpload';
 import { SubmissionHistory } from './SubmissionHistory';
 import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -10,46 +11,37 @@ import { FileText, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
-import { Difficulty } from '@/types/gym';
-import { gymService } from '@/services/gym.service';
+import { Submission } from '@/types/gym';
 
 interface ExerciseDetailProps {
-  exerciseId: number;
-  gymId: number;
+  exerciseId: string;
+  gymId: string;
 }
 
-const difficultyColors: Record<Difficulty, string> = {
-  EASY: 'bg-green-100 text-green-800',
-  MEDIUM: 'bg-yellow-100 text-yellow-800',
-  HARD: 'bg-red-100 text-red-800',
+const difficultyColors: Record<number, string> = {
+  1: 'bg-green-100 text-green-800',
+  2: 'bg-yellow-100 text-yellow-800',
+  3: 'bg-red-100 text-red-800',
 };
 
-const difficultyLabels: Record<Difficulty, string> = {
-  EASY: '簡單',
-  MEDIUM: '中等',
-  HARD: '困難',
+const difficultyLabels: Record<number, string> = {
+  1: '簡單',
+  2: '中等',
+  3: '困難',
 };
 
 export function ExerciseDetail({ exerciseId, gymId }: ExerciseDetailProps) {
-  const { exercise, isLoading, error, refetch } = useExerciseDetail(exerciseId);
-  const { submissions, refetch: refetchSubmissions } = useMySubmissions(exerciseId);
+  const { problem, isLoading, error, refetch } = useProblem(exerciseId);
+  const { submissions, refetch: refetchSubmissions } = useSubmissionHistory(exerciseId);
 
   const handleUploadSuccess = () => {
     refetch();
     refetchSubmissions();
   };
 
-  const handleDownload = async (submissionId: number) => {
+  const handleDownload = async (submission: Submission) => {
     try {
-      const blob = await gymService.downloadSubmission(submissionId);
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'submission';
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
+      window.open(submission.fileUrl, '_blank');
     } catch (err) {
       console.error('Download failed:', err);
     }
@@ -59,7 +51,7 @@ export function ExerciseDetail({ exerciseId, gymId }: ExerciseDetailProps) {
     return <ExerciseDetailSkeleton />;
   }
 
-  if (error || !exercise) {
+  if (error || !problem) {
     return (
       <div className="text-red-500 p-4">
         Error loading exercise: {error?.message || 'Not found'}
@@ -67,12 +59,12 @@ export function ExerciseDetail({ exerciseId, gymId }: ExerciseDetailProps) {
     );
   }
 
-  const actualGymId = gymId || exercise.gymId;
+  const actualGymId = gymId || problem.gymId;
 
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
-        <Link href={`/gym/${actualGymId}`}>
+        <Link href={`/gyms/${actualGymId}`}>
           <Button variant="ghost" size="sm">
             <ArrowLeft className="h-4 w-4 mr-2" />
             返回
@@ -85,22 +77,26 @@ export function ExerciseDetail({ exerciseId, gymId }: ExerciseDetailProps) {
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2">
               <FileText className="h-5 w-5" />
-              {exercise.title}
+              {problem.title}
             </CardTitle>
-            <Badge className={cn(difficultyColors[exercise.difficulty])}>
-              {difficultyLabels[exercise.difficulty]}
+            <Badge className={cn(difficultyColors[problem.difficulty] || 'bg-gray-100 text-gray-800')}>
+              {difficultyLabels[problem.difficulty] || '未知'}
             </Badge>
           </div>
-          {exercise.description && (
+          {problem.description && (
             <CardDescription className="mt-2 whitespace-pre-wrap">
-              {exercise.description}
+              {problem.description}
             </CardDescription>
           )}
         </CardHeader>
       </Card>
 
       <div className="grid gap-6 md:grid-cols-2">
-        <SubmissionUpload exerciseId={exerciseId} onSuccess={handleUploadSuccess} />
+        <SubmissionUpload
+          problemId={exerciseId}
+          submissionTypes={problem.submissionTypes}
+          onSuccess={handleUploadSuccess}
+        />
         <SubmissionHistory submissions={submissions} onDownload={handleDownload} />
       </div>
     </div>

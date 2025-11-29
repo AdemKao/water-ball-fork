@@ -1,6 +1,5 @@
 'use client';
 
-import Link from 'next/link';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -73,14 +72,11 @@ export function PublicSubmissionCard({
 
       <CardContent className="space-y-4">
         {showProblemLink && (
-          <Link
-            href={`/gym/problems/${submission.problemId}`}
-            className="block text-sm hover:underline"
-          >
+          <div className="block text-sm">
             <span className="text-muted-foreground">{submission.gymTitle}</span>
             <span className="mx-2 text-muted-foreground">/</span>
             <span className="font-medium">{submission.problemTitle}</span>
-          </Link>
+          </div>
         )}
 
         <div className="flex items-center justify-between">

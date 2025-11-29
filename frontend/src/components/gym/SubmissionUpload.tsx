@@ -1,24 +1,30 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { useSubmitExercise } from '@/hooks/useGymExercise';
+import { useSubmission } from '@/hooks/useSubmission';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Upload, FileUp, Loader2, CheckCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { SubmissionType, SUBMISSION_TYPE_CONFIG } from '@/types/gym';
 
 interface SubmissionUploadProps {
-  exerciseId: number;
+  problemId: string;
+  submissionTypes: SubmissionType[];
   onSuccess?: () => void;
 }
 
-export function SubmissionUpload({ exerciseId, onSuccess }: SubmissionUploadProps) {
+export function SubmissionUpload({ problemId, submissionTypes, onSuccess }: SubmissionUploadProps) {
   const [file, setFile] = useState<File | null>(null);
   const [dragActive, setDragActive] = useState(false);
   const [success, setSuccess] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
-  const { submitExercise, submitting, error } = useSubmitExercise();
+
+  const { submit, isSubmitting, error } = useSubmission(problemId);
+
+  const acceptedTypes = submissionTypes.flatMap(type => SUBMISSION_TYPE_CONFIG[type].accept);
+  const maxSizeMB = Math.max(...submissionTypes.map(type => SUBMISSION_TYPE_CONFIG[type].maxSizeMB));
 
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
@@ -47,13 +53,15 @@ export function SubmissionUpload({ exerciseId, onSuccess }: SubmissionUploadProp
 
   const handleSubmit = async () => {
     if (!file) return;
-    
-    const result = await submitExercise(exerciseId, file);
-    if (result) {
+
+    try {
+      await submit(file);
       setSuccess(true);
       setFile(null);
       onSuccess?.();
       setTimeout(() => setSuccess(false), 3000);
+    } catch {
+      // Error is handled by hook
     }
   };
 
@@ -83,7 +91,7 @@ export function SubmissionUpload({ exerciseId, onSuccess }: SubmissionUploadProp
             type="file"
             className="hidden"
             onChange={handleChange}
-            accept=".pdf,.doc,.docx,.txt,.zip,.rar,.java,.py,.js,.ts"
+            accept={acceptedTypes.join(',')}
           />
           <FileUp className="h-10 w-10 mx-auto mb-4 text-muted-foreground" />
           {file ? (
@@ -97,7 +105,7 @@ export function SubmissionUpload({ exerciseId, onSuccess }: SubmissionUploadProp
             <div>
               <p className="font-medium">拖放文件到此處或點擊選擇</p>
               <p className="text-sm text-muted-foreground">
-                支援 PDF, Word, 程式碼文件等
+                支援 {submissionTypes.map(t => SUBMISSION_TYPE_CONFIG[t].label).join('、')} (最大 {maxSizeMB}MB)
               </p>
             </div>
           )}
@@ -116,13 +124,13 @@ export function SubmissionUpload({ exerciseId, onSuccess }: SubmissionUploadProp
 
         <Button
           onClick={handleSubmit}
-          disabled={!file || submitting}
+          disabled={!file || isSubmitting}
           className="w-full"
         >
-          {submitting ? (
+          {isSubmitting ? (
             <>
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              上傳中...
+              提交中...
             </>
           ) : (
             '提交作業'
