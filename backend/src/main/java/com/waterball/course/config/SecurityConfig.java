@@ -42,8 +42,16 @@ public class SecurityConfig {
                 .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/journeys").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/journeys/{journeyId}").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/journeys/{journeyId}/gyms").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/gyms").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/gyms/{gymId}").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/gyms/{gymId}/stages/{stageId}").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/gyms/{gymId}/exercises").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/exercises/{exerciseId}").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/submissions/public/**").permitAll()
                 .requestMatchers("/api/webhooks/payment").permitAll()
                 .requestMatchers("/mock-payment/**").permitAll()
+                .requestMatchers("/uploads/**").permitAll()
                 .requestMatchers("/api/purchases/**").authenticated()
                 .anyRequest().authenticated()
             )
@@ -66,7 +74,7 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOrigins(List.of("http://localhost:3388"));
-        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);
 

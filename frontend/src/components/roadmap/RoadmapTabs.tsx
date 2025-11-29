@@ -2,9 +2,11 @@
 
 import { cn } from '@/lib/utils';
 
+export type RoadmapTabType = 'main' | 'side';
+
 interface RoadmapTabsProps {
-  activeTab: 'main' | 'side';
-  onTabChange: (tab: 'main' | 'side') => void;
+  activeTab: RoadmapTabType;
+  onTabChange: (tab: RoadmapTabType) => void;
 }
 
 export function RoadmapTabs({ activeTab, onTabChange }: RoadmapTabsProps) {

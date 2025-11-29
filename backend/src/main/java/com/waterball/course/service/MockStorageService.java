@@ -8,7 +8,7 @@ import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 
 @Service
-@ConditionalOnProperty(name = "storage.type", havingValue = "mock", matchIfMissing = true)
+@ConditionalOnProperty(name = "storage.type", havingValue = "mock")
 public class MockStorageService implements StorageService {
     
     @Override

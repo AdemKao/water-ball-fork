@@ -1,4 +1,4 @@
 export { RoadmapHeader } from './RoadmapHeader';
-export { RoadmapTabs } from './RoadmapTabs';
+export { RoadmapTabs, type RoadmapTabType } from './RoadmapTabs';
 export { ChallengeList, type Challenge, type ChallengeSection } from './ChallengeList';
 export { SideQuestList, type SideQuest } from './SideQuestList';

@@ -46,7 +46,10 @@ springdoc:
     operations-sorter: alpha
 
 storage:
-  type: supabase
+  type: ${STORAGE_TYPE:local}
+  local:
+    base-path: ${STORAGE_LOCAL_PATH:./uploads}
+    base-url: ${STORAGE_LOCAL_URL:http://localhost:8888/uploads}
   supabase:
     url: ${SUPABASE_URL:}
     key: ${SUPABASE_KEY:}

@@ -9,3 +9,5 @@ mvnw.cmd
 
 .env
 .env.local
+
+uploads/

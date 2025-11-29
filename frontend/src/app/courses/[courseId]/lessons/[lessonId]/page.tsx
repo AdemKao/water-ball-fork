@@ -112,7 +112,7 @@ export default function LessonPage({ params }: PageProps) {
             <LessonNavigation
               previousLesson={lesson.previousLesson}
               nextLesson={lesson.nextLesson}
-              courseId={courseId}
+              onNavigate={(lessonId) => router.push(`/courses/${courseId}/lessons/${lessonId}`)}
             />
           </div>
         </div>

@@ -1,121 +1,88 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
   RoadmapHeader,
   RoadmapTabs,
   ChallengeList,
-  SideQuestList,
   type ChallengeSection,
-  type SideQuest,
+  type RoadmapTabType,
 } from '@/components/roadmap';
+import { useJourneyList } from '@/hooks/useJourneyList';
+import { useRoadmapData, RoadmapGym } from '@/hooks/useRoadmapData';
 
-const mainQuestData: ChallengeSection[] = [
-  {
-    title: '白段道館',
-    challenges: [
-      {
-        id: '1',
-        number: '4.A',
-        title: '責任鏈模式練習：碰撞偵測 & 處理',
-        stars: 1,
-        isLocked: true,
-        href: '/courses/software-design-pattern/lessons/4a',
-      },
-      {
-        id: '2',
-        number: '4.B',
-        title: '狀態模式練習：角色狀態機',
-        stars: 2,
-        isLocked: true,
-        href: '/courses/software-design-pattern/lessons/4b',
-      },
-      {
-        id: '3',
-        number: '4.C',
-        title: '策略模式練習：攻擊策略切換',
-        stars: 1,
-        isLocked: true,
-        href: '/courses/software-design-pattern/lessons/4c',
-      },
-    ],
-  },
-  {
-    title: '黑段道館',
-    challenges: [
-      {
-        id: '4',
-        number: '5.A',
-        title: '複合模式練習：遊戲物件組合',
-        stars: 3,
-        isLocked: true,
-        href: '/courses/software-design-pattern/lessons/5a',
-      },
-      {
-        id: '5',
-        number: '5.B',
-        title: '工廠模式練習：物件工廠',
-        stars: 2,
-        isLocked: true,
-        href: '/courses/software-design-pattern/lessons/5b',
-      },
-    ],
-  },
-];
+const DEFAULT_JOURNEY_ID = 'd3eebc99-9c0b-4ef8-bb6d-6bb9bd380a44';
 
-const sideQuestData: SideQuest[] = [
-  {
-    id: 's1',
-    category: 'A',
-    title: '單例模式：設定檔管理器',
-    stars: 1,
-    href: '/courses/software-design-pattern/lessons/side-a1',
-  },
-  {
-    id: 's2',
-    category: 'A',
-    title: '原型模式：物件複製',
-    stars: 1,
-    href: '/courses/software-design-pattern/lessons/side-a2',
-  },
-  {
-    id: 's3',
-    category: 'B',
-    title: '裝飾者模式：功能擴展',
-    stars: 2,
-    href: '/courses/software-design-pattern/lessons/side-b1',
-  },
-  {
-    id: 's4',
-    category: 'B',
-    title: '代理模式：延遲載入',
-    stars: 2,
-    href: '/courses/software-design-pattern/lessons/side-b2',
-  },
-  {
-    id: 's5',
-    category: 'C',
-    title: '命令模式：操作撤銷',
-    stars: 3,
-    href: '/courses/software-design-pattern/lessons/side-c1',
-  },
-];
+function gymsToSections(gyms: RoadmapGym[]): ChallengeSection[] {
+  return gyms.map((gym) => ({
+    title: gym.title,
+    challenges: gym.problems.map((problem, index) => ({
+      id: problem.id,
+      number: `${index + 1}`,
+      title: problem.title,
+      stars: problem.difficulty,
+      isLocked: !gym.isPurchased || !problem.isUnlocked,
+      href: `/gyms/${gym.id}/problems/${problem.id}`,
+    })),
+  }));
+}
 
 export default function RoadmapPage() {
-  const [activeTab, setActiveTab] = useState<'main' | 'side'>('side');
+  const [activeTab, setActiveTab] = useState<RoadmapTabType>('main');
+  const [selectedJourneyIdOverride, setSelectedJourneyIdOverride] = useState<string | null>(null);
+  
+  const { journeys, isLoading: isLoadingJourneys } = useJourneyList();
 
-  const totalChallenges =
-    mainQuestData.reduce((acc, section) => acc + section.challenges.length, 0) +
-    sideQuestData.length;
+  const selectedJourneyId = useMemo(() => {
+    if (selectedJourneyIdOverride && journeys.find(j => j.id === selectedJourneyIdOverride)) {
+      return selectedJourneyIdOverride;
+    }
+    const defaultExists = journeys.find(j => j.id === DEFAULT_JOURNEY_ID);
+    if (defaultExists) {
+      return DEFAULT_JOURNEY_ID;
+    }
+    return journeys[0]?.id ?? DEFAULT_JOURNEY_ID;
+  }, [journeys, selectedJourneyIdOverride]);
+
+  const { gyms, isLoading: isLoadingGyms } = useRoadmapData(selectedJourneyId);
+
+  const mainQuestGyms = gyms.filter(g => g.type === 'MAIN_QUEST');
+  const sideQuestGyms = gyms.filter(g => g.type === 'SIDE_QUEST');
+
+  const mainQuestData = gymsToSections(mainQuestGyms);
+  const sideQuestData = gymsToSections(sideQuestGyms);
+
+  const totalProblems = gyms.reduce((acc, gym) => acc + gym.problems.length, 0);
+  const completedCount = gyms.reduce((acc, gym) => 
+    acc + gym.problems.filter(p => p.isCompleted).length, 0);
+
+  const selectedJourney = journeys.find(j => j.id === selectedJourneyId);
+  const title = selectedJourney?.title ?? '挑戰地圖';
+
+  if (isLoadingJourneys || isLoadingGyms) {
+    return (
+      <div className="max-w-4xl mx-auto py-8 px-4">
+        <div className="text-center">
+          <div className="animate-pulse">
+            <div className="h-8 bg-muted rounded w-64 mx-auto mb-4" />
+            <div className="h-4 bg-muted rounded w-32 mx-auto" />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-4xl mx-auto py-8 px-4">
       <RoadmapHeader
-        title="軟體設計模式精通之旅"
+        title={title}
         daysLeft={0}
-        cleared={0}
-        total={totalChallenges}
+        cleared={completedCount}
+        total={totalProblems}
         xp={0}
+        journeys={journeys}
+        selectedJourneyId={selectedJourneyId}
+        onJourneyChange={setSelectedJourneyIdOverride}
       />
 
       <div className="mt-8">
@@ -123,10 +90,11 @@ export default function RoadmapPage() {
       </div>
 
       <div className="mt-8">
-        {activeTab === 'main' ? (
-          <ChallengeList sections={mainQuestData} />
-        ) : (
-          <SideQuestList quests={sideQuestData} />
+        {activeTab === 'main' && <ChallengeList sections={mainQuestData} />}
+        {activeTab === 'side' && (
+          sideQuestData.length > 0 
+            ? <ChallengeList sections={sideQuestData} />
+            : <div className="text-center text-muted-foreground py-8">目前沒有支線任務</div>
         )}
       </div>
     </div>
