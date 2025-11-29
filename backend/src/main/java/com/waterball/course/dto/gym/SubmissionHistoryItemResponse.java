@@ -12,6 +12,7 @@ public record SubmissionHistoryItemResponse(
         String fileUrl,
         String fileName,
         SubmissionType fileType,
+        long fileSizeBytes,
         SubmissionStatus status,
         boolean isPublic,
         int version,

@@ -180,6 +180,7 @@ public class ProblemController {
                 submission.getFileUrl(),
                 submission.getFileName(),
                 submission.getFileType(),
+                submission.getFileSizeBytes() != null ? submission.getFileSizeBytes() : 0L,
                 submission.getStatus(),
                 submission.getIsPublic(),
                 submission.getVersion(),

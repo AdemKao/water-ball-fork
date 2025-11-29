@@ -57,7 +57,7 @@ if [ -n "$REVIEWER_ID" ]; then
   
   docker exec $CONTAINER_NAME psql -U $DB_USER -d $DB_NAME -c \
     "INSERT INTO reviews (id, submission_id, reviewer_id, content, status, reviewed_at) 
-     VALUES (gen_random_uuid(), '$SUBMISSION_ID', '$REVIEWER_ID', '$REASON', 'REJECTED', NOW());"
+     VALUES (gen_random_uuid(), '$SUBMISSION_ID', '$REVIEWER_ID', '$REASON', 'NEEDS_REVISION', NOW());"
   
   echo ""
   echo "Done! Submission rejected."
