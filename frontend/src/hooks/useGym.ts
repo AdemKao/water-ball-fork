@@ -2,26 +2,25 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { gymService } from '@/services/gym.service';
-import { Gym, GymExercise, GymExerciseDetail, GymSubmission } from '@/types/gym';
+import { Gym, GymDetail, GymType } from '@/types/gym';
 
-export function useGyms(journeyId: string | undefined) {
+export function useGyms(journeyId?: string, type?: GymType) {
   const [gyms, setGyms] = useState<Gym[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
   const fetchGyms = useCallback(async () => {
-    if (!journeyId) return;
     setIsLoading(true);
     setError(null);
     try {
-      const data = await gymService.getGymsByJourney(journeyId);
+      const data = await gymService.getGyms({ journeyId, type });
       setGyms(data);
     } catch (err) {
       setError(err instanceof Error ? err : new Error('Failed to fetch gyms'));
     } finally {
       setIsLoading(false);
     }
-  }, [journeyId]);
+  }, [journeyId, type]);
 
   useEffect(() => {
     fetchGyms();
@@ -30,80 +29,28 @@ export function useGyms(journeyId: string | undefined) {
   return { gyms, isLoading, error, refetch: fetchGyms };
 }
 
-export function useGymExercises(gymId: number | undefined) {
-  const [exercises, setExercises] = useState<GymExercise[]>([]);
+export function useGym(gymId: string) {
+  const [gym, setGym] = useState<GymDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
-  const fetchExercises = useCallback(async () => {
+  const fetchGym = useCallback(async () => {
     if (!gymId) return;
     setIsLoading(true);
     setError(null);
     try {
-      const data = await gymService.getExercises(gymId);
-      setExercises(data);
+      const data = await gymService.getGym(gymId);
+      setGym(data);
     } catch (err) {
-      setError(err instanceof Error ? err : new Error('Failed to fetch exercises'));
+      setError(err instanceof Error ? err : new Error('Failed to fetch gym'));
     } finally {
       setIsLoading(false);
     }
   }, [gymId]);
 
   useEffect(() => {
-    fetchExercises();
-  }, [fetchExercises]);
+    fetchGym();
+  }, [fetchGym]);
 
-  return { exercises, isLoading, error, refetch: fetchExercises };
-}
-
-export function useExerciseDetail(exerciseId: number | undefined) {
-  const [exercise, setExercise] = useState<GymExerciseDetail | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
-
-  const fetchExercise = useCallback(async () => {
-    if (!exerciseId) return;
-    setIsLoading(true);
-    setError(null);
-    try {
-      const data = await gymService.getExerciseDetail(exerciseId);
-      setExercise(data);
-    } catch (err) {
-      setError(err instanceof Error ? err : new Error('Failed to fetch exercise detail'));
-    } finally {
-      setIsLoading(false);
-    }
-  }, [exerciseId]);
-
-  useEffect(() => {
-    fetchExercise();
-  }, [fetchExercise]);
-
-  return { exercise, isLoading, error, refetch: fetchExercise };
-}
-
-export function useMySubmissions(exerciseId: number | undefined) {
-  const [submissions, setSubmissions] = useState<GymSubmission[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
-
-  const fetchSubmissions = useCallback(async () => {
-    if (!exerciseId) return;
-    setIsLoading(true);
-    setError(null);
-    try {
-      const data = await gymService.getMySubmissions(exerciseId);
-      setSubmissions(data);
-    } catch (err) {
-      setError(err instanceof Error ? err : new Error('Failed to fetch submissions'));
-    } finally {
-      setIsLoading(false);
-    }
-  }, [exerciseId]);
-
-  useEffect(() => {
-    fetchSubmissions();
-  }, [fetchSubmissions]);
-
-  return { submissions, isLoading, error, refetch: fetchSubmissions };
+  return { gym, isLoading, error, refetch: fetchGym };
 }
