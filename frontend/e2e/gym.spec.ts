@@ -415,6 +415,89 @@ test.describe('Unauthenticated Access', () => {
   });
 });
 
+test.describe('Public Submission Page', () => {
+  const mockPublicSubmission = {
+    id: '123',
+    problemId: String(TEST_EXERCISE_ID),
+    problemTitle: '責任鏈模式練習',
+    gymTitle: '白段道館',
+    userName: 'Test User',
+    userAvatarUrl: null,
+    fileUrl: 'https://example.com/file.pdf',
+    fileName: 'my-submission.pdf',
+    status: 'REVIEWED',
+    submittedAt: new Date().toISOString(),
+    review: {
+      content: '做得很好！',
+      status: 'APPROVED',
+      reviewedAt: new Date().toISOString(),
+      reviewerName: 'Reviewer',
+    },
+  };
+
+  test('should display public submission details without authentication', async ({ page }) => {
+    await setupUnauthenticatedApiMocks(page);
+    await page.route('**/api/submissions/public/123', (route) => {
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(mockPublicSubmission),
+      });
+    });
+
+    await page.goto('/submissions/123');
+
+    await expect(page.getByText('my-submission.pdf')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText('Test User')).toBeVisible();
+    await expect(page.getByText('做得很好！')).toBeVisible();
+  });
+
+  test('should show 404 for non-existent public submission', async ({ page }) => {
+    await setupUnauthenticatedApiMocks(page);
+    await page.route('**/api/submissions/public/999', (route) => {
+      route.fulfill({
+        status: 404,
+        contentType: 'application/json',
+        body: JSON.stringify({ message: 'Submission not found or not public' }),
+      });
+    });
+
+    await page.goto('/submissions/999');
+
+    await expect(page.getByText('找不到作業')).toBeVisible({ timeout: 10000 });
+  });
+
+  test('should show 404 for private submission accessed via public URL', async ({ page }) => {
+    await setupUnauthenticatedApiMocks(page);
+    await page.route('**/api/submissions/public/456', (route) => {
+      route.fulfill({
+        status: 404,
+        contentType: 'application/json',
+        body: JSON.stringify({ message: 'Submission not found or not public' }),
+      });
+    });
+
+    await page.goto('/submissions/456');
+
+    await expect(page.getByText('找不到作業')).toBeVisible({ timeout: 10000 });
+  });
+
+  test('should display download button for public submission file', async ({ page }) => {
+    await setupUnauthenticatedApiMocks(page);
+    await page.route('**/api/submissions/public/123', (route) => {
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(mockPublicSubmission),
+      });
+    });
+
+    await page.goto('/submissions/123');
+
+    await expect(page.getByRole('link', { name: '下載' })).toBeVisible({ timeout: 10000 });
+  });
+});
+
 test.describe('Error Handling', () => {
   test('should display error message when gym list fails to load', async ({ page }) => {
     await setupUnauthenticatedApiMocks(page);

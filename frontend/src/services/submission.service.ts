@@ -66,6 +66,10 @@ export const submissionService = {
     return apiClient<PaginatedResponse<PublicSubmission>>(endpoint);
   },
 
+  async getPublicSubmission(submissionId: string): Promise<PublicSubmission> {
+    return apiClient<PublicSubmission>(`/api/submissions/public/${submissionId}`);
+  },
+
   async getGymProgress(): Promise<GymProgressSummary> {
     return apiClient<GymProgressSummary>('/api/my/gym-progress');
   },
