@@ -1,6 +1,10 @@
-DELETE FROM gym_submission;
-DELETE FROM gym_exercise;
-DELETE FROM gym;
+DELETE FROM reviews;
+DELETE FROM submissions;
+DELETE FROM problem_prerequisites;
+DELETE FROM stage_prerequisites;
+DELETE FROM problems;
+DELETE FROM stages;
+DELETE FROM gyms;
 DELETE FROM lesson_progress;
 DELETE FROM purchase_orders;
 DELETE FROM user_purchases;
