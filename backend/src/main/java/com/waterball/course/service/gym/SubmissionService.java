@@ -1,7 +1,10 @@
 package com.waterball.course.service.gym;
 
+import com.waterball.course.dto.gym.GymProgressResponse;
 import com.waterball.course.entity.*;
 import com.waterball.course.exception.*;
+import com.waterball.course.repository.GymRepository;
+import com.waterball.course.repository.ProblemRepository;
 import com.waterball.course.repository.ReviewRepository;
 import com.waterball.course.repository.SubmissionRepository;
 import com.waterball.course.service.StorageService;
@@ -17,6 +20,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -27,6 +31,8 @@ public class SubmissionService {
     private final ProblemService problemService;
     private final GymAccessControlService gymAccessControlService;
     private final StorageService storageService;
+    private final GymRepository gymRepository;
+    private final ProblemRepository problemRepository;
 
     @Transactional(readOnly = true)
     public Submission getSubmission(UUID submissionId) {
@@ -167,5 +173,52 @@ public class SubmissionService {
     private String generateFileKey(UUID userId, UUID problemId, String originalFilename) {
         long timestamp = System.currentTimeMillis();
         return String.format("submissions/%s/%s/%d-%s", userId, problemId, timestamp, originalFilename);
+    }
+
+    @Transactional(readOnly = true)
+    public GymProgressResponse getUserProgress(UUID userId) {
+        List<Gym> gyms = gymRepository.findByIsPublishedTrueOrderBySortOrder();
+        
+        int totalGyms = gyms.size();
+        int completedGyms = 0;
+        int totalProblems = 0;
+        int completedProblems = 0;
+        int pendingReviews = submissionRepository.countByUserIdAndStatus(userId, SubmissionStatus.PENDING);
+        
+        List<GymProgressResponse.GymProgressItemResponse> gymItems = gyms.stream()
+                .map(gym -> {
+                    int problemCount = problemRepository.countByGymId(gym.getId());
+                    int completedCount = (int) submissionRepository.countCompletedByUserIdAndGymId(userId, gym.getId());
+                    int pendingCount = 0;
+                    int progressPercentage = problemCount > 0 ? (completedCount * 100) / problemCount : 0;
+                    
+                    return new GymProgressResponse.GymProgressItemResponse(
+                            gym.getId(),
+                            gym.getTitle(),
+                            gym.getGymType(),
+                            problemCount,
+                            completedCount,
+                            pendingCount,
+                            progressPercentage
+                    );
+                })
+                .collect(Collectors.toList());
+        
+        for (GymProgressResponse.GymProgressItemResponse item : gymItems) {
+            totalProblems += item.problemCount();
+            completedProblems += item.completedCount();
+            if (item.problemCount() > 0 && item.completedCount() >= item.problemCount()) {
+                completedGyms++;
+            }
+        }
+        
+        return new GymProgressResponse(
+                totalGyms,
+                completedGyms,
+                totalProblems,
+                completedProblems,
+                pendingReviews,
+                gymItems
+        );
     }
 }
