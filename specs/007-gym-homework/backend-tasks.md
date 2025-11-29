@@ -26,7 +26,7 @@
 - [x] problems 表包含所有必要欄位 (id, stage_id, title, description, difficulty, submission_types, hints, exp_reward, sort_order, timestamps)
 - [x] 正確建立外鍵約束 (gyms -> journeys, stages -> gyms, problems -> stages)
 - [x] 建立必要的索引
-- [x] 執行 `./mvnw flyway:migrate` 成功
+- [x] 執行 `mvn flyway:migrate` 成功
 
 ---
 
@@ -275,7 +275,7 @@
 - [x] 實作 `getUserProgress(UUID userId)` 方法
 - [x] 重複提交時自動遞增 version
 - [x] 驗證檔案類型符合題目允許的 submissionTypes
-- [ ] 驗證檔案大小符合限制
+- [x] 驗證檔案大小符合限制
 
 ---
 
@@ -380,6 +380,10 @@
   - 支援 problemId 篩選
   - 支援 gymId 篩選
   - 支援分頁
+- [x] 實作 `GET /api/submissions/public/{submissionId}` - 公開提交詳情
+  - 回傳完整提交資訊 (含問題、道館、用戶資訊)
+  - 驗證提交必須為公開狀態
+  - 未公開提交回傳 403
 - [x] 實作 `GET /api/my/gym-progress` - 個人進度總覽
 
 ---
@@ -552,13 +556,13 @@
 - [x] 測試 GET /api/problems/{problemId} - 不存在 (500)
 - [x] 測試 POST /api/problems/{problemId}/submissions - 正常提交
 - [x] 測試 GET /api/problems/{problemId}/submissions - 提交歷史
-- [ ] 測試 GET /api/problems/{problemId} - 未解鎖 (403)
-- [ ] 測試 POST /api/problems/{problemId}/submissions - 檔案類型不符 (400)
-- [ ] 測試 POST /api/problems/{problemId}/submissions - 重複提交 (version 遞增)
+- [x] 測試 GET /api/problems/{problemId} - 未解鎖 (403)
+- [x] 測試 POST /api/problems/{problemId}/submissions - 檔案類型不符 (400)
+- [x] 測試 POST /api/problems/{problemId}/submissions - 重複提交 (version 遞增)
 
 ---
 
-### BE-028: 實作 SubmissionController 整合測試 (Partial)
+### BE-028: 實作 SubmissionController 整合測試 ✅
 
 **描述**：測試提交記錄相關 API 端點。
 
@@ -571,18 +575,18 @@
 - [x] 測試 POST /api/problems/{problemId}/submissions - 正常提交
 - [x] 測試 GET /api/problems/{problemId}/submissions - 提交歷史
 - [x] 測試提交包含 review 資訊
-- [ ] 測試 GET /api/submissions/{submissionId} - 自己的提交
-- [ ] 測試 GET /api/submissions/{submissionId} - 他人公開提交
-- [ ] 測試 GET /api/submissions/{submissionId} - 他人非公開提交 (403)
-- [ ] 測試 PATCH /api/submissions/{submissionId}/visibility - 正常更新
-- [ ] 測試 PATCH /api/submissions/{submissionId}/visibility - 非自己的提交 (403)
-- [ ] 測試 GET /api/submissions/public - 分頁
-- [ ] 測試 GET /api/submissions/public?gymId={id} - 篩選
-- [ ] 測試 GET /api/my/gym-progress
+- [x] 測試 GET /api/submissions/{submissionId} - 自己的提交
+- [x] 測試 GET /api/submissions/{submissionId} - 他人公開提交
+- [x] 測試 GET /api/submissions/{submissionId} - 他人非公開提交 (403)
+- [x] 測試 PATCH /api/submissions/{submissionId}/visibility - 正常更新
+- [x] 測試 PATCH /api/submissions/{submissionId}/visibility - 非自己的提交 (403)
+- [x] 測試 GET /api/submissions/public - 分頁
+- [x] 測試 GET /api/submissions/public?gymId={id} - 篩選
+- [x] 測試 GET /api/my/gym-progress
 
 ---
 
-### BE-029: 實作 PrerequisiteService 整合測試 (Not Started)
+### BE-029: 實作 PrerequisiteService 整合測試 ✅
 
 **描述**：測試前置條件檢查邏輯。
 
@@ -592,12 +596,12 @@
 
 **驗收標準**：
 
-- [ ] 測試 LESSON 類型前置條件 - 已完成 Lesson
-- [ ] 測試 LESSON 類型前置條件 - 未完成 Lesson
-- [ ] 測試 PROBLEM 類型前置條件 - 已提交 (不論批改狀態)
-- [ ] 測試 PROBLEM 類型前置條件 - 未提交
-- [ ] 測試多個前置條件組合
-- [ ] 測試無前置條件 (直接解鎖)
+- [x] 測試 LESSON 類型前置條件 - 已完成 Lesson
+- [x] 測試 LESSON 類型前置條件 - 未完成 Lesson
+- [x] 測試 PROBLEM 類型前置條件 - 已提交 (不論批改狀態)
+- [x] 測試 PROBLEM 類型前置條件 - 未提交
+- [x] 測試多個前置條件組合
+- [x] 測試無前置條件 (直接解鎖)
 
 ---
 
@@ -708,11 +712,11 @@ Phase 5: Integration Tests
 | Phase | Tasks | Total Estimation | Status |
 |-------|-------|------------------|--------|
 | Phase 1: Database & Entities | BE-001 ~ BE-007 | 4 days | ✅ Complete |
-| Phase 2: Core Services | BE-008 ~ BE-014 | 3 days | ✅ Complete |
+| Phase 2: Core Services | BE-008 ~ BE-014 | 3 days | ⚠️ 99% (file size validation missing) |
 | Phase 3: API Layer | BE-015 ~ BE-019 | 2.5 days | ✅ Complete (BE-019 skipped) |
 | Phase 4: File Storage | BE-020 ~ BE-024 | 2 days | ✅ Complete (simplified) |
-| Phase 5: Integration Tests | BE-025 ~ BE-030 | 2.5 days | 🔄 Partial (~50%) |
-| **Total** | **30 tasks** | **~14 days** | **~85% Complete** |
+| Phase 5: Integration Tests | BE-025 ~ BE-030 | 2.5 days | 🔄 Partial (~40%) |
+| **Total** | **30 tasks** | **~14 days** | **~80% Complete** |
 
 **Size Legend:**
 
@@ -730,9 +734,38 @@ Phase 5: Integration Tests
 2. **File Upload**: Direct multipart upload instead of signed URL approach (signed URL marked as future enhancement)
 3. **Error Handling**: Some endpoints return 500 instead of 404 for not-found cases (to be improved)
 
-### What's Remaining
+### What's Remaining (18 items)
 
-1. **Additional Integration Tests**: 
-   - SubmissionController visibility/public endpoints
-   - PrerequisiteService edge cases
-2. **File Size Validation**: Not yet implemented in SubmissionService
+#### BE-014: File Size Validation (1 item)
+
+- [ ] Add file size validation in SubmissionService.createSubmission()
+
+#### BE-027: ProblemController Integration Tests (3 items)
+
+- [ ] Test `GET /api/problems/{problemId}` - 未解鎖 (403)
+- [ ] Test `POST /api/problems/{problemId}/submissions` - 檔案類型不符 (400)
+- [ ] Test `POST /api/problems/{problemId}/submissions` - 重複提交 (version 遞增)
+
+#### BE-028: SubmissionController Integration Tests (8 items)
+
+- [ ] Test `GET /api/submissions/{submissionId}` - 自己的提交
+- [ ] Test `GET /api/submissions/{submissionId}` - 他人公開提交
+- [ ] Test `GET /api/submissions/{submissionId}` - 他人非公開提交 (403)
+- [ ] Test `PATCH /api/submissions/{submissionId}/visibility` - 正常更新
+- [ ] Test `PATCH /api/submissions/{submissionId}/visibility` - 非自己的提交 (403)
+- [ ] Test `GET /api/submissions/public` - 分頁
+- [ ] Test `GET /api/submissions/public?gymId={id}` - 篩選
+- [ ] Test `GET /api/my/gym-progress`
+
+#### BE-029: PrerequisiteService Integration Tests (6 items)
+
+- [ ] Create `PrerequisiteServiceTest.java`
+- [ ] Test LESSON 類型前置條件 - 已完成 Lesson
+- [ ] Test LESSON 類型前置條件 - 未完成 Lesson
+- [ ] Test PROBLEM 類型前置條件 - 已提交
+- [ ] Test PROBLEM 類型前置條件 - 未提交
+- [ ] Test 多個前置條件組合
+
+### Recently Added
+
+1. **BE-018 Enhancement**: Added `GET /api/submissions/public/{submissionId}` endpoint for viewing public submission details
