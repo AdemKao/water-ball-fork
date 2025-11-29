@@ -29,9 +29,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class SubmissionControllerTest extends BaseIntegrationTest {
 
     private static final UUID TEST_USER_ID = UUID.fromString("11111111-1111-1111-1111-111111111111");
+    private static final UUID OTHER_USER_ID = UUID.fromString("22222222-2222-2222-2222-222222222222");
     private static final UUID PROBLEM_ID_1 = UUID.fromString("aaaa1111-1111-1111-1111-111111111111");
     private static final UUID PROBLEM_SOLID = UUID.fromString("bbbb1111-1111-1111-1111-111111111111");
     private static final UUID NON_EXISTENT_PROBLEM_ID = UUID.fromString("99999999-9999-9999-9999-999999999999");
+    private static final UUID GYM_ID_1 = UUID.fromString("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
+    private static final UUID OWN_SUBMISSION_ID = UUID.fromString("00000001-0001-0001-0001-000000000001");
+    private static final UUID OTHER_USER_PUBLIC_SUBMISSION_ID = UUID.fromString("00000001-0001-0001-0001-000000000004");
+    private static final UUID OWN_PENDING_SUBMISSION_ID = UUID.fromString("00000001-0001-0001-0001-000000000002");
 
     @Autowired
     private MockMvc mockMvc;
@@ -43,12 +48,15 @@ class SubmissionControllerTest extends BaseIntegrationTest {
     private UserRepository userRepository;
 
     private String accessToken;
+    private String otherUserAccessToken;
     private User testUser;
 
     @BeforeEach
     void setUp() {
         testUser = userRepository.findById(TEST_USER_ID).orElseThrow();
         accessToken = jwtService.generateAccessToken(testUser);
+        User otherUser = userRepository.findById(OTHER_USER_ID).orElseThrow();
+        otherUserAccessToken = jwtService.generateAccessToken(otherUser);
     }
 
     @Nested
@@ -147,6 +155,136 @@ class SubmissionControllerTest extends BaseIntegrationTest {
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$[1].review.content").value("Great implementation!"))
                     .andExpect(jsonPath("$[1].review.reviewerName").value("Instructor"));
+        }
+    }
+
+    @Nested
+    @DisplayName("GET /api/submissions/{submissionId}")
+    class GetSubmissionDetail {
+
+        @Test
+        @DisplayName("should return own submission detail")
+        void getSubmissionDetail_ownSubmission_shouldReturn200() throws Exception {
+            mockMvc.perform(get("/api/submissions/{submissionId}", OWN_SUBMISSION_ID)
+                            .cookie(new Cookie("access_token", accessToken)))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.id").value(OWN_SUBMISSION_ID.toString()))
+                    .andExpect(jsonPath("$.fileName").value("singleton.pdf"))
+                    .andExpect(jsonPath("$.problemTitle").value("Singleton Pattern"));
+        }
+
+        @Test
+        @DisplayName("should return other user's public submission")
+        void getSubmissionDetail_otherUserPublicSubmission_shouldReturn200() throws Exception {
+            mockMvc.perform(get("/api/submissions/{submissionId}", OTHER_USER_PUBLIC_SUBMISSION_ID)
+                            .cookie(new Cookie("access_token", accessToken)))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.id").value(OTHER_USER_PUBLIC_SUBMISSION_ID.toString()))
+                    .andExpect(jsonPath("$.isPublic").value(true));
+        }
+
+        @Test
+        @DisplayName("should return 403 for other user's private submission")
+        void getSubmissionDetail_otherUserPrivateSubmission_shouldReturn403() throws Exception {
+            mockMvc.perform(get("/api/submissions/{submissionId}", OWN_SUBMISSION_ID)
+                            .cookie(new Cookie("access_token", otherUserAccessToken)))
+                    .andExpect(status().isForbidden());
+        }
+
+        @Test
+        @DisplayName("should return 401 when not authenticated")
+        void getSubmissionDetail_notAuthenticated_shouldReturn401() throws Exception {
+            mockMvc.perform(get("/api/submissions/{submissionId}", OWN_SUBMISSION_ID))
+                    .andExpect(status().isUnauthorized());
+        }
+    }
+
+    @Nested
+    @DisplayName("PATCH /api/submissions/{submissionId}/visibility")
+    class UpdateVisibility {
+
+        @Test
+        @DisplayName("should update own submission visibility")
+        void updateVisibility_ownSubmission_shouldReturn200() throws Exception {
+            mockMvc.perform(patch("/api/submissions/{submissionId}/visibility", OWN_PENDING_SUBMISSION_ID)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("{\"isPublic\": true}")
+                            .cookie(new Cookie("access_token", accessToken)))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.id").value(OWN_PENDING_SUBMISSION_ID.toString()))
+                    .andExpect(jsonPath("$.isPublic").value(true));
+        }
+
+        @Test
+        @DisplayName("should return 403 for other user's submission")
+        void updateVisibility_otherUserSubmission_shouldReturn403() throws Exception {
+            mockMvc.perform(patch("/api/submissions/{submissionId}/visibility", OTHER_USER_PUBLIC_SUBMISSION_ID)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("{\"isPublic\": false}")
+                            .cookie(new Cookie("access_token", accessToken)))
+                    .andExpect(status().isForbidden());
+        }
+
+        @Test
+        @DisplayName("should return 401 when not authenticated")
+        void updateVisibility_notAuthenticated_shouldReturn401() throws Exception {
+            mockMvc.perform(patch("/api/submissions/{submissionId}/visibility", OWN_SUBMISSION_ID)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("{\"isPublic\": true}"))
+                    .andExpect(status().isUnauthorized());
+        }
+    }
+
+    @Nested
+    @DisplayName("GET /api/submissions/public")
+    class GetPublicSubmissions {
+
+        @Test
+        @DisplayName("should return paginated public submissions")
+        void getPublicSubmissions_shouldReturnPaginated() throws Exception {
+            mockMvc.perform(get("/api/submissions/public")
+                            .param("page", "0")
+                            .param("size", "10"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.content", hasSize(greaterThanOrEqualTo(1))))
+                    .andExpect(jsonPath("$.totalElements", greaterThanOrEqualTo(1)))
+                    .andExpect(jsonPath("$.number").value(0))
+                    .andExpect(jsonPath("$.size").value(10));
+        }
+
+        @Test
+        @DisplayName("should filter by gymId")
+        void getPublicSubmissions_filterByGymId_shouldReturnFiltered() throws Exception {
+            mockMvc.perform(get("/api/submissions/public")
+                            .param("gymId", GYM_ID_1.toString()))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.content").isArray());
+        }
+    }
+
+    @Nested
+    @DisplayName("GET /api/my/gym-progress")
+    class GetGymProgress {
+
+        @Test
+        @DisplayName("should return user gym progress")
+        void getGymProgress_shouldReturnProgress() throws Exception {
+            mockMvc.perform(get("/api/my/gym-progress")
+                            .cookie(new Cookie("access_token", accessToken)))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.totalGyms").exists())
+                    .andExpect(jsonPath("$.completedGyms").exists())
+                    .andExpect(jsonPath("$.totalProblems").exists())
+                    .andExpect(jsonPath("$.completedProblems").exists())
+                    .andExpect(jsonPath("$.pendingReviews").exists())
+                    .andExpect(jsonPath("$.gyms").isArray());
+        }
+
+        @Test
+        @DisplayName("should return 401 when not authenticated")
+        void getGymProgress_notAuthenticated_shouldReturn401() throws Exception {
+            mockMvc.perform(get("/api/my/gym-progress"))
+                    .andExpect(status().isUnauthorized());
         }
     }
 }
