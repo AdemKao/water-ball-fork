@@ -18,6 +18,7 @@ public class GymDto {
     private UUID journeyId;
     private String title;
     private String description;
+    private String type;
     private Integer displayOrder;
     private Integer exerciseCount;
     private Integer completedCount;
