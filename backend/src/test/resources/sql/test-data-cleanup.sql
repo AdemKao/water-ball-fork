@@ -1,3 +1,6 @@
+DELETE FROM gym_submission;
+DELETE FROM gym_exercise;
+DELETE FROM gym;
 DELETE FROM lesson_progress;
 DELETE FROM purchase_orders;
 DELETE FROM user_purchases;
