@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { ProblemDetail } from '@/types/gym';
 import { problemService } from '@/services/problem.service';
 
@@ -13,10 +13,13 @@ export function useProblem(problemId: string) {
   const [problem, setProblem] = useState<ProblemDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<ProblemError | null>(null);
+  const isInitialLoad = useRef(true);
 
-  const fetchProblem = useCallback(async () => {
+  const fetchProblem = useCallback(async (showLoading: boolean = true) => {
     if (!problemId) return;
-    setIsLoading(true);
+    if (showLoading) {
+      setIsLoading(true);
+    }
     setError(null);
     try {
       const data = await problemService.getProblem(problemId);
@@ -33,11 +36,12 @@ export function useProblem(problemId: string) {
   }, [problemId]);
 
   useEffect(() => {
-    fetchProblem();
+    fetchProblem(true);
+    isInitialLoad.current = false;
   }, [fetchProblem]);
 
   const refetch = useCallback(() => {
-    fetchProblem();
+    fetchProblem(false);
   }, [fetchProblem]);
 
   return { problem, isLoading, error, refetch };

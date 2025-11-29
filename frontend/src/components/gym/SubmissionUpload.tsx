@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useMemo } from 'react';
 import { useSubmission } from '@/hooks/useSubmission';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -29,6 +29,18 @@ export function SubmissionUpload({ problemId, submissionTypes, onSuccess }: Subm
   const acceptedTypes = submissionTypes.flatMap(type => SUBMISSION_TYPE_CONFIG[type].accept);
   const maxSizeMB = Math.max(...submissionTypes.map(type => SUBMISSION_TYPE_CONFIG[type].maxSizeMB));
 
+  const isValidFile = useMemo(() => {
+    if (!file) return false;
+    const isValidType = acceptedTypes.some(type => {
+      if (type.startsWith('.')) {
+        return file.name.toLowerCase().endsWith(type.toLowerCase());
+      }
+      return file.type === type || file.type.startsWith(type.replace('/*', '/'));
+    });
+    const isValidSize = file.size <= maxSizeMB * 1024 * 1024;
+    return isValidType && isValidSize;
+  }, [file, acceptedTypes, maxSizeMB]);
+
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -55,7 +67,7 @@ export function SubmissionUpload({ problemId, submissionTypes, onSuccess }: Subm
   };
 
   const handleSubmit = async () => {
-    if (!file) return;
+    if (!file || !isValidFile) return;
 
     try {
       await submit(file, isPublic);
@@ -104,6 +116,9 @@ export function SubmissionUpload({ problemId, submissionTypes, onSuccess }: Subm
               <p className="text-sm text-muted-foreground">
                 {(file.size / 1024).toFixed(1)} KB
               </p>
+              {!isValidFile && (
+                <p className="text-sm text-red-500 mt-1">不支援的檔案類型</p>
+              )}
             </div>
           ) : (
             <div>
@@ -139,7 +154,7 @@ export function SubmissionUpload({ problemId, submissionTypes, onSuccess }: Subm
 
         <Button
           onClick={handleSubmit}
-          disabled={!file || isSubmitting}
+          disabled={!file || !isValidFile || isSubmitting}
           className="w-full"
         >
           {isSubmitting ? (
