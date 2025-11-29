@@ -2,7 +2,7 @@
 
 import { cn } from '@/lib/utils';
 
-export type RoadmapTabType = 'main' | 'side' | 'gym';
+export type RoadmapTabType = 'main' | 'side';
 
 interface RoadmapTabsProps {
   activeTab: RoadmapTabType;
@@ -33,17 +33,6 @@ export function RoadmapTabs({ activeTab, onTabChange }: RoadmapTabsProps) {
         )}
       >
         支線
-      </button>
-      <button
-        onClick={() => onTabChange('gym')}
-        className={cn(
-          'flex-1 py-3 px-6 text-center font-medium transition-colors',
-          activeTab === 'gym'
-            ? 'bg-[#FFD700] text-black'
-            : 'bg-card hover:bg-muted'
-        )}
-      >
-        道場
       </button>
     </div>
   );
