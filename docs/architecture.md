@@ -115,7 +115,7 @@ docker-compose up
 
 1. 本地開發使用 `.env.example` 建立 `.env`
 2. Frontend: `npm run dev`
-3. Backend: `./mvnw spring-boot:run`
-4. 測試: `./mvnw test`
+3. Backend: `mvn spring-boot:run`
+4. 測試: `mvn test`
 5. Docker 建構: `docker-compose build`
 6. Docker 啟動: `docker-compose up`

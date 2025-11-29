@@ -35,10 +35,10 @@ docker-compose up -d postgres
 
 # Run migrations automatically when starting Spring Boot
 cd backend
-./mvnw spring-boot:run
+mvn spring-boot:run
 
 # Or run migrations only (without starting the app)
-./mvnw flyway:migrate \
+mvn flyway:migrate \
   -Dflyway.url=jdbc:postgresql://localhost:54325/course_platform \
   -Dflyway.user=waterball \
   -Dflyway.password=waterball123
@@ -54,7 +54,7 @@ docker-compose up
 docker-compose logs backend | grep -i flyway
 
 # Run migrations only in Docker environment
-docker-compose run --rm backend ./mvnw flyway:migrate \
+docker-compose run --rm backend mvn flyway:migrate \
   -Dflyway.url=jdbc:postgresql://postgres:5432/course_platform \
   -Dflyway.user=waterball \
   -Dflyway.password=waterball123
@@ -67,19 +67,19 @@ docker-compose run --rm backend ./mvnw flyway:migrate \
 pg_dump -h $DB_HOST -U $DB_USER -d $DB_NAME > backup_$(date +%Y%m%d_%H%M%S).sql
 
 # 2. Validate migrations first (dry run)
-./mvnw flyway:validate \
+mvn flyway:validate \
   -Dflyway.url=$DATABASE_URL \
   -Dflyway.user=$DB_USER \
   -Dflyway.password=$DB_PASSWORD
 
 # 3. Apply migrations
-./mvnw flyway:migrate \
+mvn flyway:migrate \
   -Dflyway.url=$DATABASE_URL \
   -Dflyway.user=$DB_USER \
   -Dflyway.password=$DB_PASSWORD
 
 # 4. Verify migration status
-./mvnw flyway:info \
+mvn flyway:info \
   -Dflyway.url=$DATABASE_URL \
   -Dflyway.user=$DB_USER \
   -Dflyway.password=$DB_PASSWORD
@@ -108,32 +108,32 @@ pg_dump -h $DB_HOST -U $DB_USER -d $DB_NAME > backup_$(date +%Y%m%d_%H%M%S).sql
 
 ```bash
 # Apply pending migrations
-./mvnw flyway:migrate \
+mvn flyway:migrate \
   -Dflyway.url=jdbc:postgresql://localhost:54325/course_platform \
   -Dflyway.user=waterball \
   -Dflyway.password=waterball123
 
 # Check migration status
-./mvnw flyway:info \
+mvn flyway:info \
   -Dflyway.url=jdbc:postgresql://localhost:54325/course_platform \
   -Dflyway.user=waterball \
   -Dflyway.password=waterball123
 
 # Validate migrations
-./mvnw flyway:validate \
+mvn flyway:validate \
   -Dflyway.url=jdbc:postgresql://localhost:54325/course_platform \
   -Dflyway.user=waterball \
   -Dflyway.password=waterball123
 
 # Clean database (DEVELOPMENT ONLY - destroys all data!)
-./mvnw flyway:clean \
+mvn flyway:clean \
   -Dflyway.url=jdbc:postgresql://localhost:54325/course_platform \
   -Dflyway.user=waterball \
   -Dflyway.password=waterball123 \
   -Dflyway.cleanDisabled=false
 
 # Repair schema history
-./mvnw flyway:repair \
+mvn flyway:repair \
   -Dflyway.url=jdbc:postgresql://localhost:54325/course_platform \
   -Dflyway.user=waterball \
   -Dflyway.password=waterball123
@@ -165,7 +165,7 @@ pg_dump -h $DB_HOST -U $DB_USER -d $DB_NAME > backup_$(date +%Y%m%d_%H%M%S).sql
 
    ```bash
    cd backend
-   ./mvnw flyway:migrate \
+   mvn flyway:migrate \
      -Dflyway.url=jdbc:postgresql://localhost:54325/course_platform \
      -Dflyway.user=waterball \
      -Dflyway.password=waterball123
@@ -174,7 +174,7 @@ pg_dump -h $DB_HOST -U $DB_USER -d $DB_NAME > backup_$(date +%Y%m%d_%H%M%S).sql
 5. **Verify the migration**
 
    ```bash
-   ./mvnw flyway:info \
+   mvn flyway:info \
      -Dflyway.url=jdbc:postgresql://localhost:54325/course_platform \
      -Dflyway.user=waterball \
      -Dflyway.password=waterball123
@@ -268,7 +268,7 @@ ALTER TABLE courses ADD CONSTRAINT fk_courses_instructor
 
 ```bash
 # Option 1: Repair (if change was intentional and safe)
-./mvnw flyway:repair \
+mvn flyway:repair \
   -Dflyway.url=jdbc:postgresql://localhost:54325/course_platform \
   -Dflyway.user=waterball \
   -Dflyway.password=waterball123
@@ -291,13 +291,13 @@ psql -h localhost -p 54325 -U waterball -d course_platform
 # Run cleanup SQL...
 
 # 3. Repair the schema history
-./mvnw flyway:repair \
+mvn flyway:repair \
   -Dflyway.url=jdbc:postgresql://localhost:54325/course_platform \
   -Dflyway.user=waterball \
   -Dflyway.password=waterball123
 
 # 4. Re-run migrations
-./mvnw flyway:migrate \
+mvn flyway:migrate \
   -Dflyway.url=jdbc:postgresql://localhost:54325/course_platform \
   -Dflyway.user=waterball \
   -Dflyway.password=waterball123
@@ -311,19 +311,19 @@ psql -h localhost -p 54325 -U waterball -d course_platform
 
 ```bash
 # 1. Check current migration status
-./mvnw flyway:info \
+mvn flyway:info \
   -Dflyway.url=jdbc:postgresql://localhost:54325/course_platform \
   -Dflyway.user=waterball \
   -Dflyway.password=waterball123
 
 # 2. Validate migrations
-./mvnw flyway:validate \
+mvn flyway:validate \
   -Dflyway.url=jdbc:postgresql://localhost:54325/course_platform \
   -Dflyway.user=waterball \
   -Dflyway.password=waterball123
 
 # 3. For local development, consider clean + migrate
-./mvnw flyway:clean flyway:migrate \
+mvn flyway:clean flyway:migrate \
   -Dflyway.url=jdbc:postgresql://localhost:54325/course_platform \
   -Dflyway.user=waterball \
   -Dflyway.password=waterball123 \
@@ -458,6 +458,7 @@ The project includes mock seed data (`V4__seed_mock_data.sql`) for development a
 ### Video Content
 
 All video lessons use the same YouTube URL for demonstration:
+
 ```
 https://www.youtube.com/watch?v=wtubL3MIOq8
 ```
@@ -518,6 +519,6 @@ Key UUIDs for API testing:
 | Lesson 1-1 | `aaaa1111-1111-1111-1111-111111111111` | 什麼是物件導向？ (VIDEO) |
 | Lesson 1-3 | `aaaa3333-3333-3333-3333-333333333333` | 封裝與存取修飾詞 (ARTICLE) |
 | Lesson 1-4 | `aaaa4444-4444-4444-4444-444444444444` | 第一章測驗 (FORM) |
-| Student 1 | `b1eebc99-9c0b-4ef8-bb6d-6bb9bd380a22` | student1@example.com |
-| Student 2 | `c2eebc99-9c0b-4ef8-bb6d-6bb9bd380a33` | student2@example.com |
-| Instructor | `a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11` | instructor@waterball.tw |
+| Student 1 | `b1eebc99-9c0b-4ef8-bb6d-6bb9bd380a22` | <student1@example.com> |
+| Student 2 | `c2eebc99-9c0b-4ef8-bb6d-6bb9bd380a33` | <student2@example.com> |
+| Instructor | `a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11` | <instructor@waterball.tw> |

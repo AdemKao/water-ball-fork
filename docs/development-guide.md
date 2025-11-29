@@ -32,6 +32,7 @@ docker compose -f docker-compose.dev.yml up
 ```
 
 這會啟動：
+
 - PostgreSQL (port 54325)
 - Backend with hot reload (port 8888)
 - Frontend with hot reload (port 3388)
@@ -51,6 +52,7 @@ docker compose -f docker-compose.dev.yml up
 DevTools 會偵測 class 檔案變更並自動重啟應用程式（通常 1-2 秒）。
 
 **注意事項：**
+
 - 首次啟動較慢（需下載 Maven 依賴），之後會快很多（maven-repo volume 會 cache）
 - 如果改動了 `pom.xml`，需要重啟 container
 - 結構性改動（如新增 Spring Bean）可能需要完整重啟
@@ -68,7 +70,7 @@ docker compose up --build
 ```bash
 cd backend
 
-./mvnw spring-boot:run
+mvn spring-boot:run
 ```
 
 Backend 會在 `http://localhost:8888` 啟動
@@ -302,13 +304,13 @@ export function CourseList() {
 
 ```bash
 cd backend
-./mvnw test
+mvn test
 ```
 
 執行特定測試：
 
 ```bash
-./mvnw test -Dtest=HealthCheckControllerTest
+mvn test -Dtest=HealthCheckControllerTest
 ```
 
 ### E2E Tests
