@@ -186,6 +186,7 @@ interface ProblemSummary {
   isCompleted: boolean
   isUnlocked: boolean
   submissionStatus: SubmissionStatus | null
+  prerequisites: PrerequisiteInfo[]   // Only returned when isPurchased=true
 }
 ```
 
@@ -443,6 +444,43 @@ interface PublicSubmission {
 
 type Response = PaginatedResponse<PublicSubmission>
 ```
+
+---
+
+#### GET /api/submissions/public/{submissionId}
+
+取得單一公開提交的詳情 (無需登入)
+
+**Auth**: None
+
+**Path Params**: `submissionId: UUID`
+
+**Response** `200 OK`:
+
+```typescript
+interface PublicSubmissionDetailResponse {
+  id: string
+  userName: string
+  userAvatarUrl: string | null
+  problemId: string
+  problemTitle: string
+  gymTitle: string
+  fileUrl: string
+  fileName: string
+  status: SubmissionStatus
+  submittedAt: string
+  review: {
+    content: string
+    status: ReviewStatus
+    reviewedAt: string
+    reviewerName: string
+  } | null
+}
+```
+
+**Errors**:
+
+- `404` - 提交不存在或非公開
 
 ---
 

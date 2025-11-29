@@ -92,6 +92,18 @@ public class SubmissionController {
         return ResponseEntity.ok(response);
     }
 
+    @GetMapping("/api/submissions/public/{submissionId}")
+    public ResponseEntity<PublicSubmissionResponse> getPublicSubmissionDetail(
+            @PathVariable UUID submissionId) {
+        Submission submission = submissionService.getSubmission(submissionId);
+        
+        if (!submission.getIsPublic()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        }
+        
+        return ResponseEntity.ok(toPublicSubmission(submission));
+    }
+
     @GetMapping("/api/submissions/public")
     public ResponseEntity<Map<String, Object>> getPublicSubmissions(
             @RequestParam(required = false) UUID problemId,

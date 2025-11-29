@@ -48,6 +48,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/gyms/{gymId}/stages/{stageId}").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/gyms/{gymId}/exercises").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/exercises/{exerciseId}").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/submissions/public/**").permitAll()
                 .requestMatchers("/api/webhooks/payment").permitAll()
                 .requestMatchers("/mock-payment/**").permitAll()
                 .requestMatchers("/uploads/**").permitAll()
