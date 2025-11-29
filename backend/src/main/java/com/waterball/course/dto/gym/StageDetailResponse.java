@@ -26,7 +26,8 @@ public record StageDetailResponse(
             List<SubmissionType> submissionTypes,
             boolean isCompleted,
             boolean isUnlocked,
-            SubmissionStatus submissionStatus
+            SubmissionStatus submissionStatus,
+            List<PrerequisiteInfoResponse> prerequisites
     ) {}
 
     public record PrerequisiteInfoResponse(

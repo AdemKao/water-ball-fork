@@ -79,14 +79,10 @@ public class GymController {
         boolean isPurchased = gymService.isPurchased(userId, gym.getJourney().getId());
         boolean isUnlocked = isPurchased && stageService.isStageUnlocked(userId, stage);
         
-        List<StageDetailResponse.ProblemSummaryResponse> problems;
-        if (isPurchased) {
-            problems = stageService.getStageProblems(stageId).stream()
-                    .map(problem -> toProblemSummary(problem, userId))
+        List<StageDetailResponse.ProblemSummaryResponse> problems = 
+                stageService.getStageProblems(stageId).stream()
+                    .map(problem -> toProblemSummary(problem, userId, isPurchased))
                     .collect(Collectors.toList());
-        } else {
-            problems = List.of();
-        }
         
         List<StageDetailResponse.PrerequisiteInfoResponse> prerequisites = 
                 prerequisiteService.getStagePrerequisiteInfos(stageId, userId).stream()
@@ -169,15 +165,22 @@ public class GymController {
         );
     }
 
-    private StageDetailResponse.ProblemSummaryResponse toProblemSummary(Problem problem, UUID userId) {
+    private StageDetailResponse.ProblemSummaryResponse toProblemSummary(Problem problem, UUID userId, boolean isPurchased) {
+        List<StageDetailResponse.PrerequisiteInfoResponse> prerequisites = isPurchased
+                ? prerequisiteService.getProblemPrerequisiteInfos(problem.getId(), userId).stream()
+                        .map(this::toStagePrerequisiteInfo)
+                        .collect(Collectors.toList())
+                : List.of();
+        
         return new StageDetailResponse.ProblemSummaryResponse(
                 problem.getId(),
                 problem.getTitle(),
                 problem.getDifficulty(),
                 problem.getSubmissionTypeList(),
-                problemService.isProblemCompleted(userId, problem.getId()),
-                problemService.isProblemUnlocked(userId, problem),
-                problemService.getLatestSubmissionStatus(userId, problem.getId()).orElse(null)
+                isPurchased && problemService.isProblemCompleted(userId, problem.getId()),
+                isPurchased && problemService.isProblemUnlocked(userId, problem),
+                isPurchased ? problemService.getLatestSubmissionStatus(userId, problem.getId()).orElse(null) : null,
+                prerequisites
         );
     }
 }
