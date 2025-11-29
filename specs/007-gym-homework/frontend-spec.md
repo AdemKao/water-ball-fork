@@ -70,15 +70,11 @@ sequenceDiagram
     participant User
     participant ProblemPage as /gyms/[gymId]/problems/[problemId]
     participant Backend
-    participant Supabase as Supabase Storage
 
-    Note over ProblemPage: 提交作答流程
+    Note over ProblemPage: 提交作答流程 (multipart/form-data)
     User->>ProblemPage: 選擇檔案上傳
-    ProblemPage->>Backend: POST /api/upload/submission (取得 signed URL)
-    Backend-->>ProblemPage: {uploadUrl, fileKey}
-    ProblemPage->>Supabase: PUT uploadUrl (上傳檔案)
-    Supabase-->>ProblemPage: 200 OK
-    ProblemPage->>Backend: POST /api/problems/{problemId}/submissions
+    ProblemPage->>Backend: POST /api/problems/{problemId}/submissions (multipart/form-data)
+    Note right of ProblemPage: file: File, isPublic?: boolean
     Backend-->>ProblemPage: submission (含 id, status: PENDING)
     ProblemPage->>User: 顯示提交成功訊息
 
@@ -97,8 +93,7 @@ sequenceDiagram
 | `/gyms/[gymId]` | 頁面載入 | `GET /api/gyms/{gymId}` | 取得道館詳情 (含關卡) |
 | `/gyms/[gymId]/stages/[stageId]` | 頁面載入 | `GET /api/gyms/{gymId}/stages/{stageId}` | 取得關卡詳情 (含題目) |
 | `/gyms/[gymId]/problems/[problemId]` | 頁面載入 | `GET /api/problems/{problemId}` | 取得題目詳情 |
-| `/gyms/[gymId]/problems/[problemId]` | 上傳前 | `POST /api/upload/submission` | 取得上傳 URL |
-| `/gyms/[gymId]/problems/[problemId]` | 提交 | `POST /api/problems/{problemId}/submissions` | 提交作答 |
+| `/gyms/[gymId]/problems/[problemId]` | 提交 | `POST /api/problems/{problemId}/submissions` | 提交作答 (multipart/form-data) |
 | `/gyms/[gymId]/problems/[problemId]` | 查看歷史 | `GET /api/problems/{problemId}/submissions` | 取得提交歷史 |
 | `/gyms/[gymId]/problems/[problemId]` | 更新公開 | `PATCH /api/submissions/{id}/visibility` | 更新公開設定 |
 | `/submissions/public` | 頁面載入 | `GET /api/submissions/public` | 取得公開提交列表 |
@@ -112,8 +107,7 @@ sequenceDiagram
 | `GET /api/gyms/{gymId}` | 選填 | 公開道館詳情 |
 | `GET /api/gyms/{gymId}/stages/{stageId}` | 選填 | 關卡詳情，未購買時題目列表為空 |
 | `GET /api/problems/{problemId}` | ✅ | 需購買課程且題目已解鎖 |
-| `POST /api/upload/submission` | ✅ | 取得上傳 URL |
-| `POST /api/problems/{problemId}/submissions` | ✅ | 提交作答 |
+| `POST /api/problems/{problemId}/submissions` | ✅ | 提交作答 (multipart/form-data) |
 | `GET /api/problems/{problemId}/submissions` | ✅ | 查看自己的提交歷史 |
 | `PATCH /api/submissions/{id}/visibility` | ✅ | 更新自己的提交公開設定 |
 | `GET /api/submissions/public` | 選填 | 公開提交列表 |
