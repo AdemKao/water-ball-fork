@@ -110,7 +110,7 @@ function ChapterSection({
                 return (
                   <LessonRow
                     key={lesson.id}
-                    lesson={{ ...lesson, isAccessible: isPurchased || isTrial }}
+                    lesson={lesson}
                     isActive={lesson.id === activeLessonId}
                     onClick={() => onLessonClick?.(lesson.id, isTrial)}
                   />
