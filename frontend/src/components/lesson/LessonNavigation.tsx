@@ -6,13 +6,22 @@ interface LessonNavigationProps {
   previousLesson: LessonNavItem | null;
   nextLesson: LessonNavItem | null;
   onNavigate?: (lessonId: string) => void;
+  onNext?: () => void;
 }
 
 export function LessonNavigation({
   previousLesson,
   nextLesson,
   onNavigate,
+  onNext,
 }: LessonNavigationProps) {
+  const handleNextClick = () => {
+    onNext?.();
+    if (nextLesson) {
+      onNavigate?.(nextLesson.id);
+    }
+  };
+
   return (
     <div className="flex items-center justify-between py-4 border-t">
       {previousLesson ? (
@@ -32,7 +41,7 @@ export function LessonNavigation({
         <Button
           variant="ghost"
           className="gap-2"
-          onClick={() => onNavigate?.(nextLesson.id)}
+          onClick={handleNextClick}
         >
           <span className="hidden sm:inline">{nextLesson.title}</span>
           <span className="sm:hidden">下一課</span>

@@ -1,6 +1,6 @@
 'use client';
 
-import { use, useState, useMemo } from 'react';
+import { use, useState, useMemo, useEffect } from 'react';
 import { useJourney } from '@/hooks/useJourney';
 import { useLesson } from '@/hooks/useLesson';
 import { useLessonProgress } from '@/hooks/useLessonProgress';
@@ -40,7 +40,16 @@ export default function CourseJourneyPage({ params }: PageProps) {
     lesson?.progress,
     { onComplete: refetchJourney }
   );
-  const { updatePosition } = useVideoProgress(activeLessonId || '');
+  const { startTracking, updatePosition, stopTracking } = useVideoProgress(activeLessonId || '');
+
+  useEffect(() => {
+    if (lesson?.lessonType === 'VIDEO' && lesson.progress) {
+      startTracking(lesson.progress.lastPositionSeconds);
+    }
+    return () => {
+      stopTracking();
+    };
+  }, [lesson, startTracking, stopTracking]);
 
   const handleLessonClick = (lessonId: string, isTrial: boolean) => {
     if (isTrial && !user && !isAuthLoading) {
@@ -171,6 +180,7 @@ export default function CourseJourneyPage({ params }: PageProps) {
           previousLesson={lesson.previousLesson}
           nextLesson={lesson.nextLesson}
           onNavigate={(lessonId) => setSelectedLessonId(lessonId)}
+          onNext={lesson.lessonType !== 'VIDEO' ? markComplete : undefined}
         />
       </div>
     );

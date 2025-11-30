@@ -11,13 +11,15 @@ export function useVideoProgress(lessonId: string) {
   const isTrackingRef = useRef(false);
 
   const startTracking = useCallback((startPosition: number) => {
-    if (isTrackingRef.current) return;
+    if (isTrackingRef.current) {
+      return;
+    }
     isTrackingRef.current = true;
     currentPositionRef.current = startPosition;
 
     intervalRef.current = setInterval(() => {
       progressService.updateProgress(lessonId, currentPositionRef.current)
-        .catch(console.error);
+        .catch(() => {});
     }, REPORT_INTERVAL);
   }, [lessonId]);
 
