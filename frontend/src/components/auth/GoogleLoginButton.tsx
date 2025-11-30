@@ -48,7 +48,6 @@ export function GoogleLoginButton({ redirectUrl = '/', onSuccess, onError }: Goo
       <GoogleLogin
         onSuccess={handleSuccess}
         onError={handleError}
-        useOneTap
         size="large"
         width="400"
         text="signin_with"

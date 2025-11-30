@@ -1,10 +1,10 @@
-'use client';
+"use client";
 
-import { useAuth } from '@/hooks/useAuth';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, Suspense } from 'react';
-import { GoogleLoginButton } from '@/components/auth';
-import Image from 'next/image';
+import { useAuth } from "@/hooks/useAuth";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, Suspense } from "react";
+import { GoogleLoginButton } from "@/components/auth";
+import Image from "next/image";
 
 function FacebookIcon() {
   return (
@@ -18,7 +18,7 @@ function LoginContent() {
   const { isAuthenticated, isLoading } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirectUrl = searchParams.get('redirect') || '/';
+  const redirectUrl = searchParams.get("redirect") || "/";
 
   useEffect(() => {
     if (!isLoading && isAuthenticated) {
@@ -51,15 +51,19 @@ function LoginContent() {
               className="h-12 w-12"
             />
             <div className="text-left">
-              <p className="text-lg font-semibold text-[#4fc3f7]">水球軟體學院</p>
-              <p className="text-sm font-medium tracking-wider text-[#4fc3f7]">WATERBALLSA.TW</p>
+              <p className="text-lg font-semibold text-[#4fc3f7]">
+                水球軟體學院
+              </p>
+              <p className="text-sm font-medium tracking-wider text-[#4fc3f7]">
+                WATERBALLSA.TW
+              </p>
             </div>
           </div>
         </div>
 
         <p className="mb-6 text-center text-white">請選擇登入方式</p>
 
-        <div className="space-y-4">
+        <div className="space-y-6">
           <GoogleLoginButton redirectUrl={redirectUrl} />
 
           <button
@@ -78,7 +82,13 @@ function LoginContent() {
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={<div className="flex min-h-screen items-center justify-center bg-[#1a1f2e]"><p className="text-white">Loading...</p></div>}>
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center bg-[#1a1f2e]">
+          <p className="text-white">Loading...</p>
+        </div>
+      }
+    >
       <LoginContent />
     </Suspense>
   );
