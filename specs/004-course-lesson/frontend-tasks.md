@@ -31,8 +31,8 @@ export interface JourneyDetail extends Journey {
 
 **驗收條件**:
 
-- [ ] 型別定義完整
-- [ ] 與 backend-spec.md API response 一致
+- [x] 型別定義完整
+- [x] 與 backend-spec.md API response 一致
 
 ---
 
@@ -59,8 +59,8 @@ export interface ChapterWithLessons extends Chapter {
 
 **驗收條件**:
 
-- [ ] AccessType enum 定義正確
-- [ ] Chapter 與 ChapterWithLessons 型別分離
+- [x] AccessType enum 定義正確
+- [x] Chapter 與 ChapterWithLessons 型別分離
 
 ---
 
@@ -114,9 +114,9 @@ export interface LessonDetail {
 
 **驗收條件**:
 
-- [ ] LessonType enum 與 backend 一致
-- [ ] LessonSummary 用於列表顯示
-- [ ] LessonDetail 用於詳情頁
+- [x] LessonType enum 與 backend 一致
+- [x] LessonSummary 用於列表顯示
+- [x] LessonDetail 用於詳情頁
 
 ---
 
@@ -163,8 +163,8 @@ export interface ChapterProgress {
 
 **驗收條件**:
 
-- [ ] 進度型別完整
-- [ ] Response 型別與 API 一致
+- [x] 進度型別完整
+- [x] Response 型別與 API 一致
 
 ---
 
@@ -183,7 +183,7 @@ export * from './progress';
 
 **驗收條件**:
 
-- [ ] 所有新型別可從 `@/types` import
+- [x] 所有新型別可從 `@/types` import
 
 ---
 
@@ -230,9 +230,9 @@ export const journeyService = {
 
 **驗收條件**:
 
-- [ ] 三個方法實作完成
-- [ ] 錯誤處理正確
-- [ ] credentials: 'include' 確保 cookie 傳送
+- [x] 三個方法實作完成
+- [x] 錯誤處理正確
+- [x] credentials: 'include' 確保 cookie 傳送
 
 ---
 
@@ -275,8 +275,8 @@ export const lessonService = {
 
 **驗收條件**:
 
-- [ ] 403/401 錯誤正確處理
-- [ ] 回傳錯誤物件包含 status
+- [x] 403/401 錯誤正確處理
+- [x] 回傳錯誤物件包含 status
 
 ---
 
@@ -325,8 +325,8 @@ export const progressService = {
 
 **驗收條件**:
 
-- [ ] PUT/POST 方法實作
-- [ ] sendBeacon 用於頁面離開時
+- [x] PUT/POST 方法實作
+- [x] sendBeacon 用於頁面離開時
 
 ---
 
@@ -371,9 +371,9 @@ export function useJourneyList() {
 
 **驗收條件**:
 
-- [ ] 自動 fetch on mount
-- [ ] 提供 refetch 方法
-- [ ] Loading/error state 管理
+- [x] 自動 fetch on mount
+- [x] 提供 refetch 方法
+- [x] Loading/error state 管理
 
 ---
 
@@ -417,8 +417,8 @@ export function useJourney(journeyId: string) {
 
 **驗收條件**:
 
-- [ ] journeyId 變更時自動 refetch
-- [ ] null check for journeyId
+- [x] journeyId 變更時自動 refetch
+- [x] null check for journeyId
 
 ---
 
@@ -469,8 +469,8 @@ export function useLesson(lessonId: string) {
 
 **驗收條件**:
 
-- [ ] isAccessDenied/isUnauthorized flags
-- [ ] Error 包含 status 和 message
+- [x] isAccessDenied/isUnauthorized flags
+- [x] Error 包含 status 和 message
 
 ---
 
@@ -529,8 +529,8 @@ export function useLessonProgress(lessonId: string, initialProgress?: LessonProg
 
 **驗收條件**:
 
-- [ ] updateProgress debounce 處理
-- [ ] markComplete 更新本地 state
+- [x] updateProgress debounce 處理
+- [x] markComplete 更新本地 state
 
 ---
 
@@ -605,9 +605,9 @@ export function useVideoProgress(lessonId: string) {
 
 **驗收條件**:
 
-- [ ] 每 30 秒回報一次
-- [ ] 頁面隱藏/離開時用 sendBeacon
-- [ ] cleanup interval on unmount
+- [x] 每 30 秒回報一次
+- [x] 頁面隱藏/離開時用 sendBeacon
+- [x] cleanup interval on unmount
 
 ---
 
@@ -661,8 +661,8 @@ export function ProgressBar({
 
 **驗收條件**:
 
-- [ ] 三種尺寸支援
-- [ ] 百分比顯示可選
+- [x] 三種尺寸支援
+- [x] 百分比顯示可選
 
 ---
 
@@ -698,8 +698,8 @@ export function LessonTypeIcon({ type, className }: LessonTypeIconProps) {
 
 **驗收條件**:
 
-- [ ] 三種課程類型圖示
-- [ ] 支援 className 自訂
+- [x] 三種課程類型圖示
+- [x] 支援 className 自訂
 
 ---
 
@@ -775,10 +775,10 @@ export function LessonItem({ lesson, isActive, onClick }: LessonItemProps) {
 
 **驗收條件**:
 
-- [ ] 完成狀態顯示綠色勾
-- [ ] 鎖定狀態顯示鎖
-- [ ] 試讀標籤顯示
-- [ ] 時長格式化
+- [x] 完成狀態顯示綠色勾
+- [x] 鎖定狀態顯示鎖
+- [x] 試讀標籤顯示
+- [x] 時長格式化
 
 ---
 
@@ -865,9 +865,9 @@ export function ChapterAccordion({
 
 **驗收條件**:
 
-- [ ] 展開/收合動畫
-- [ ] 完成狀態計算
-- [ ] 鎖定章節顯示
+- [x] 展開/收合動畫
+- [x] 完成狀態計算
+- [x] 鎖定章節顯示
 
 ---
 
@@ -944,9 +944,9 @@ export function JourneyCard({ journey, progress }: JourneyCardProps) {
 
 **驗收條件**:
 
-- [ ] Link 到課程詳情頁
-- [ ] 顯示進度 (如有)
-- [ ] 時長格式化
+- [x] Link 到課程詳情頁
+- [x] 顯示進度 (如有)
+- [x] 時長格式化
 
 ---
 
@@ -983,8 +983,8 @@ export function JourneyList({ journeys }: JourneyListProps) {
 
 **驗收條件**:
 
-- [ ] Empty state 處理
-- [ ] Responsive grid
+- [x] Empty state 處理
+- [x] Responsive grid
 
 ---
 
@@ -1017,8 +1017,8 @@ export function CourseProgress({ progress }: CourseProgressProps) {
 
 **驗收條件**:
 
-- [ ] 顯示完成數/總數
-- [ ] 進度條百分比
+- [x] 顯示完成數/總數
+- [x] 進度條百分比
 
 ---
 
@@ -1038,7 +1038,7 @@ export * from './CourseProgress';
 
 **驗收條件**:
 
-- [ ] 所有 course components 可從 index 匯出
+- [x] 所有 course components 可從 index 匯出
 
 ---
 
@@ -1115,9 +1115,9 @@ export function VideoPlayer({
 
 **驗收條件**:
 
-- [ ] YouTube URL 自動轉 embed
-- [ ] Native video 支援
-- [ ] 基本 callback support
+- [x] YouTube URL 自動轉 embed
+- [x] Native video 支援
+- [x] 基本 callback support
 
 ---
 
@@ -1154,8 +1154,8 @@ export function GoogleFormEmbed({ formUrl }: GoogleFormEmbedProps) {
 
 **驗收條件**:
 
-- [ ] 自動轉換 embed URL
-- [ ] 適當的 iframe 高度
+- [x] 自動轉換 embed URL
+- [x] 適當的 iframe 高度
 
 ---
 
@@ -1181,8 +1181,8 @@ export function ArticleContent({ content }: ArticleContentProps) {
 
 **驗收條件**:
 
-- [ ] 支援 HTML 內容渲染
-- [ ] prose 樣式套用
+- [x] 支援 HTML 內容渲染
+- [x] prose 樣式套用
 
 ---
 
@@ -1238,8 +1238,8 @@ export function LessonNavigation({
 
 **驗收條件**:
 
-- [ ] 上一課/下一課導航
-- [ ] 響應式標題顯示
+- [x] 上一課/下一課導航
+- [x] 響應式標題顯示
 
 ---
 
@@ -1294,9 +1294,9 @@ export function LessonSidebar({ journey, activeLessonId, courseId }: LessonSideb
 
 **驗收條件**:
 
-- [ ] 顯示所有章節
-- [ ] 當前課程所在章節自動展開
-- [ ] 可滾動
+- [x] 顯示所有章節
+- [x] 當前課程所在章節自動展開
+- [x] 可滾動
 
 ---
 
@@ -1341,9 +1341,9 @@ export function AccessDeniedModal({ journeyId, journeyTitle }: AccessDeniedModal
 
 **驗收條件**:
 
-- [ ] Modal 遮罩
-- [ ] 返回課程連結
-- [ ] 購買按鈕 (MVP 先不實作功能)
+- [x] Modal 遮罩
+- [x] 返回課程連結
+- [x] 購買按鈕 (MVP 先不實作功能)
 
 ---
 
@@ -1362,7 +1362,7 @@ export * from './AccessDeniedModal';
 
 **驗收條件**:
 
-- [ ] 所有 lesson components 可從 index 匯出
+- [x] 所有 lesson components 可從 index 匯出
 
 ---
 
@@ -1412,9 +1412,9 @@ export default function CoursesPage() {
 
 **驗收條件**:
 
-- [ ] Loading skeleton
-- [ ] Error state
-- [ ] 實際資料顯示
+- [x] Loading skeleton
+- [x] Error state
+- [x] 實際資料顯示
 
 ---
 
@@ -1514,9 +1514,9 @@ export default function CourseJourneyPage({ params }: PageProps) {
 
 **驗收條件**:
 
-- [ ] 顯示課程標題描述
-- [ ] 章節手風琴列表
-- [ ] 點擊課程導航到播放頁
+- [x] 顯示課程標題描述
+- [x] 章節手風琴列表
+- [x] 點擊課程導航到播放頁
 
 ---
 
@@ -1656,11 +1656,11 @@ export default function LessonPage({ params }: PageProps) {
 
 **驗收條件**:
 
-- [ ] 根據 lessonType 渲染對應內容
-- [ ] 影片進度追蹤
-- [ ] 側邊欄顯示課程列表
-- [ ] 上下課導航
-- [ ] 權限檢查與 Modal
+- [x] 根據 lessonType 渲染對應內容
+- [x] 影片進度追蹤
+- [x] 側邊欄顯示課程列表
+- [x] 上下課導航
+- [x] 權限檢查與 Modal
 
 ---
 
@@ -1680,7 +1680,7 @@ export default function CourseLayout({
 
 **驗收條件**:
 
-- [ ] 簡單的 layout wrapper
+- [x] 簡單的 layout wrapper
 
 ---
 
@@ -1690,9 +1690,9 @@ export default function CourseLayout({
 
 確保所有頁面有適當的 loading skeleton:
 
-- [ ] JourneyList skeleton
-- [ ] JourneyDetail skeleton  
-- [ ] LessonPage skeleton
+- [x] JourneyList skeleton
+- [x] JourneyDetail skeleton  
+- [x] LessonPage skeleton
 
 ---
 
@@ -1700,17 +1700,17 @@ export default function CourseLayout({
 
 確保所有錯誤有適當的顯示:
 
-- [ ] Network error
-- [ ] 404 Not found
-- [ ] 403 Access denied
+- [x] Network error
+- [x] 404 Not found
+- [x] 403 Access denied
 
 ---
 
 ### Task 7.3: Responsive Design
 
-- [ ] Mobile: 隱藏 lesson sidebar，可用抽屜顯示
-- [ ] Tablet: 調整 grid columns
-- [ ] Desktop: 完整顯示
+- [x] Mobile: 隱藏 lesson sidebar，可用抽屜顯示
+- [x] Tablet: 調整 grid columns
+- [x] Desktop: 完整顯示
 
 ---
 
@@ -1722,9 +1722,9 @@ npm install lucide-react
 
 確認 shadcn/ui 元件:
 
-- [ ] Button
-- [ ] ScrollArea
-- [ ] 其他需要的元件
+- [x] Button
+- [x] ScrollArea
+- [x] 其他需要的元件
 
 ---
 
@@ -1732,62 +1732,62 @@ npm install lucide-react
 
 ### Types (5 tasks)
 
-- [ ] 1.1 journey.ts
-- [ ] 1.2 chapter.ts
-- [ ] 1.3 lesson.ts
-- [ ] 1.4 progress.ts
-- [ ] 1.5 types/index.ts
+- [x] 1.1 journey.ts
+- [x] 1.2 chapter.ts
+- [x] 1.3 lesson.ts
+- [x] 1.4 progress.ts
+- [x] 1.5 types/index.ts
 
 ### Services (3 tasks)
 
-- [ ] 2.1 journey.service.ts
-- [ ] 2.2 lesson.service.ts
-- [ ] 2.3 progress.service.ts
+- [x] 2.1 journey.service.ts
+- [x] 2.2 lesson.service.ts
+- [x] 2.3 progress.service.ts
 
 ### Hooks (5 tasks)
 
-- [ ] 3.1 useJourneyList.ts
-- [ ] 3.2 useJourney.ts
-- [ ] 3.3 useLesson.ts
-- [ ] 3.4 useLessonProgress.ts
-- [ ] 3.5 useVideoProgress.ts
+- [x] 3.1 useJourneyList.ts
+- [x] 3.2 useJourney.ts
+- [x] 3.3 useLesson.ts
+- [x] 3.4 useLessonProgress.ts
+- [x] 3.5 useVideoProgress.ts
 
 ### Course Components (8 tasks)
 
-- [ ] 4.1 ProgressBar.tsx
-- [ ] 4.2 LessonTypeIcon.tsx
-- [ ] 4.3 LessonItem.tsx
-- [ ] 4.4 ChapterAccordion.tsx
-- [ ] 4.5 JourneyCard.tsx
-- [ ] 4.6 JourneyList.tsx
-- [ ] 4.7 CourseProgress.tsx
-- [ ] 4.8 course/index.ts
+- [x] 4.1 ProgressBar.tsx
+- [x] 4.2 LessonTypeIcon.tsx
+- [x] 4.3 LessonItem.tsx
+- [x] 4.4 ChapterAccordion.tsx
+- [x] 4.5 JourneyCard.tsx
+- [x] 4.6 JourneyList.tsx
+- [x] 4.7 CourseProgress.tsx
+- [x] 4.8 course/index.ts
 
 ### Lesson Components (7 tasks)
 
-- [ ] 5.1 VideoPlayer.tsx
-- [ ] 5.2 GoogleFormEmbed.tsx
-- [ ] 5.3 ArticleContent.tsx
-- [ ] 5.4 LessonNavigation.tsx
-- [ ] 5.5 LessonSidebar.tsx
-- [ ] 5.6 AccessDeniedModal.tsx
-- [ ] 5.7 lesson/index.ts
+- [x] 5.1 VideoPlayer.tsx
+- [x] 5.2 GoogleFormEmbed.tsx
+- [x] 5.3 ArticleContent.tsx
+- [x] 5.4 LessonNavigation.tsx
+- [x] 5.5 LessonSidebar.tsx
+- [x] 5.6 AccessDeniedModal.tsx
+- [x] 5.7 lesson/index.ts
 
 ### Pages (4 tasks)
 
-- [ ] 6.1 (main)/courses/page.tsx
-- [ ] 6.2 courses/[courseId]/page.tsx
-- [ ] 6.3 courses/[courseId]/lessons/[lessonId]/page.tsx
-- [ ] 6.4 courses/[courseId]/layout.tsx
+- [x] 6.1 (main)/courses/page.tsx
+- [x] 6.2 courses/[courseId]/page.tsx
+- [x] 6.3 courses/[courseId]/lessons/[lessonId]/page.tsx
+- [x] 6.4 courses/[courseId]/layout.tsx
 
 ### Integration (4 tasks)
 
-- [ ] 7.1 Loading states
-- [ ] 7.2 Error states
-- [ ] 7.3 Responsive design
-- [ ] 7.4 Dependencies
+- [x] 7.1 Loading states
+- [x] 7.2 Error states
+- [x] 7.3 Responsive design
+- [x] 7.4 Dependencies
 
-**Total: 36 tasks**
+**Total: 36 tasks (32 completed, 4 E2E tests pending)**
 
 ---
 
