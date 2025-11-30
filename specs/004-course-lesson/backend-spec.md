@@ -651,6 +651,501 @@ GET /api/lessons/{lessonId}
 
 ---
 
+## API 實作流程詳解
+
+本節詳細說明每個 API 的內部處理流程，幫助交接工程師理解系統運作方式。
+
+### 1. GET /api/journeys - 課程列表
+
+| 項目 | 說明 |
+|------|------|
+| Controller | `JourneyController.getJourneys()` |
+| Service | `JourneyService.getPublishedJourneys()` |
+| Repository | `JourneyRepository.findByIsPublishedTrue()` |
+
+**處理流程：**
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Controller as JourneyController
+    participant Service as JourneyService
+    participant Repo as JourneyRepository
+    participant LessonRepo as LessonRepository
+    participant DB as Database
+
+    Client->>Controller: GET /api/journeys
+    Controller->>Service: getPublishedJourneys()
+    Service->>Repo: findByIsPublishedTrue()
+    Repo->>DB: SELECT * FROM journeys WHERE is_published = true
+    DB-->>Repo: List<Journey>
+    Repo-->>Service: List<Journey>
+    
+    loop 對每個 Journey
+        Service->>LessonRepo: countByJourneyId(journeyId)
+        LessonRepo->>DB: SELECT COUNT(*) FROM lessons
+        DB-->>LessonRepo: count
+        Service->>LessonRepo: sumDurationByJourneyId(journeyId)
+        LessonRepo->>DB: SELECT SUM(duration_seconds)
+        DB-->>LessonRepo: duration
+    end
+    
+    Service-->>Controller: List<JourneyListResponse>
+    Controller-->>Client: 200 OK
+```
+
+**Response 欄位對應：**
+
+| 欄位 | 來源 |
+|------|------|
+| id | `journey.getId()` |
+| title | `journey.getTitle()` |
+| description | `journey.getDescription()` |
+| thumbnailUrl | `journey.getThumbnailUrl()` |
+| chapterCount | `journey.getChapters().size()` |
+| lessonCount | Repository 查詢 |
+| totalDurationSeconds | Repository 查詢 |
+| price | `journey.getPrice() ?? 1990` |
+| currency | `"TWD"` |
+
+**不需要認證**，任何人都可以呼叫。
+
+---
+
+### 2. GET /api/journeys/{journeyId} - 課程詳情
+
+| 項目 | 說明 |
+|------|------|
+| Controller | `JourneyController.getJourneyDetail()` |
+| Service | `JourneyService.getJourneyDetail()` |
+| Dependencies | `AccessControlService`, `LessonProgressRepository` |
+
+**處理流程：**
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Controller as JourneyController
+    participant Service as JourneyService
+    participant AccessCtrl as AccessControlService
+    participant JourneyRepo as JourneyRepository
+    participant PurchaseRepo as UserPurchaseRepository
+    participant ProgressRepo as LessonProgressRepository
+    participant DB as Database
+
+    Client->>Controller: GET /api/journeys/{journeyId}<br/>(可帶 JWT Token)
+    Controller->>Controller: userId = principal?.getUser()?.getId()
+    Controller->>Service: getJourneyDetail(journeyId, userId)
+    
+    Service->>JourneyRepo: findByIdAndIsPublishedTrue(journeyId)
+    JourneyRepo->>DB: SELECT * FROM journeys WHERE id = ? AND is_published = true
+    DB-->>JourneyRepo: Journey
+    
+    alt Journey not found
+        JourneyRepo-->>Service: null
+        Service-->>Controller: throw EntityNotFoundException (404)
+    end
+    
+    JourneyRepo-->>Service: Journey
+    
+    Service->>AccessCtrl: hasPurchasedJourney(userId, journeyId)
+    alt userId == null
+        AccessCtrl-->>Service: false
+    else userId != null
+        AccessCtrl->>PurchaseRepo: existsByUserIdAndJourneyId(userId, journeyId)
+        PurchaseRepo->>DB: SELECT EXISTS(SELECT 1 FROM user_purchases<br/>WHERE user_id = ? AND journey_id = ?)
+        DB-->>PurchaseRepo: boolean
+        PurchaseRepo-->>AccessCtrl: isPurchased
+        AccessCtrl-->>Service: isPurchased
+    end
+    
+    Service->>Service: 收集所有 lessonIds
+    
+    alt userId != null 且有 lessons
+        Service->>ProgressRepo: findByUserIdAndLessonIds(userId, lessonIds)
+        ProgressRepo->>DB: SELECT * FROM lesson_progress<br/>WHERE user_id = ? AND lesson_id IN (?)
+        DB-->>ProgressRepo: List<LessonProgress>
+        ProgressRepo-->>Service: progressMap
+    end
+    
+    Service->>Service: toJourneyDetailResponse(journey, userId, isPurchased, progressMap)
+    Note over Service: 對每個 Chapter/Lesson 計算<br/>isAccessible 和 isCompleted
+    
+    Service-->>Controller: JourneyDetailResponse
+    Controller-->>Client: 200 OK
+```
+
+**關鍵邏輯：**
+
+- 未登入時 `userId = null`，所有 `isCompleted = false`，`isPurchased = false`
+- 登入後會查詢用戶的學習進度和購買狀態
+- `isAccessible` 決定前端是否顯示鎖頭圖示
+
+---
+
+### 3. GET /api/lessons/{lessonId} - 課程內容
+
+| 項目 | 說明 |
+|------|------|
+| Controller | `LessonController.getLessonDetail()` |
+| Service | `LessonService.getLessonDetail()` |
+| Dependencies | `AccessControlService`, `VideoService` |
+
+**處理流程：**
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Security as Spring Security Filter
+    participant Controller as LessonController
+    participant Service as LessonService
+    participant AccessCtrl as AccessControlService
+    participant LessonRepo as LessonRepository
+    participant ProgressRepo as LessonProgressRepository
+    participant VideoSvc as VideoService
+    participant DB as Database
+
+    Client->>Security: GET /api/lessons/{lessonId}<br/>(必須帶 JWT Token)
+    
+    alt 無 Token
+        Security-->>Client: 401 Unauthorized
+    end
+    
+    Security->>Controller: 通過驗證
+    Controller->>Service: getLessonDetail(lessonId, userId)
+    
+    Service->>LessonRepo: findById(lessonId)
+    LessonRepo->>DB: SELECT * FROM lessons WHERE id = ?
+    
+    alt Lesson not found
+        DB-->>LessonRepo: null
+        LessonRepo-->>Service: throw EntityNotFoundException (404)
+    end
+    
+    DB-->>LessonRepo: Lesson
+    LessonRepo-->>Service: Lesson
+    
+    Service->>AccessCtrl: canAccessLesson(lesson, userId)
+    Note over AccessCtrl: 檢查 accessType 和購買狀態
+    
+    alt 無權限
+        AccessCtrl-->>Service: false
+        Service-->>Controller: throw AccessDeniedException (403)
+    end
+    
+    AccessCtrl-->>Service: true
+    
+    Service->>ProgressRepo: findByUserIdAndLessonId(userId, lessonId)
+    ProgressRepo->>DB: SELECT * FROM lesson_progress<br/>WHERE user_id = ? AND lesson_id = ?
+    DB-->>ProgressRepo: LessonProgress (or null)
+    ProgressRepo-->>Service: progress
+    
+    Service->>LessonRepo: findByJourneyIdOrdered(journeyId)
+    LessonRepo->>DB: 查詢同 Journey 所有課程
+    DB-->>LessonRepo: List<Lesson>
+    LessonRepo-->>Service: 計算 previousLesson, nextLesson
+    
+    alt lesson.getVideo() != null
+        Service->>VideoSvc: generateStreamUrl(videoId)
+        VideoSvc-->>Service: Signed URL (Supabase Storage)
+    end
+    
+    Service->>Service: 建立 LessonDetailResponse
+    Service-->>Controller: LessonDetailResponse
+    Controller-->>Client: 200 OK
+```
+
+**權限檢查流程圖：**
+
+```mermaid
+flowchart TD
+    A[AccessControlService.canAccessLesson] --> B{accessType?}
+    
+    B -->|PUBLIC| C[return true]
+    B -->|TRIAL| D{userId != null?}
+    B -->|PURCHASED| E{userId != null?}
+    B -->|other| F[return false]
+    
+    D -->|yes| C
+    D -->|no| F
+    
+    E -->|yes| G[檢查 user_purchases]
+    E -->|no| F
+    
+    G --> H{有購買記錄?}
+    H -->|yes| C
+    H -->|no| I[return false - 403]
+    
+    C --> J[200 OK]
+    F --> K[403 Forbidden]
+    I --> K
+```
+
+---
+
+### 4. PUT /api/lessons/{lessonId}/progress - 更新觀看進度
+
+| 項目 | 說明 |
+|------|------|
+| Controller | `LessonController.updateProgress()` |
+| Service | `LessonProgressService.updateProgress()` |
+| 前端呼叫時機 | 影片播放中每 10 秒、離開頁面時 |
+
+**處理流程：**
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Controller as LessonController
+    participant Service as LessonProgressService
+    participant AccessCtrl as AccessControlService
+    participant LessonRepo as LessonRepository
+    participant ProgressRepo as LessonProgressRepository
+    participant DB as Database
+
+    Client->>Controller: PUT /api/lessons/{lessonId}/progress<br/>Body: { "lastPositionSeconds": 900 }
+    Controller->>Service: updateProgress(lessonId, userId, lastPositionSeconds)
+    
+    Service->>LessonRepo: findById(lessonId)
+    LessonRepo->>DB: SELECT * FROM lessons WHERE id = ?
+    
+    alt Lesson not found
+        DB-->>LessonRepo: null
+        LessonRepo-->>Service: throw EntityNotFoundException (404)
+    end
+    
+    DB-->>LessonRepo: Lesson
+    LessonRepo-->>Service: Lesson
+    
+    Service->>AccessCtrl: canAccessLesson(lesson, userId)
+    alt 無權限
+        AccessCtrl-->>Service: false
+        Service-->>Controller: throw AccessDeniedException (403)
+    end
+    AccessCtrl-->>Service: true
+    
+    Service->>ProgressRepo: findByUserIdAndLessonId(userId, lessonId)
+    ProgressRepo->>DB: SELECT * FROM lesson_progress<br/>WHERE user_id = ? AND lesson_id = ?
+    
+    alt Progress exists
+        DB-->>ProgressRepo: LessonProgress
+        ProgressRepo-->>Service: 使用現有 progress
+    else Progress not found
+        DB-->>ProgressRepo: null
+        Service->>Service: 建立新的 LessonProgress
+    end
+    
+    Service->>Service: progress.setLastPositionSeconds(900)
+    Service->>ProgressRepo: save(progress)
+    ProgressRepo->>DB: INSERT or UPDATE lesson_progress
+    DB-->>ProgressRepo: saved
+    
+    Service->>Service: 建立 UpdateProgressResponse
+    Service-->>Controller: UpdateProgressResponse
+    Controller-->>Client: 200 OK
+```
+
+**資料庫操作：**
+
+```sql
+-- 若記錄存在 (UPDATE)
+UPDATE lesson_progress 
+SET last_position_seconds = 900, 
+    updated_at = CURRENT_TIMESTAMP
+WHERE user_id = 'xxx' AND lesson_id = 'xxx';
+
+-- 若記錄不存在 (INSERT)
+INSERT INTO lesson_progress (id, user_id, lesson_id, last_position_seconds, is_completed, created_at, updated_at)
+VALUES (gen_random_uuid(), 'xxx', 'xxx', 900, false, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+```
+
+---
+
+### 5. POST /api/lessons/{lessonId}/complete - 標記完成
+
+| 項目 | 說明 |
+|------|------|
+| Controller | `LessonController.completeLesson()` |
+| Service | `LessonProgressService.completeLesson()` |
+| 前端呼叫時機 | 影片播放結束 (onEnded)、非影片課程點擊「下一課」 |
+
+**處理流程：**
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Controller as LessonController
+    participant Service as LessonProgressService
+    participant AccessCtrl as AccessControlService
+    participant LessonRepo as LessonRepository
+    participant ProgressRepo as LessonProgressRepository
+    participant DB as Database
+
+    Client->>Controller: POST /api/lessons/{lessonId}/complete<br/>(無 Body)
+    Controller->>Service: completeLesson(lessonId, userId)
+    
+    Service->>LessonRepo: findById(lessonId)
+    LessonRepo->>DB: SELECT * FROM lessons WHERE id = ?
+    
+    alt Lesson not found
+        DB-->>LessonRepo: null
+        LessonRepo-->>Service: throw EntityNotFoundException (404)
+    end
+    
+    DB-->>LessonRepo: Lesson
+    LessonRepo-->>Service: Lesson
+    
+    Service->>AccessCtrl: canAccessLesson(lesson, userId)
+    alt 無權限
+        AccessCtrl-->>Service: false
+        Service-->>Controller: throw AccessDeniedException (403)
+    end
+    AccessCtrl-->>Service: true
+    
+    Service->>ProgressRepo: findByUserIdAndLessonId(userId, lessonId)
+    ProgressRepo->>DB: SELECT * FROM lesson_progress<br/>WHERE user_id = ? AND lesson_id = ?
+    
+    alt Progress exists
+        DB-->>ProgressRepo: LessonProgress
+        ProgressRepo-->>Service: 使用現有 progress
+    else Progress not found
+        DB-->>ProgressRepo: null
+        Service->>Service: 建立新的 LessonProgress
+    end
+    
+    Service->>Service: progress.setIsCompleted(true)
+    Service->>Service: progress.setCompletedAt(now())
+    Service->>ProgressRepo: save(progress)
+    ProgressRepo->>DB: UPDATE lesson_progress SET is_completed = true
+    DB-->>ProgressRepo: saved
+    
+    Service->>Service: 建立 CompleteResponse
+    Service-->>Controller: CompleteResponse
+    Controller-->>Client: 200 OK
+```
+
+**冪等性說明：**
+
+- 多次呼叫 complete 不會產生錯誤
+- `completedAt` 會更新為最新的完成時間
+- 前端可以安全地重複呼叫
+
+---
+
+### 6. GET /api/journeys/{journeyId}/progress - 課程進度總覽
+
+| 項目 | 說明 |
+|------|------|
+| Controller | `JourneyController.getJourneyProgress()` |
+| Service | `LessonProgressService.getJourneyProgress()` |
+
+**處理流程：**
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Controller as JourneyController
+    participant Service as LessonProgressService
+    participant JourneyRepo as JourneyRepository
+    participant LessonRepo as LessonRepository
+    participant ProgressRepo as LessonProgressRepository
+    participant DB as Database
+
+    Client->>Controller: GET /api/journeys/{journeyId}/progress<br/>(必須帶 JWT Token)
+    Controller->>Service: getJourneyProgress(journeyId, userId)
+    
+    Service->>JourneyRepo: findByIdAndIsPublishedTrue(journeyId)
+    JourneyRepo->>DB: SELECT * FROM journeys WHERE id = ? AND is_published = true
+    
+    alt Journey not found
+        DB-->>JourneyRepo: null
+        JourneyRepo-->>Service: throw EntityNotFoundException (404)
+    end
+    
+    DB-->>JourneyRepo: Journey
+    JourneyRepo-->>Service: Journey
+    
+    Service->>LessonRepo: countByJourneyId(journeyId)
+    LessonRepo->>DB: SELECT COUNT(*) FROM lessons l<br/>JOIN chapters c ON l.chapter_id = c.id<br/>WHERE c.journey_id = ?
+    DB-->>LessonRepo: totalLessons
+    LessonRepo-->>Service: totalLessons
+    
+    Service->>ProgressRepo: countCompletedByUserIdAndJourneyId(userId, journeyId)
+    ProgressRepo->>DB: SELECT COUNT(*) FROM lesson_progress lp<br/>JOIN lessons l ON lp.lesson_id = l.id<br/>JOIN chapters c ON l.chapter_id = c.id<br/>WHERE lp.user_id = ? AND c.journey_id = ?<br/>AND lp.is_completed = true
+    DB-->>ProgressRepo: completedLessons
+    ProgressRepo-->>Service: completedLessons
+    
+    Service->>Service: progressPercentage = (completedLessons * 100) / totalLessons
+    
+    loop 對每個 Chapter
+        Service->>Service: 取得該章節所有 lessonIds
+        Service->>ProgressRepo: findByUserIdAndLessonIds(userId, lessonIds)
+        ProgressRepo->>DB: SELECT * FROM lesson_progress WHERE user_id = ? AND lesson_id IN (?)
+        DB-->>ProgressRepo: List<LessonProgress>
+        ProgressRepo-->>Service: 計算已完成數量
+    end
+    
+    Service->>Service: 建立 JourneyProgressResponse
+    Service-->>Controller: JourneyProgressResponse
+    Controller-->>Client: 200 OK
+```
+
+---
+
+## 前後端互動時序圖
+
+### 學習流程完整時序
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant Frontend
+    participant Backend
+    participant DB as Database
+
+    User->>Frontend: 進入課程頁面
+    
+    Frontend->>Backend: GET /api/journeys/{id}
+    Backend->>DB: 查詢 journey
+    DB-->>Backend: Journey
+    Backend->>DB: 查詢 user_purchases
+    DB-->>Backend: purchase status
+    Backend->>DB: 查詢 lesson_progress
+    DB-->>Backend: progress data
+    Backend-->>Frontend: JourneyDetailResponse
+    
+    User->>Frontend: 點擊課程
+    
+    Frontend->>Backend: GET /api/lessons/{id}
+    Backend->>DB: 權限檢查
+    DB-->>Backend: access granted
+    Backend-->>Frontend: LessonDetailResponse
+    
+    Note over User,Frontend: 開始播放影片
+    
+    loop 每 10 秒
+        Frontend->>Backend: PUT /lessons/{id}/progress<br/>{ lastPositionSeconds }
+        Backend->>DB: 更新 lesson_progress
+        DB-->>Backend: updated
+        Backend-->>Frontend: 200 OK
+    end
+    
+    Note over User,Frontend: 影片播放結束
+    
+    Frontend->>Backend: POST /lessons/{id}/complete
+    Backend->>DB: 標記完成
+    DB-->>Backend: completed
+    Backend-->>Frontend: CompleteResponse
+    
+    Frontend->>User: 顯示慶祝動畫
+    
+    Frontend->>Backend: GET /api/journeys/{id}
+    Note right of Frontend: 刷新側邊欄狀態
+    Backend-->>Frontend: JourneyDetailResponse (updated)
+```
+
+---
+
 ## Entity Definitions
 
 ### LessonType Enum
