@@ -1611,63 +1611,63 @@ void authenticatedUser_canMarkLessonComplete() {
 
 ### Phase 1: Database & Entity
 
-- [ ] Task 1.1: Flyway Migration
-- [ ] Task 1.2: LessonType Enum
-- [ ] Task 1.3: AccessType Enum
-- [ ] Task 1.4: Video Entity
-- [ ] Task 1.5: Journey Entity
-- [ ] Task 1.6: Chapter Entity
-- [ ] Task 1.7: Lesson Entity
-- [ ] Task 1.8: LessonProgress Entity
-- [ ] Task 1.9: UserPurchase Entity
-- [ ] Task 1.10: JourneyRepository
-- [ ] Task 1.11: ChapterRepository
-- [ ] Task 1.12: LessonRepository
-- [ ] Task 1.13: LessonProgressRepository
-- [ ] Task 1.14: UserPurchaseRepository
-- [ ] Task 1.15: VideoRepository
+- [x] Task 1.1: Flyway Migration (V20251126000001__create_course_tables.sql)
+- [x] Task 1.2: LessonType Enum
+- [x] Task 1.3: AccessType Enum
+- [x] Task 1.4: Video Entity
+- [x] Task 1.5: Journey Entity
+- [x] Task 1.6: Chapter Entity
+- [x] Task 1.7: Lesson Entity
+- [x] Task 1.8: LessonProgress Entity
+- [x] Task 1.9: UserPurchase Entity
+- [x] Task 1.10: JourneyRepository
+- [x] Task 1.11: ChapterRepository
+- [x] Task 1.12: LessonRepository
+- [x] Task 1.13: LessonProgressRepository
+- [x] Task 1.14: UserPurchaseRepository
+- [x] Task 1.15: VideoRepository
 
 ### Phase 2: Service Layer
 
-- [ ] Task 2.1: AccessControlService
-- [ ] Task 2.2: JourneyService
-- [ ] Task 2.3: LessonService
-- [ ] Task 2.4: LessonProgressService
-- [ ] Task 2.5: VideoService
+- [x] Task 2.1: AccessControlService
+- [x] Task 2.2: JourneyService
+- [x] Task 2.3: LessonService
+- [x] Task 2.4: LessonProgressService
+- [x] Task 2.5: VideoService
 
 ### Phase 3: DTOs
 
-- [ ] Task 3.1: UpdateProgressRequest
-- [ ] Task 3.2: JourneyListResponse
-- [ ] Task 3.3: JourneyDetailResponse
-- [ ] Task 3.4: ChapterResponse
-- [ ] Task 3.5: LessonSummaryResponse
-- [ ] Task 3.6: LessonDetailResponse
-- [ ] Task 3.7: InstructorResponse
-- [ ] Task 3.8: ProgressResponse
-- [ ] Task 3.9: LessonNavResponse
-- [ ] Task 3.10: UpdateProgressResponse
-- [ ] Task 3.11: CompleteResponse
-- [ ] Task 3.12: JourneyProgressResponse
-- [ ] Task 3.13: ChapterProgressResponse
-- [ ] Task 3.14: VideoStreamResponse
+- [x] Task 3.1: UpdateProgressRequest
+- [x] Task 3.2: JourneyListResponse
+- [x] Task 3.3: JourneyDetailResponse
+- [x] Task 3.4: ChapterResponse
+- [x] Task 3.5: LessonSummaryResponse
+- [x] Task 3.6: LessonDetailResponse
+- [x] Task 3.7: InstructorResponse
+- [x] Task 3.8: ProgressResponse
+- [x] Task 3.9: LessonNavResponse
+- [x] Task 3.10: UpdateProgressResponse
+- [x] Task 3.11: CompleteResponse
+- [x] Task 3.12: JourneyProgressResponse
+- [x] Task 3.13: ChapterProgressResponse
+- [x] Task 3.14: VideoStreamResponse
 
 ### Phase 4: Controllers
 
-- [ ] Task 4.1: JourneyController
-- [ ] Task 4.2: LessonController
-- [ ] Task 4.3: VideoController
-- [ ] Task 4.4: SecurityConfig 更新
-- [ ] Task 4.5: AccessDeniedException
-- [ ] Task 4.6: GlobalExceptionHandler 更新
+- [x] Task 4.1: JourneyController
+- [x] Task 4.2: LessonController
+- [x] Task 4.3: VideoController
+- [x] Task 4.4: SecurityConfig 更新
+- [x] Task 4.5: AccessDeniedException
+- [x] Task 4.6: GlobalExceptionHandler 更新
 
 ### Phase 5: Integration Tests
 
-- [ ] Task 5.1: JourneyControllerTest
-- [ ] Task 5.2: LessonControllerTest
-- [ ] Task 5.3: VideoControllerTest
-- [ ] Task 5.4: AccessControlServiceTest
+- [x] Task 5.1: JourneyControllerTest
+- [x] Task 5.2: LessonControllerTest
+- [x] Task 5.3: VideoControllerTest
+- [x] Task 5.4: AccessControlServiceTest
 
 ### Phase 6: E2E Tests
 
-- [ ] Task 6.1: CourseE2ETest (8 test scenarios)
+- [x] Task 6.1: CourseE2ETest (8 test scenarios)

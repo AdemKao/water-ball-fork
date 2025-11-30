@@ -113,6 +113,7 @@ export default function LessonPage({ params }: PageProps) {
               previousLesson={lesson.previousLesson}
               nextLesson={lesson.nextLesson}
               onNavigate={(lessonId) => router.push(`/courses/${courseId}/lessons/${lessonId}`)}
+              onNext={lesson.lessonType !== 'VIDEO' ? markComplete : undefined}
             />
           </div>
         </div>
