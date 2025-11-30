@@ -23,6 +23,8 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     container_name: waterball-course-backend
+    env_file:
+      - ./backend/.env
     environment:
       SPRING_PROFILES_ACTIVE: docker
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/course_platform
